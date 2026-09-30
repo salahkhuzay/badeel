@@ -170,3 +170,60 @@ badeel/
   وخدمة صور متدرّجة عبر Service Worker لمن يعاني اتصالاً متقطعاً.
 - **العربية ليست ترجمة** — التصنيفات والأحياء والرسائل مكتوبة بلغة أهل السوق في منبج
   («طابو أخضر»، «خالية العلام أورجينال»، «نمرة منبج»، «عرقاري - سياق»).
+
+---
+
+## 8) النشر على GitHub (خطوة بخطوة)
+
+المشروع مُهيّأ كمستودع Git كامل (فرع `main`، سجل commits، ملف `.gitignore`، وملف CI).
+كل ما يتبقّى هو إنشاء المستودع على GitHub ودفع الكود إليه.
+
+### الطريقة الأسرع (GitHub CLI)
+
+```bash
+cd badeel
+gh auth login                       # تسجيل الدخول مرة واحدة
+gh repo create badeel --public --source=. --remote=origin --push
+```
+
+### الطريقة اليدوية (بدون أدوات إضافية)
+
+1. أنشئ مستودعاً **فارغاً** (بدون README أو .gitignore) من:
+   <https://github.com/new?name=badeel>
+2. نفّذ داخل مجلد المشروع:
+
+```bash
+git remote add origin https://github.com/<اسم-حسابك>/badeel.git
+git branch -M main
+git push -u origin main
+```
+
+> عند طلب كلمة المرور، استخدم **Personal Access Token** (لا كلمة مرور الحساب):
+> `Settings → Developer settings → Personal access tokens → Fine-grained tokens` مع صلاحية
+> **Contents: Read and write** على ذلك المستودع فقط.
+
+أو باستخدام سكربت جاهز في المستودع:
+
+```bash
+chmod +x push-to-github.sh
+./push-to-github.sh <اسم-حسابك> badeel
+```
+
+### ماذا يحدث بعد الرفع؟
+
+- **تبويب Actions** سيشغّل تلقائياً خط CI مكتوب في
+  `.github/workflows/ci.yml`: تثبيت الحزم → فحص الأنواع (`npm run typecheck`) → بناء الإنتاج
+  (`npm run build`). أي خطأ سيظهر في التبويب مباشرة قبل أي نشر.
+- المشروع **جاهز للنشر** على أي منصة تدعم Next.js: Vercel · Netlify · Cloudflare Pages ·
+  خادم Node.js خاص (يكفي `npm ci && npm run build && npm start`).
+- لا توجد أي مفاتيح أو أسرار داخل المستودع؛ ملف `.env.example` يوضّح المتغيّرات المطلوبة لاحقاً
+  عند ربط قاعدة بيانات.
+
+### ملف حزمة احتياطي (Git Bundle)
+
+بجانب المشروع يوجد ملف `badeel.bundle` يحتوي كامل السجل التاريخي في ملف واحد. لاستعادة المستودع
+على أي جهاز بدون شبكة:
+
+```bash
+git clone badeel.bundle badeel
+```
