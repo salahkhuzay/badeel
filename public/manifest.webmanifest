@@ -1,0 +1,27 @@
+{
+  "name": "بديل — Badeel | سوق العقارات والمركبات في منبج",
+  "short_name": "بديل",
+  "description": "بديل — خيارك الأفضل للبيع والشراء في منبج. عقارات ومركبات بأسعار بالدولار والليرة السورية.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F172A",
+  "categories": ["shopping", "business", "lifestyle"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "عقارات", "url": "/category/real-estate" },
+    { "name": "سيارات ومركبات", "url": "/category/vehicles" },
+    { "name": "أضف إعلانك", "url": "/post-ad" }
+  ]
+}

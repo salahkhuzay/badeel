@@ -1,0 +1,216 @@
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import {
+  BadgeCheck,
+  Building,
+  CalendarDays,
+  Car,
+  Eye,
+  Fuel,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Ruler,
+  Sparkles,
+  Warehouse,
+} from "lucide-react";
+import type { Ad } from "@/lib/types";
+import { useStore } from "@/lib/store";
+import { compactMoney, timeAgo } from "@/lib/currency";
+import {
+  bodyConditionName,
+  dealTypeName,
+  ownershipName,
+  propertyTypeName,
+  vehicleTypeName,
+} from "@/lib/taxonomy";
+import Price from "./Price";
+import StatusBadge from "./StatusBadge";
+
+/* ==========================================================================
+   بطاقة الإعلان — تعرض دائماً السعر بالعملتين، حالة الإعلان،
+   وأزرار التواصل السريع (واتساب + اتصال مباشر).
+   ========================================================================== */
+
+export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: boolean }) {
+  const { districtName, settings } = useStore();
+  const district = districtName(ad.cityId, ad.districtId);
+  const isDone = ad.status === "sold" || ad.status === "rented";
+
+  const waText = encodeURIComponent(
+    `مرحباً، أنا مهتم بإعلانك على منصة بديل: ${ad.title}`
+  );
+  const wa = `https://wa.me/${normalize(ad.sellerWhatsapp, settings.whatsappCountryCode)}?text=${waText}`;
+  const tel = `tel:+${normalize(ad.sellerPhone, settings.whatsappCountryCode)}`;
+
+  const img = ad.images?.[0];
+
+  return (
+    <article className="card card-hover group flex flex-col overflow-hidden">
+      {/* الصورة */}
+      <Link href={`/ad/${ad.ref}`} className="relative block aspect-[4/3] overflow-hidden">
+        {img ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={img}
+            alt={ad.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-navy-800 to-navy-900 text-navy-500">
+            {ad.category === "real-estate" ? <Building size={44} /> : <Car size={44} />}
+            <span className="absolute bottom-3 text-[11px] font-semibold text-navy-300">
+              لا توجد صور — تواصل مع المُعلن
+            </span>
+          </div>
+        )}
+
+        {/* شريط علوي */}
+        <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2.5">
+          <div className="flex flex-wrap gap-1.5">
+            {ad.featured && (
+              <span className="badge bg-amberBrand-500 text-navy-900 shadow-sm">
+                <Sparkles size={11} /> مميّز
+              </span>
+            )}
+            {ad.category === "real-estate" && (
+              <span className="badge bg-white/90 text-navy-700 backdrop-blur dark:bg-navy-900/90 dark:text-navy-100">
+                {propertyTypeName(ad.propertyType)}
+              </span>
+            )}
+            {ad.category === "vehicles" && (
+              <span className="badge bg-white/90 text-navy-700 backdrop-blur dark:bg-navy-900/90 dark:text-navy-100">
+                {vehicleTypeName(ad.vehicleType)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* حالة منتهية */}
+        {isDone && (
+          <div className="absolute inset-0 flex items-center justify-center bg-navy-950/60 backdrop-blur-[1px]">
+            <span className="rounded-xl border-2 border-white/70 px-4 py-1.5 text-base font-extrabold text-white">
+              {ad.status === "sold" ? "تم البيع" : "تم التأجير"}
+            </span>
+          </div>
+        )}
+      </Link>
+
+      {/* المحتوى */}
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-2">
+          <Link
+            href={`/ad/${ad.ref}`}
+            className="line-clamp-2 text-[15px] font-bold leading-snug text-navy-900 transition hover:text-amberBrand-600 dark:text-white"
+          >
+            {ad.title}
+          </Link>
+          <StatusBadge status={ad.status} className="shrink-0" />
+        </div>
+
+        {!compact && (
+          <p className="mt-2 line-clamp-2 text-[12.5px] leading-relaxed text-navy-500 dark:text-navy-300">
+            {ad.description}
+          </p>
+        )}
+
+        {/* المواصفات السريعة */}
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {ad.category === "real-estate" ? (
+            <>
+              <Spec icon={<Ruler size={12} />} text={`${ad.areaSize} ${ad.areaUnit === "donum" ? "دونم" : "م²"}`} />
+              <Spec icon={<BadgeCheck size={12} />} text={ownershipName(ad.ownership)} />
+              <Spec icon={<CalendarDays size={12} />} text={dealTypeName(ad.dealType)} />
+            </>
+          ) : (
+            <>
+              <Spec icon={<Car size={12} />} text={`${ad.make ?? ""} ${ad.model ?? ""}`.trim() || "—"} />
+              <Spec icon={<CalendarDays size={12} />} text={String(ad.year ?? "—")} />
+              <Spec icon={<Fuel size={12} />} text={bodyConditionName(ad.bodyCondition)} />
+            </>
+          )}
+        </div>
+
+        <div className="mt-3 flex items-center gap-3 text-[11.5px] text-navy-400 dark:text-navy-400">
+          <span className="inline-flex items-center gap-1">
+            <MapPin size={12} className="text-amberBrand-500" /> {district}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Eye size={12} /> {ad.views}
+          </span>
+          <span className="ms-auto" suppressHydrationWarning>
+            {timeAgo(ad.publishedAt ?? ad.createdAt)}
+          </span>
+        </div>
+
+        <div className="divider my-3" />
+
+        <div className="mt-auto flex items-end justify-between gap-3">
+          <Price
+            priceUsd={ad.priceUsd}
+            priceSyp={ad.priceSyp}
+            size="md"
+            suffix={
+              ad.dealType === "rent-monthly" ? "/ شهرياً" : ad.dealType === "rent-yearly" ? "/ سنوياً" : undefined
+            }
+          />
+          <div className="flex shrink-0 gap-1.5">
+            <a
+              href={wa}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-sm bg-emeraldBrand-500 text-white hover:bg-emeraldBrand-600 px-2.5"
+              title="تواصل عبر واتساب"
+            >
+              <MessageCircle size={15} />
+              <span className="hidden sm:inline">واتساب</span>
+            </a>
+            <a
+              href={tel}
+              className="btn btn-sm border border-navy-200 text-navy-700 hover:bg-navy-50 dark:border-navy-700 dark:text-navy-100 dark:hover:bg-navy-800 px-2.5"
+              title="اتصال مباشر"
+            >
+              <Phone size={15} />
+            </a>
+          </div>
+        </div>
+
+        {ad.negotiable && (
+          <p className="mt-2 text-[11px] font-semibold text-emeraldBrand-600 dark:text-emeraldBrand-400">
+            ✓ السعر قابل للتفاوض
+          </p>
+        )}
+        {ad.status === "rejected" && ad.rejectionReason && (
+          <p className="mt-2 rounded-lg bg-rose-50 p-2 text-[11px] text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
+            سبب الرفض: {ad.rejectionReason}
+          </p>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function Spec({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-lg bg-navy-50 px-2 py-1 text-[11px] font-semibold text-navy-600 dark:bg-navy-800 dark:text-navy-200">
+      {icon}
+      {text}
+    </span>
+  );
+}
+
+function normalize(raw: string, cc = "963") {
+  let d = (raw || "").replace(/[^\d]/g, "");
+  if (d.startsWith("0")) d = cc + d.slice(1);
+  else if (!d.startsWith(cc)) d = cc + d;
+  return d;
+}
+
+export { normalize as normalizePhoneClient };
+
+/** مبلغ مختصر جاهز للاستخدام في الشرائح */
+export const shortPrice = (ad: Ad, currency: "USD" | "SYP") =>
+  compactMoney(currency === "USD" ? ad.priceUsd : ad.priceSyp, currency);
