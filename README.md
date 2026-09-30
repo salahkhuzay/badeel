@@ -227,3 +227,63 @@ chmod +x push-to-github.sh
 ```bash
 git clone badeel.bundle badeel
 ```
+
+---
+
+## 9) النشر على الإنترنت + الظهور في Google
+
+> **مهم:** Google لا يستضيف المواقع، بل هو محرّك بحث. لذلك الترتيب الصحيح هو:
+> **① نشر الموقع على رابط عام → ② تقديمه إلى Google (Search Console) → ③ انتظار الفهرسة.**
+
+### ① النشر على Vercel (مجاني — دقيقتان)
+
+1. افتح <https://vercel.com/signup> واختر **Continue with GitHub** (نفس حساب `salahkhuzay`).
+2. اذهب إلى <https://vercel.com/new> → ستجد مستودع **badeel** في القائمة → اضغط **Import**.
+3. لا تغيّر أي إعداد (Vercel يتعرّف على Next.js تلقائياً) → اضغط **Deploy**.
+4. بعد ~60 ثانية تحصل على رابط عام دائم، مثل: `https://badeel.vercel.app` — هذا هو **رابط الموقع**.
+
+بدائل مكافئة: **Netlify** (netlify.com/new) · **Cloudflare Pages** · أي خادم Node.js
+(`npm ci && npm run build && npm start`).
+
+### ② ضبط رابط الموقع داخل المشروع (مهم لخريطة الموقع)
+
+في لوحة Vercel: `Project → Settings → Environment Variables` وأضف:
+
+| الاسم | القيمة |
+|---|---|
+| `NEXT_PUBLIC_SITE_URL` | `https://badeel.vercel.app` (أو دومينك الخاص) |
+| `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | رمز التحقق من Search Console (الخطوة ③) |
+
+ثم `Deployments → Redeploy` ليُطبَّق الرابط في `sitemap.xml` و`robots.txt` ووسوم `canonical`.
+
+### ③ الظهور في نتائج Google (Search Console)
+
+1. افتح <https://search.google.com/search-console> → **Add property**.
+2. اختر **URL prefix** واكتب رابط موقعك الكامل، مثل `https://badeel.vercel.app/`.
+3. طريقة التحقق الأسهل: **HTML tag** → انسخ قيمة `content` فقط (سلسلة الرمز) وضعها في
+   المتغيّر `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` في Vercel ثم Redeploy، وارجع واضغط **Verify**.
+   (أو استخدم التحقق عبر DNS بـ TXT إن كان لديك دومين خاص.)
+4. من القائمة الجانبية: **Sitemaps** → أضف `sitemap.xml` → Submit.
+5. من **URL Inspection**: الصق رابط الصفحة الرئيسية → **Request Indexing**.
+6. تابع تبويب **Pages** لمعرفة عدد الصفحات المفهرَسة بعد أيام.
+
+### ④ جدول زمني واقعي
+
+| المدة | ما يحدث |
+|---|---|
+| 0–24 ساعة | Verifivation + بدء الزحف، وقد تظهر علامة Google على الموقع |
+| 2–7 أيام | فهرسة الصفحة الرئيسية وصفحتي التصنيفات |
+| 2–6 أسابيع | ظهور أول النتائج في البحث بالاسم «بديل منبج» أو «عقارات منبج» |
+
+نصائح لتسريع الظهور محلياً:
+- أنشئ **Google Business Profile** لمشروعك (منبج، حلب) — يظهر في نتائج الخرائط والبحث المحلي.
+- شارك رابط الموقع على صفحات فيسبوك المحلية ومجموعات منبج؛ الروابط الخارجية تُسرّع الفهرسة.
+- استخدم كلمات البحث كما يكتبها الناس فعلاً: «شقة للبيع في منبج»، «منزل عربي منبج»،
+  «سيارة للبيع منبج» — وهي موجودة أصلاً في عناوين وأوصاف الصفحات.
+- حدّث الإعلانات بانتظام: محتوى جديد = زيارات زحف أكثر.
+
+### ملاحظة عن GitHub Pages
+
+GitHub Pages يستضيف **ملفات ثابتة فقط**، ولا يشغّل Next.js بخادم. يمكن تحويل المشروع إلى
+تصدير ثابت (`output: "export"`) لكن ستحتاج تعديل مسار `/ad/[ref]`، لذا يُفضَّل Vercel أو
+Netlify أو Cloudflare Pages لأنها تدعم Next.js كاملاً بلا تعديل.
