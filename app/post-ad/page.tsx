@@ -17,6 +17,8 @@ import {
   Image as ImageIcon,
   Info,
   LandPlot,
+  Layers,
+  MapPin,
   MessageCircle,
   Phone,
   Ruler,
@@ -38,6 +40,12 @@ import StatusBadge from "@/components/StatusBadge";
 import AdPreviewModal from "@/components/AdPreviewModal";
 import { cn, formatMoney, nextRef, uid } from "@/lib/currency";
 import {
+  DISTRICT_KINDS,
+  cleanDistrictName,
+  districtId as makeDistrictId,
+  guessDistrictKind,
+} from "@/lib/geo";
+import {
   AREA_UNITS,
   BODY_CONDITIONS,
   DEAL_TYPES,
@@ -52,6 +60,7 @@ import {
 import type {
   Ad,
   AreaUnit,
+  DistrictKind,
   BodyCondition,
   Currency,
   DealType,
@@ -112,7 +121,8 @@ interface FormState {
   currency: Currency;
   negotiable: boolean;
   cityId: string;
-  districtId: string;
+  districtName: string; // إدخال يدوي حر — لا قائمة أحياء ثابتة
+  districtKind: DistrictKind;
   images: string[];
   sellerName: string;
   sellerPhone: string;
@@ -140,7 +150,8 @@ const INITIAL: FormState = {
   currency: "USD",
   negotiable: true,
   cityId: "manbij",
-  districtId: "",
+  districtName: "",
+  districtKind: "area",
   images: [],
   sellerName: "",
   sellerPhone: "",
@@ -149,7 +160,7 @@ const INITIAL: FormState = {
 };
 
 export default function PostAdPage() {
-  const { cities, settings, addAd, ads, toUsd, toSyp } = useStore();
+  const { cities, settings, addAd, ads, toUsd, toSyp, ensureDistrict, districtFacets } = useStore();
   const toast = useToast();
 
   const [form, setForm] = useState<FormState>(INITIAL);
@@ -164,7 +175,9 @@ export default function PostAdPage() {
   };
 
   const activeCities = cities.filter((c) => c.active);
-  const districts = activeCities.find((c) => c.id === form.cityId)?.districts ?? [];
+
+  /* المناطق المتاحة كاقتراحات فقط — مشتقة من إعلانات المستخدمين + سجل الإدارة */
+  const knownDistricts = districtFacets("all").filter((f) => f.cityId === form.cityId);
 
   /* تحويل السعر الفوري للعملة الأخرى */
   const priceNumber = Number(form.price) || 0;
@@ -185,7 +198,8 @@ export default function PostAdPage() {
     if (form.title.trim().length < 10) e.title = "أدخل عنواناً واضحاً لا يقل عن 10 أحرف.";
     if (form.description.trim().length < 30)
       e.description = "اكتب وصفاً مفصّلاً لا يقل عن 30 حرفاً (الحالة، الأوراق، الموقع...).";
-    if (!form.districtId) e.districtId = "اختر الحي أو المنطقة.";
+    if (cleanDistrictName(form.districtName).length < 2)
+      e.districtName = "اكتب اسم الحي أو القرية أو المنطقة (حرفان على الأقل).";
     if (!priceNumber || priceNumber <= 0) e.price = "أدخل سعراً صحيحاً أكبر من صفر.";
     if (form.sellerName.trim().length < 3) e.sellerName = "أدخل اسمك أو اسم المكتب.";
     const phoneDigits = form.sellerPhone.replace(/\D/g, "");
@@ -267,7 +281,10 @@ export default function PostAdPage() {
       negotiable: form.negotiable,
 
       cityId: form.cityId,
-      districtId: form.districtId,
+      // تُنشأ المنطقة تلقائياً من الإدخال اليدوي (أو يُعاد استخدامها إن كانت موجودة)
+      districtId: makeDistrictId(form.cityId, cleanDistrictName(form.districtName)),
+      districtLabel: cleanDistrictName(form.districtName),
+      districtKind: form.districtKind,
 
       images: form.images,
       sellerName: form.sellerName.trim(),
@@ -284,6 +301,7 @@ export default function PostAdPage() {
       moderatedBy: null,
     };
 
+    ensureDistrict(form.cityId, form.districtName, form.districtKind);
     addAd(ad);
     setDone(ad);
     toast({
@@ -359,7 +377,7 @@ export default function PostAdPage() {
     form.title,
     form.description,
     form.price,
-    form.districtId,
+    form.districtName,
     form.sellerName,
     form.sellerPhone,
     form.images.length ? "x" : "",
@@ -720,7 +738,7 @@ export default function PostAdPage() {
                   value={form.cityId}
                   onChange={(e) => {
                     set("cityId", e.target.value);
-                    set("districtId", "");
+                    set("districtName", "");
                   }}
                   className="select"
                 >
@@ -732,43 +750,97 @@ export default function PostAdPage() {
                 </select>
                 <p className="hint">حلب ستُضاف قريباً كمدينة مستقلة.</p>
               </div>
-              <div data-error={Boolean(errors.districtId)}>
-                <label className="label">الحي / المنطقة *</label>
-                <select
-                  value={form.districtId}
-                  onChange={(e) => set("districtId", e.target.value)}
-                  className="select"
-                >
-                  <option value="">— اختر الحي أو الريف —</option>
-                  {districts.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} {d.kind === "village" ? "(ريف)" : ""}
-                    </option>
-                  ))}
-                </select>
-                {errors.districtId && <p className="error-text">{errors.districtId}</p>}
+
+              <div data-error={Boolean(errors.districtName)}>
+                <label className="label">الحي / القرية / المنطقة *</label>
+                <div className="relative">
+                  <MapPin
+                    size={15}
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emeraldBrand-500"
+                  />
+                  <input
+                    value={form.districtName}
+                    onChange={(e) => {
+                      set("districtName", e.target.value);
+                      if (e.target.value.trim().length >= 2)
+                        set("districtKind", guessDistrictKind(e.target.value));
+                    }}
+                    list="known-districts"
+                    placeholder="اكتبها بنفسك: حارة النعيم، قرية الجراحي، طريق حلب..."
+                    className="input pr-9"
+                    autoComplete="off"
+                  />
+                  <datalist id="known-districts">
+                    {knownDistricts.map((d) => (
+                      <option key={d.id} value={d.name} />
+                    ))}
+                  </datalist>
+                </div>
+                <p className="hint">
+                  الإدخال يدوي بالكامل — اكتب اسم المنطقة كما يعرفها أهلها، وسيُضاف تلقائياً إلى
+                  قوائم الفرز في البحث.
+                </p>
+                {errors.districtName && <p className="error-text">{errors.districtName}</p>}
               </div>
             </div>
 
-            {/* اختيار سريع للأحياء */}
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {districts.map((d) => (
-                <button
-                  type="button"
-                  key={d.id}
-                  onClick={() => set("districtId", d.id)}
-                  className={cn(
-                    "rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold transition",
-                    form.districtId === d.id
-                      ? "bg-navy-900 text-white dark:bg-white dark:text-navy-900"
-                      : "border border-navy-200 text-navy-600 hover:border-amberBrand-400 dark:border-navy-700 dark:text-navy-200"
-                  )}
-                >
-                  {d.name}
-                </button>
-              ))}
+            {/* نوع المنطقة */}
+            <div className="mt-4">
+              <label className="label">نوع المنطقة</label>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {DISTRICT_KINDS.map((k) => (
+                  <button
+                    type="button"
+                    key={k.id}
+                    onClick={() => set("districtKind", k.id)}
+                    className={cn(
+                      "option-card justify-center py-2.5",
+                      form.districtKind === k.id && "option-card-active"
+                    )}
+                  >
+                    <span className="text-[12.5px] font-bold text-navy-800 dark:text-navy-100">
+                      {k.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <p className="hint">يساعد النوع المشترين على الفرز بين الأحياء والقرى والريف.</p>
             </div>
+
+            {/* اقتراحات من مناطق موجودة فعلاً */}
+            {knownDistricts.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 flex items-center gap-1.5 text-[11.5px] font-bold text-navy-400">
+                  <MapPin size={12} className="text-amberBrand-500" />
+                  مناطق مُستخدمة حالياً في {activeCities.find((c) => c.id === form.cityId)?.name} —
+                  اضغط لاختيارها بدل الكتابة
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {knownDistricts.map((d) => (
+                    <button
+                      type="button"
+                      key={d.id}
+                      onClick={() => {
+                        set("districtName", d.name);
+                        set("districtKind", d.kind);
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold transition",
+                        cleanDistrictName(form.districtName) === d.name
+                          ? "bg-emeraldBrand-500 text-white"
+                          : "border border-navy-200 text-navy-600 hover:border-emeraldBrand-400 dark:border-navy-700 dark:text-navy-200"
+                      )}
+                    >
+                      {d.name}
+                      <span className="opacity-70">({d.count})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </Section>
+
+          {/* ============================== 4) المحتوى ============================== */}
 
           {/* ============================== 4) المحتوى ============================== */}
           <Section step="4" title="عنوان الإعلان والوصف" desc="العنوان الواضح والوصف الدقيق يزيدان فرص البيع">
@@ -1173,7 +1245,9 @@ function previewAd(
     priceSyp: f.currency === "SYP" ? price : toSyp(price, "USD"),
     negotiable: f.negotiable,
     cityId: f.cityId,
-    districtId: f.districtId || "mnb-center",
+    districtId: makeDistrictId(f.cityId, cleanDistrictName(f.districtName) || "منطقة"),
+    districtLabel: cleanDistrictName(f.districtName) || "لم تُحدَّد المنطقة بعد",
+    districtKind: f.districtKind,
     images: f.images,
     sellerName: f.sellerName || "اسم المُعلن",
     sellerPhone: f.sellerPhone || "0955123456",

@@ -13,17 +13,21 @@ import type {
   AuditEntry,
   City,
   Currency,
+  District,
+  DistrictKind,
   ModerationAction,
   Settings,
 } from "./types";
 import { SEED_ADS, SEED_CITIES, SEED_SETTINGS } from "./seed";
 import { convert, safeStorage, uid } from "./currency";
+import { cleanDistrictName, districtId as makeDistrictId, guessDistrictKind } from "./geo";
 
 /* ==========================================================================
    مخزن الحالة العام (Mock State Management)
    - React Context + useReducer
    - حفظ تلقائي في localStorage (مع fallback في الذاكرة)
-   - في الإنتاج: استبدل هذا الملف بنداءات API/DB دون تغيير أي مكوّن
+   - الجغرافيا ديناميكية بالكامل: لا توجد قائمة أحياء ثابتة؛ كل منطقة
+     تُنشأ من إدخال المستخدم اليدوي أو من لوحة التحكم.
    ========================================================================== */
 
 const STORAGE_KEY = "badeel.state.v1";
@@ -60,7 +64,8 @@ type Action =
   | { type: "ADD_AD"; ad: Ad }
   | { type: "MODERATE"; action: ModerationAction; actor?: string }
   | { type: "INC_VIEW"; id: string }
-  | { type: "ADD_DISTRICT"; cityId: string; name: string; kind: "neighborhood" | "village" }
+  | { type: "UPSERT_DISTRICT"; cityId: string; district: District }
+  | { type: "SET_DISTRICT_KIND"; cityId: string; districtId: string; kind: DistrictKind }
   | { type: "DELETE_DISTRICT"; cityId: string; districtId: string }
   | { type: "TOGGLE_CITY"; cityId: string }
   | { type: "ADD_CITY"; city: City }
@@ -70,6 +75,20 @@ type Action =
   | { type: "RESET_DEMO" };
 
 const now = () => new Date().toISOString();
+
+/* تطبيع الحالة القادمة من التخزين المحلي:
+   - تعبئة districtLabel للإعلانات القديمة من سجل المناطق المحفوظ */
+function normalize(saved: Partial<AppState>): Partial<AppState> {
+  const cities = saved.cities ?? initialState.cities;
+  const ads = (saved.ads ?? initialState.ads).map((ad) => {
+    if (ad.districtLabel) return ad;
+    const city = cities.find((c) => c.id === ad.cityId);
+    const d = city?.districts.find((x) => x.id === ad.districtId);
+    if (!d) return ad;
+    return { ...ad, districtLabel: d.name, districtKind: ad.districtKind ?? d.kind };
+  });
+  return { ...saved, cities, ads };
+}
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -156,23 +175,32 @@ function reducer(state: AppState, action: Action): AppState {
       };
     }
 
-    case "ADD_DISTRICT":
+    case "UPSERT_DISTRICT":
+      return {
+        ...state,
+        cities: state.cities.map((c) => {
+          if (c.id !== action.cityId) return c;
+          if (c.districts.some((d) => d.id === action.district.id)) return c;
+          return { ...c, districts: [...c.districts, action.district] };
+        }),
+      };
+
+    case "SET_DISTRICT_KIND":
       return {
         ...state,
         cities: state.cities.map((c) =>
           c.id === action.cityId
             ? {
                 ...c,
-                districts: [
-                  ...c.districts,
-                  {
-                    id: uid(action.cityId.slice(0, 3)),
-                    name: action.name.trim(),
-                    kind: action.kind,
-                  },
-                ],
+                districts: c.districts.map((d) =>
+                  d.id === action.districtId ? { ...d, kind: action.kind } : d
+                ),
               }
             : c
+        ),
+        // تحديث نوع المنطقة في الإعلانات المرتبطة أيضاً
+        ads: state.ads.map((a) =>
+          a.districtId === action.districtId ? { ...a, districtKind: action.kind } : a
         ),
       };
 
@@ -219,6 +247,14 @@ function reducer(state: AppState, action: Action): AppState {
   }
 }
 
+export interface DistrictFacet {
+  id: string;
+  name: string;
+  kind: DistrictKind;
+  cityId: string;
+  count: number;
+}
+
 interface StoreValue extends AppState {
   /* مشتقات جاهزة */
   publicAds: Ad[];
@@ -226,7 +262,11 @@ interface StoreValue extends AppState {
   featuredAds: Ad[];
   cityById: (id: string) => City | undefined;
   districtName: (cityId: string, districtId: string) => string;
-  districtOptions: () => { id: string; name: string }[];
+  /** اسم منطقة الإعلان — يُقرأ من الإعلان نفسه أولاً (الإدخال اليدوي) */
+  districtLabelOf: (ad: Ad) => string;
+  /** قائمة المناطق المشتقة من الإعلانات فعلياً + السجل الإداري، مع العدّادات */
+  districtFacets: (scope?: "public" | "all") => DistrictFacet[];
+  districtNames: () => string[];
   toUsd: (amount: number, from: Currency) => number;
   toSyp: (amount: number, from: Currency) => number;
   /* إجراءات */
@@ -235,7 +275,9 @@ interface StoreValue extends AppState {
   addAd: (ad: Ad) => void;
   moderate: (action: ModerationAction) => void;
   incrementViews: (id: string) => void;
-  addDistrict: (cityId: string, name: string, kind: "neighborhood" | "village") => void;
+  /** إنشاء المنطقة عند أول إدخال يدوي، أو إرجاع معرّفها إن كانت موجودة */
+  ensureDistrict: (cityId: string, name: string, kind?: DistrictKind) => string;
+  setDistrictKind: (cityId: string, districtId: string, kind: DistrictKind) => void;
   deleteDistrict: (cityId: string, districtId: string) => void;
   toggleCity: (cityId: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
@@ -258,7 +300,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     dispatch({
       type: "HYDRATE",
       payload: {
-        ...(saved ?? {}),
+        ...normalize(saved ?? {}),
         theme: saved?.theme ?? (prefersDark ? "dark" : "light"),
         adminUser: saved?.adminUser ?? null,
       },
@@ -296,15 +338,74 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     root.style.colorScheme = state.theme;
   }, [state.theme]);
 
+  /* إنشاء منطقة من إدخال يدوي (يُستدعى من نموذج الإعلان) */
+  const ensureDistrict = useCallback(
+    (cityId: string, name: string, kind?: DistrictKind) => {
+      const clean = cleanDistrictName(name);
+      const id = makeDistrictId(cityId, clean);
+      const city = state.cities.find((c) => c.id === cityId);
+      const existing = city?.districts.find((d) => d.id === id);
+      if (!existing && clean.length >= 2) {
+        dispatch({
+          type: "UPSERT_DISTRICT",
+          cityId,
+          district: {
+            id,
+            name: clean,
+            kind: kind ?? guessDistrictKind(clean),
+            createdBy: "user",
+          },
+        });
+      }
+      return id;
+    },
+    [state.cities]
+  );
+
   const value = useMemo<StoreValue>(() => {
     const cityById = (id: string) => state.cities.find((c) => c.id === id);
     const publicAds = state.ads.filter((a) =>
       ["active", "sold", "rented"].includes(a.status)
     );
-    const districtOptions = () =>
-      state.cities
-        .filter((c) => c.active)
-        .flatMap((c) => c.districts.map((d) => ({ id: d.id, name: d.name })));
+
+    const districtName = (cityId: string, districtId: string) => {
+      const c = cityById(cityId);
+      return c?.districts.find((d) => d.id === districtId)?.name ?? "—";
+    };
+
+    const districtLabelOf = (ad: Ad) =>
+      ad.districtLabel || districtName(ad.cityId, ad.districtId) || "منطقة غير محددة";
+
+    /** المناطق مشتقة من الإعلانات فعلياً — لا قائمة ثابتة */
+    const districtFacets = (scope: "public" | "all" = "public"): DistrictFacet[] => {
+      const source = scope === "public" ? publicAds : state.ads;
+      const map = new Map<string, DistrictFacet>();
+      source.forEach((ad) => {
+        const key = `${ad.cityId}::${ad.districtId}`;
+        const city = cityById(ad.cityId);
+        const reg = city?.districts.find((d) => d.id === ad.districtId);
+        const name = districtLabelOf(ad);
+        const kind = reg?.kind ?? ad.districtKind ?? guessDistrictKind(name);
+        const prev = map.get(key);
+        if (prev) prev.count += 1;
+        else
+          map.set(key, {
+            id: ad.districtId,
+            name,
+            kind,
+            cityId: ad.cityId,
+            count: 1,
+          });
+      });
+      return [...map.values()].sort(
+        (a, b) => b.count - a.count || a.name.localeCompare(b.name, "ar")
+      );
+    };
+
+    const districtNames = () =>
+      [...new Set(districtFacets("public").map((f) => f.name))].sort((a, b) =>
+        a.localeCompare(b, "ar")
+      );
 
     const toUsd = (amount: number, from: Currency) =>
       convert(amount, from, "USD", state.settings.usdToSyp);
@@ -317,11 +418,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       pendingAds: state.ads.filter((a) => a.status === "pending"),
       featuredAds: publicAds.filter((a) => a.featured && a.status === "active"),
       cityById,
-      districtOptions,
-      districtName: (cityId, districtId) => {
-        const c = cityById(cityId);
-        return c?.districts.find((d) => d.id === districtId)?.name ?? "—";
-      },
+      districtName,
+      districtLabelOf,
+      districtFacets,
+      districtNames,
       toUsd,
       toSyp,
 
@@ -331,22 +431,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       moderate: (action) =>
         dispatch({ type: "MODERATE", action, actor: state.adminUser ?? "admin" }),
       incrementViews: (id) => dispatch({ type: "INC_VIEW", id }),
-      addDistrict: (cityId, name, kind) =>
-        dispatch({ type: "ADD_DISTRICT", cityId, name, kind }),
+      ensureDistrict,
+      setDistrictKind: (cityId, districtId, kind) =>
+        dispatch({ type: "SET_DISTRICT_KIND", cityId, districtId, kind }),
       deleteDistrict: (cityId, districtId) =>
         dispatch({ type: "DELETE_DISTRICT", cityId, districtId }),
       toggleCity: (cityId) => dispatch({ type: "TOGGLE_CITY", cityId }),
       updateSettings: (s) => dispatch({ type: "UPDATE_SETTINGS", settings: s }),
       login: (user, pass) => {
-        const ok =
-          user.trim().toLowerCase() === ADMIN_USER && pass === ADMIN_PASS;
+        const ok = user.trim().toLowerCase() === ADMIN_USER && pass === ADMIN_PASS;
         if (ok) dispatch({ type: "LOGIN", user: ADMIN_USER });
         return ok;
       },
       logout: () => dispatch({ type: "LOGOUT" }),
       resetDemo: () => dispatch({ type: "RESET_DEMO" }),
     };
-  }, [state]);
+  }, [state, ensureDistrict]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

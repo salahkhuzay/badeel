@@ -35,8 +35,8 @@ import StatusBadge from "./StatusBadge";
    ========================================================================== */
 
 export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: boolean }) {
-  const { districtName, settings } = useStore();
-  const district = districtName(ad.cityId, ad.districtId);
+  const { districtLabelOf, settings } = useStore();
+  const district = districtLabelOf(ad);
   const isDone = ad.status === "sold" || ad.status === "rented";
 
   const waText = encodeURIComponent(

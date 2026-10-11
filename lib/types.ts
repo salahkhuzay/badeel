@@ -83,9 +83,13 @@ export interface Ad {
   priceSyp: number; // سعر محوَّل لليرة
   negotiable: boolean;
 
-  /* الموقع */
+  /* الموقع — إدخال يدوي من المستخدم، ويُخزَّن الاسم مع الإعلان نفسه
+     (districtId مُشتق من الاسم + districtLabel احتياطي) ليصبح الإعلان
+     مستقلاً عن أي قائمة مسبقة — DB-ready */
   cityId: string;
   districtId: string;
+  districtLabel?: string;
+  districtKind?: DistrictKind;
 
   /* إعلام */
   images: string[]; // مسارات محلية (/images/..) أو روابط
@@ -105,10 +109,14 @@ export interface Ad {
 }
 
 /* -------------------------------- الجغرافيا -------------------------------- */
+export type DistrictKind = "neighborhood" | "village" | "area";
+
 export interface District {
   id: string;
   name: string;
-  kind: "neighborhood" | "village"; // حي أو قرية / ريف
+  kind: DistrictKind;
+  /** المصدر: seed = بيانات تجريبية، user = كتبها مستخدم في نموذج الإعلان، admin = أضافها المسؤول */
+  createdBy?: "seed" | "user" | "admin";
 }
 
 export interface City {

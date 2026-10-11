@@ -58,7 +58,7 @@ export default function AdPreviewModal({
   /** عدد الحقول المعبّأة (يظهر في الملخّص) */
   summaryCount?: number;
 }) {
-  const { districtName, cityById, settings } = useStore();
+  const { districtLabelOf, cityById, settings } = useStore();
   const [imgIndex, setImgIndex] = useState(0);
   const [acknowledged, setAcknowledged] = useState(false);
 
@@ -81,7 +81,7 @@ export default function AdPreviewModal({
 
   if (!open) return null;
 
-  const district = districtName(ad.cityId, ad.districtId);
+  const district = districtLabelOf(ad);
   const city = cityById(ad.cityId);
   const cc = settings.whatsappCountryCode;
   const isRealEstate = ad.category === "real-estate";

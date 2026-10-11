@@ -2,14 +2,16 @@
 
 import React from "react";
 import Link from "next/link";
-import { Building2, Car, Facebook, Mail, MapPin, Phone } from "lucide-react";
+import { Building2, Car, Facebook, Mail, Map, MapPin, Phone, Trees } from "lucide-react";
 import Logo from "./Logo";
 import { useStore } from "@/lib/store";
 import { displayPhone } from "@/lib/currency";
 
 export default function Footer() {
-  const { cities, settings, districtName } = useStore();
+  const { cities, settings, districtFacets } = useStore();
   const manbij = cities.find((c) => c.id === "manbij");
+  /* المناطق مشتقة من إعلانات المستخدمين — لا قائمة ثابتة */
+  const areas = districtFacets("public").slice(0, 8);
 
   return (
     <footer className="mt-16 border-t border-navy-100 bg-white dark:border-navy-800 dark:bg-navy-950">
@@ -70,20 +72,39 @@ export default function Footer() {
 
         <div>
           <h4 className="mb-3 text-sm font-extrabold text-navy-900 dark:text-white">
-            أحياء وريف منبج
+            مناطق وأحياء منبج
           </h4>
-          <ul className="grid grid-cols-2 gap-1.5 text-[13px] text-navy-500 dark:text-navy-300">
-            {manbij?.districts.slice(0, 10).map((d) => (
-              <li key={d.id}>
-                <Link
-                  href={`/search?district=${d.id}`}
-                  className="hover:text-amberBrand-600"
-                >
-                  {d.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {areas.length === 0 ? (
+            <p className="text-[12.5px] leading-relaxed text-navy-500 dark:text-navy-300">
+              تُبنى المناطق من إعلانات المستخدمين — كن أول من ينشر إعلاناً في منطقتك.
+            </p>
+          ) : (
+            <ul className="grid grid-cols-2 gap-1.5 text-[13px] text-navy-500 dark:text-navy-300">
+              {areas.map((d) => (
+                <li key={d.cityId + d.id}>
+                  <Link
+                    href={`/search?district=${d.id}`}
+                    className="inline-flex items-center gap-1 hover:text-amberBrand-600"
+                  >
+                    {d.kind === "neighborhood" ? (
+                      <MapPin size={11} className="text-amberBrand-500" />
+                    ) : d.kind === "village" ? (
+                      <Trees size={11} className="text-emeraldBrand-500" />
+                    ) : (
+                      <Map size={11} className="text-navy-400" />
+                    )}
+                    {d.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link
+            href="/search?sort=district"
+            className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold text-amberBrand-600 hover:underline dark:text-amberBrand-400"
+          >
+            فرز كل الإعلانات حسب المنطقة →
+          </Link>
         </div>
 
         <div>

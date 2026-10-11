@@ -17,11 +17,15 @@ import {
 import { useStore } from "@/lib/store";
 import { computeStats } from "@/lib/filters";
 import { formatNumber } from "@/lib/currency";
+import { districtKindShort } from "@/lib/geo";
 
 /** بطاقات الإحصاءات + توزيع التصنيفات + أكثر الأحياء + آخر 7 أيام */
 export default function AdminStats({ onGoPending }: { onGoPending?: () => void }) {
-  const { ads, districtName } = useStore();
-  const s = computeStats(ads, (ad) => districtName(ad.cityId, ad.districtId));
+  const { ads, districtLabelOf } = useStore();
+  const s = computeStats(ads, (ad) => ({
+    name: districtLabelOf(ad),
+    kind: ad.districtKind ?? "area",
+  }));
 
   const maxDay = Math.max(1, ...s.byDay.map((d) => d.count));
   const maxDistrict = Math.max(1, ...s.topDistricts.map((d) => d.count));
@@ -108,8 +112,19 @@ export default function AdminStats({ onGoPending }: { onGoPending?: () => void }
         {/* أكثر الأحياء */}
         <div className="card p-5">
           <h3 className="flex items-center gap-2 text-[13.5px] font-extrabold text-navy-900 dark:text-white">
-            <TrendingUp size={16} className="text-amberBrand-500" /> أكثر الأحياء نشاطاً
+            <TrendingUp size={16} className="text-amberBrand-500" /> أكثر المناطق نشاطاً
           </h3>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {s.byDistrictKind.map((k) => (
+              <div
+                key={k.id}
+                className="rounded-xl border border-navy-100 p-2 text-center dark:border-navy-800"
+              >
+                <p className="text-[10.5px] font-semibold text-navy-400">{k.name}</p>
+                <p className="text-base font-extrabold text-navy-800 dark:text-navy-50">{k.count}</p>
+              </div>
+            ))}
+          </div>
           <ul className="mt-4 space-y-2.5">
             {s.topDistricts.map((d) => (
               <li key={d.id}>
@@ -119,6 +134,9 @@ export default function AdminStats({ onGoPending }: { onGoPending?: () => void }
                     className="font-bold text-navy-700 hover:text-amberBrand-600 dark:text-navy-100"
                   >
                     {d.name}
+                    <span className="ms-1 text-[10px] font-semibold text-navy-400">
+                      ({districtKindShort(d.kind)})
+                    </span>
                   </Link>
                   <span className="font-bold text-navy-500">{d.count}</span>
                 </div>

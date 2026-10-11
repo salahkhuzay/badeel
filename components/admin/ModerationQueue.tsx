@@ -33,7 +33,7 @@ import type { Ad } from "@/lib/types";
 
 /** طابور المراجعة: كل إعلان جديد يبدأ بحالة "قيد المراجعة" ولا يُنشر إلا بعد الموافقة */
 export default function ModerationQueue() {
-  const { pendingAds, moderate, settings, districtName, cityById } = useStore();
+  const { pendingAds, moderate, settings, districtLabelOf, cityById } = useStore();
   const toast = useToast();
   const [rejecting, setRejecting] = useState<Ad | null>(null);
   const [reason, setReason] = useState("");
@@ -126,7 +126,7 @@ export default function ModerationQueue() {
                   </p>
 
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    <Chip>{city?.name} — {districtName(ad.cityId, ad.districtId)}</Chip>
+                    <Chip>{city?.name} — {districtLabelOf(ad)}</Chip>
                     {ad.category === "real-estate" ? (
                       <>
                         <Chip>{propertyTypeName(ad.propertyType)}</Chip>

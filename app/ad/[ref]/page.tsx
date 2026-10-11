@@ -53,7 +53,7 @@ import {
 export default function AdDetailPage() {
   const params = useParams<{ ref: string }>();
   const ref = decodeURIComponent(String(params?.ref ?? ""));
-  const { ads, publicAds, settings, incrementViews, districtName, cityById } = useStore();
+  const { ads, publicAds, settings, incrementViews, districtLabelOf, cityById } = useStore();
   const toast = useToast();
 
   const ad = useMemo(() => ads.find((a) => a.ref === ref), [ads, ref]);
@@ -84,7 +84,7 @@ export default function AdDetailPage() {
     );
   }
 
-  const district = districtName(ad.cityId, ad.districtId);
+  const district = districtLabelOf(ad);
   const city = cityById(ad.cityId);
   const cc = settings.whatsappCountryCode;
   const wa = `https://wa.me/${normalizePhone(ad.sellerWhatsapp, cc)}?text=${encodeURIComponent(

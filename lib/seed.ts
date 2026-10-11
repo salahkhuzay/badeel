@@ -1,5 +1,9 @@
-import type { Ad, City, Settings } from "./types";
+import type { Ad, City, District, Settings } from "./types";
 import { DEFAULT_SETTINGS } from "./currency";
+import { districtId, guessDistrictKind } from "./geo";
+
+/** اختصار: معرّف منطقة داخل مدينة منبج */
+const dd = (name: string) => districtId("manbij", name);
 
 /* ==========================================================================
    بيانات أولية (Seed) — منبج: 11 حياً/ريفاً كما هي معتمدة في المنصة.
@@ -9,41 +13,41 @@ import { DEFAULT_SETTINGS } from "./currency";
 const daysAgo = (d: number, h = 0) =>
   new Date(Date.now() - d * 86400000 - h * 3600000).toISOString();
 
-export const SEED_CITIES: City[] = [
+/* المدن تُعرَّف بدون أي قائمة أحياء مسبقة:
+   المناطق (أحياء/قرى/ريف) تُبنى ديناميكياً — إما من إدخال المستخدمين اليدوي،
+   أو من إضافة المسؤول في لوحة التحكم. */
+const CITY_BASE: City[] = [
   {
     id: "manbij",
     name: "منبج",
     governorate: "حلب",
     active: true,
-    districts: [
-      { id: "mnb-aleppo-road", name: "طريق حلب", kind: "neighborhood" },
-      { id: "mnb-sarab", name: "السرب", kind: "neighborhood" },
-      { id: "mnb-hazwana", name: "الحزوانة", kind: "neighborhood" },
-      { id: "mnb-jarablus-road", name: "طريق جربلس", kind: "neighborhood" },
-      { id: "mnb-naeem", name: "حارة النعيم", kind: "neighborhood" },
-      { id: "mnb-center", name: "مركز المدينة (السوق)", kind: "neighborhood" },
-      { id: "mnb-jazira-road", name: "طريق الجزيرة", kind: "neighborhood" },
-      { id: "mnb-kawakbi", name: "حي الكواكبي", kind: "neighborhood" },
-      { id: "mnb-sadd-road", name: "طريق السد", kind: "neighborhood" },
-      { id: "mnb-west-countryside", name: "الريف الغربي", kind: "village" },
-      { id: "mnb-east-countryside", name: "الريف الشرقي", kind: "village" },
-    ],
+    districts: [],
   },
   {
     id: "aleppo",
     name: "حلب",
     governorate: "حلب",
     active: false, // جاهزة للتفعيل عند بدء التوسّع الإقليمي
-    districts: [
-      { id: "alp-aziziyah", name: "العزيزية", kind: "neighborhood" },
-      { id: "alp-hamdaniyah", name: "الحمدانية", kind: "neighborhood" },
-      { id: "alp-sulaymaniyah", name: "السليمانية", kind: "neighborhood" },
-      { id: "alp-firdous", name: "الفردوس", kind: "neighborhood" },
-      { id: "alp-jamiliyah", name: "الجميلية", kind: "neighborhood" },
-      { id: "alp-new-aleppo", name: "حلب الجديدة", kind: "neighborhood" },
-    ],
+    districts: [],
   },
 ];
+
+/** بناء سجل المناطق من الإعلانات نفسها (لا قوائم ثابتة) */
+function deriveDistricts(ads: Ad[]): District[] {
+  const map = new Map<string, District>();
+  ads.forEach((a) => {
+    if (!a.districtId || !a.districtLabel) return;
+    if (map.has(a.districtId)) return;
+    map.set(a.districtId, {
+      id: a.districtId,
+      name: a.districtLabel,
+      kind: a.districtKind ?? guessDistrictKind(a.districtLabel),
+      createdBy: "seed",
+    });
+  });
+  return [...map.values()].sort((x, y) => x.name.localeCompare(y.name, "ar"));
+}
 
 const RATE = DEFAULT_SETTINGS.usdToSyp;
 const usd = (n: number) => ({ price: n, currency: "USD" as const, priceUsd: n, priceSyp: Math.round(n * RATE) });
@@ -92,7 +96,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "tabu-green",
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-kawakbi",
+      districtId: dd("حي الكواكبي"),
+      districtLabel: "حي الكواكبي",
+      districtKind: "neighborhood",
       images: ["/images/apt-1.jpg"],
       sellerName: "أبو أحمد",
       sellerPhone: "0955123456",
@@ -118,7 +124,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "court-ruling",
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-center",
+      districtId: dd("مركز المدينة (السوق)"),
+      districtLabel: "مركز المدينة (السوق)",
+      districtKind: "neighborhood",
       images: ["/images/house-1.jpg"],
       sellerName: "محمد العبد",
       sellerPhone: "0938776655",
@@ -144,7 +152,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "tabu-green",
       negotiable: false,
       cityId: "manbij",
-      districtId: "mnb-aleppo-road",
+      districtId: dd("طريق حلب"),
+      districtLabel: "طريق حلب",
+      districtKind: "neighborhood",
       images: ["/images/land-1.jpg"],
       sellerName: "عبد الرزاق ح.",
       sellerPhone: "0944112233",
@@ -170,7 +180,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "arqari-siyaq",
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-east-countryside",
+      districtId: dd("الريف الشرقي"),
+      districtLabel: "الريف الشرقي",
+      districtKind: "area",
       images: [],
       sellerName: "خالد الرفاعي",
       sellerPhone: "0991223344",
@@ -195,7 +207,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "real-estate-agency",
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-center",
+      districtId: dd("مركز المدينة (السوق)"),
+      districtLabel: "مركز المدينة (السوق)",
+      districtKind: "neighborhood",
       images: ["/images/shop-1.jpg"],
       sellerName: "المكتب العقاري النموذجي",
       sellerPhone: "0955667788",
@@ -220,7 +234,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "tabu-green",
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-jazira-road",
+      districtId: dd("طريق الجزيرة"),
+      districtLabel: "طريق الجزيرة",
+      districtKind: "neighborhood",
       images: [],
       sellerName: "أبو ياسين",
       sellerPhone: "0933334444",
@@ -245,7 +261,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "real-estate-agency",
       negotiable: false,
       cityId: "manbij",
-      districtId: "mnb-sarab",
+      districtId: dd("السرب"),
+      districtLabel: "السرب",
+      districtKind: "neighborhood",
       images: ["/images/apt-1.jpg"],
       sellerName: "سميرة ع.",
       sellerPhone: "0959887766",
@@ -271,7 +289,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "tabu-green",
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-sadd-road",
+      districtId: dd("طريق السد"),
+      districtLabel: "طريق السد",
+      districtKind: "neighborhood",
       images: ["/images/apt-1.jpg"],
       sellerName: "ياسر الم.", 
       sellerPhone: "0957001122",
@@ -295,7 +315,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "real-estate-agency",
       negotiable: false,
       cityId: "manbij",
-      districtId: "mnb-naeem",
+      districtId: dd("حارة النعيم"),
+      districtLabel: "حارة النعيم",
+      districtKind: "neighborhood",
       images: ["/images/house-1.jpg"],
       sellerName: "أبو محمود",
       sellerPhone: "0942665533",
@@ -319,7 +341,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "court-ruling",
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-west-countryside",
+      districtId: dd("الريف الغربي"),
+      districtLabel: "الريف الغربي",
+      districtKind: "area",
       images: ["/images/land-1.jpg"],
       sellerName: "حسن الدرويش",
       sellerPhone: "0993445566",
@@ -347,7 +371,9 @@ export const SEED_ADS: Ad[] = (
       plateRegion: "manbij",
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-aleppo-road",
+      districtId: dd("طريق حلب"),
+      districtLabel: "طريق حلب",
+      districtKind: "neighborhood",
       images: ["/images/car-1.jpg"],
       sellerName: "أبو حمزة",
       sellerPhone: "0956111222",
@@ -378,7 +404,9 @@ export const SEED_ADS: Ad[] = (
       plateRegion: "aleppo",
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-hazwana",
+      districtId: dd("الحزوانة"),
+      districtLabel: "الحزوانة",
+      districtKind: "neighborhood",
       images: ["/images/car-1.jpg"],
       sellerName: "نبيل ص.",
       sellerPhone: "0996554433",
@@ -406,7 +434,9 @@ export const SEED_ADS: Ad[] = (
       ...usd(14500),
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-jazira-road",
+      districtId: dd("طريق الجزيرة"),
+      districtLabel: "طريق الجزيرة",
+      districtKind: "neighborhood",
       images: ["/images/truck-1.jpg"],
       sellerName: "مؤسسة النقل السريع",
       sellerPhone: "0932443311",
@@ -435,7 +465,9 @@ export const SEED_ADS: Ad[] = (
       ...usd(1850),
       negotiable: false,
       cityId: "manbij",
-      districtId: "mnb-sadd-road",
+      districtId: dd("طريق السد"),
+      districtLabel: "طريق السد",
+      districtKind: "neighborhood",
       images: ["/images/moto-1.jpg"],
       sellerName: "أحمد الطيار",
       sellerPhone: "0955332299",
@@ -463,7 +495,9 @@ export const SEED_ADS: Ad[] = (
       ...usd(6400),
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-west-countryside",
+      districtId: dd("الريف الغربي"),
+      districtLabel: "الريف الغربي",
+      districtKind: "area",
       images: ["/images/tractor-1.jpg"],
       sellerName: "عبد الله الفلاح",
       sellerPhone: "0944778899",
@@ -491,7 +525,9 @@ export const SEED_ADS: Ad[] = (
       ...usd(11200),
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-east-countryside",
+      districtId: dd("الريف الشرقي"),
+      districtLabel: "الريف الشرقي",
+      districtKind: "area",
       images: ["/images/truck-1.jpg"],
       sellerName: "مروان ع.",
       sellerPhone: "0939112233",
@@ -515,7 +551,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "tabu-green",
       negotiable: false,
       cityId: "manbij",
-      districtId: "mnb-hazwana",
+      districtId: dd("الحزوانة"),
+      districtLabel: "الحزوانة",
+      districtKind: "neighborhood",
       images: ["/images/apt-1.jpg"],
       sellerName: "سامر خ.",
       sellerPhone: "0958881122",
@@ -540,7 +578,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "real-estate-agency",
       negotiable: false,
       cityId: "manbij",
-      districtId: "mnb-jarablus-road",
+      districtId: dd("طريق جربلس"),
+      districtLabel: "طريق جربلس",
+      districtKind: "neighborhood",
       images: ["/images/shop-1.jpg"],
       sellerName: "المكتب العقاري الأهلي",
       sellerPhone: "0952223344",
@@ -566,7 +606,9 @@ export const SEED_ADS: Ad[] = (
       ownership: "arqari-siyaq",
       negotiable: true,
       cityId: "manbij",
-      districtId: "mnb-center",
+      districtId: dd("مركز المدينة (السوق)"),
+      districtLabel: "مركز المدينة (السوق)",
+      districtKind: "neighborhood",
       images: [],
       sellerName: "مجهول",
       sellerPhone: "0900000000",
@@ -589,5 +631,9 @@ export const SEED_ADS: Ad[] = (
   rejectionReason: a.rejectionReason ?? null,
   moderatedBy: null,
 })) as Ad[];
+
+export const SEED_CITIES: City[] = CITY_BASE.map((c) =>
+  c.id === "manbij" ? { ...c, districts: deriveDistricts(SEED_ADS) } : c
+);
 
 export const SEED_SETTINGS: Settings = { ...DEFAULT_SETTINGS };
