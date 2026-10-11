@@ -58,7 +58,7 @@ export default function AdPreviewModal({
   /** عدد الحقول المعبّأة (يظهر في الملخّص) */
   summaryCount?: number;
 }) {
-  const { districtLabelOf, cityById, settings } = useStore();
+  const { cityById, settings } = useStore();
   const [imgIndex, setImgIndex] = useState(0);
   const [acknowledged, setAcknowledged] = useState(false);
 
@@ -81,7 +81,6 @@ export default function AdPreviewModal({
 
   if (!open) return null;
 
-  const district = districtLabelOf(ad);
   const city = cityById(ad.cityId);
   const cc = settings.whatsappCountryCode;
   const isRealEstate = ad.category === "real-estate";
@@ -146,7 +145,7 @@ export default function AdPreviewModal({
         <div className="border-t border-white/10 bg-navy-950/40">
           <div className="container-page flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2 text-[11.5px] text-navy-300">
             <span className="inline-flex items-center gap-1.5">
-              <MapPin size={12} className="text-amberBrand-400" /> {city?.name} — {district}
+              <MapPin size={12} className="text-amberBrand-400" /> {city?.name}
             </span>
             <span className="inline-flex items-center gap-1.5">
               {isRealEstate ? <Building2 size={12} /> : <Car size={12} />}
@@ -223,7 +222,7 @@ export default function AdPreviewModal({
                 </h1>
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-navy-500 dark:text-navy-300">
                   <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={13} className="text-amberBrand-500" /> {district} — {city?.name}
+                    <MapPin size={13} className="text-amberBrand-500" /> {city?.name}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <Tag size={13} /> {isRealEstate ? "عقارات" : "سيارات ومركبات"}

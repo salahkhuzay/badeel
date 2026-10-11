@@ -18,6 +18,7 @@ export type MainCategory =
   | "furniture" // أثاث منزلي
   | "appliances" // أدوات وأجهزة كهربائية
   | "clothing" // ملابس وأزياء
+  | "phones" // هواتف مستعملة وجديدة
   | "jobs"; // وظائف
 
 /* ------------------------------ العقارات ------------------------------ */
@@ -98,6 +99,9 @@ export interface Ad {
   areaUnit?: "m2" | "donum";
   ownership?: OwnershipType;
 
+  /* هواتف */
+  storage?: string; // سعة التخزين (64GB, 128GB...)
+
   /* مركبات */
   vehicleType?: VehicleType;
   brandId?: string; // معرّف الماركة (hyundai, kia...)
@@ -118,11 +122,8 @@ export interface Ad {
   /** هل السعر غير محدّد (مثل وظائف بدون راتب معلن) */
   priceOnRequest?: boolean;
 
-  /* الموقع — إدخال يدوي من المستخدم */
+  /* الموقع — المدينة فقط (أُلغيت الأحياء والمناطق) */
   cityId: string;
-  districtId: string;
-  districtLabel?: string;
-  districtKind?: DistrictKind;
 
   /* إعلام */
   images: string[];
@@ -142,21 +143,12 @@ export interface Ad {
 }
 
 /* -------------------------------- الجغرافيا -------------------------------- */
-export type DistrictKind = "neighborhood" | "village" | "area";
-
-export interface District {
-  id: string;
-  name: string;
-  kind: DistrictKind;
-  createdBy?: "seed" | "user" | "admin";
-}
-
 export interface City {
   id: string;
   name: string;
   governorate: string;
   active: boolean;
-  districts: District[];
+  /** عند التوسّع لاحقاً: مدن إضافية تُفعَّل من لوحة التحكم */
 }
 
 /* -------------------------------- الإعدادات -------------------------------- */

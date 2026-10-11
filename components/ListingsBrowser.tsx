@@ -3,18 +3,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Banknote,
   Briefcase,
   CalendarDays,
   Car,
-  CheckCircle2,
   ChevronDown,
   Filter,
   Home,
-  Layers,
+  Smartphone,
   Loader2,
-  Map as MapIcon,
-  MapPin,
   Plug,
   RotateCcw,
   Search,
@@ -22,13 +18,11 @@ import {
   SlidersHorizontal,
   Sofa,
   Sparkles,
-  Trees,
   X,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type {
   DealType,
-  DistrictKind,
   EmploymentType,
   ItemCondition,
   ListingKind,
@@ -38,6 +32,7 @@ import type {
   VehicleType,
 } from "@/lib/types";
 import {
+  CONDITION_CATEGORIES,
   CONDITIONS,
   DEAL_TYPES,
   CURRENCY_LABEL,
@@ -52,19 +47,18 @@ import {
   dealTypesFor,
 } from "@/lib/taxonomy";
 import {
-  ALL_BRANDS,
+  BRANDS,
+  PHONE_BRANDS,
   YEAR_RANGES,
   brandMatches,
   brandModels,
   brandName,
   modelName,
 } from "@/lib/brands";
-import { DISTRICT_KINDS, districtKindShort } from "@/lib/geo";
 import {
   EMPTY_FILTERS,
   Filters,
   applyFilters,
-  groupByDistrict,
   sortOptionsFor,
   type SortKey,
 } from "@/lib/filters";
@@ -85,6 +79,7 @@ const CATEGORY_ICON: Record<MainCategory, React.ReactNode> = {
   furniture: <Sofa size={13} />,
   appliances: <Plug size={13} />,
   clothing: <Shirt size={13} />,
+  phones: <Smartphone size={13} />,
   jobs: <Briefcase size={13} />,
 };
 
@@ -97,14 +92,13 @@ export default function ListingsBrowser({
   embedded?: boolean;
   pageSize?: number;
 }) {
-  const { publicAds, settings, currency, districtFacets, districtLabelOf } = useStore();
+  const { publicAds, settings, currency, cities } = useStore();
 
   const [filters, setFilters] = useState<Filters>(() => ({
     ...EMPTY_FILTERS,
     category: categoryLock ?? "all",
   }));
   const [visible, setVisible] = useState(pageSize);
-  const [grouped, setGrouped] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [brandQuery, setBrandQuery] = useState("");
@@ -112,7 +106,6 @@ export default function ListingsBrowser({
   /* قراءة معايير الرابط */
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    setGrouped(p.get("group") === "district");
     if ([...p.keys()].length === 0) return;
     setFilters((f) => {
       const type = p.get("type");
@@ -124,13 +117,12 @@ export default function ListingsBrowser({
         vehicleType:
           categoryLock === "vehicles" || !categoryLock ? ((type as VehicleType) || f.vehicleType) : f.vehicleType,
         dealType: (p.get("deal") as DealType) || f.dealType,
-        districtId: p.get("district") ?? f.districtId,
-        districtKind: (p.get("kind") as DistrictKind) || f.districtKind,
         brandId: p.get("brand") ?? f.brandId,
         modelId: p.get("model") ?? f.modelId,
         yearFrom: p.get("from") ? Number(p.get("from")) : f.yearFrom,
         yearTo: p.get("to") ? Number(p.get("to")) : f.yearTo,
         plateRegion: (p.get("plate") as PlateRegion) || f.plateRegion,
+        cityId: p.get("city") ?? f.cityId,
         subtype: p.get("subtype") ?? f.subtype,
         condition: (p.get("condition") as ItemCondition) || f.condition,
         jobKind: (p.get("jobkind") as ListingKind) || f.jobKind,
@@ -146,44 +138,12 @@ export default function ListingsBrowser({
 
   const activeCategory = (categoryLock ?? filters.category) as MainCategory | "all";
 
-  const districtOf = useMemo(
-    () => (ad: Parameters<typeof districtLabelOf>[0]) => {
-      const name = districtLabelOf(ad);
-      const kind: DistrictKind = ad.districtKind ?? "area";
-      return { name, kind };
-    },
-    [districtLabelOf]
-  );
-
-  const facets = useMemo(() => {
-    const list = districtFacets("public");
-    const known = new Set(list.map((f) => `${f.cityId}::${f.id}`));
-    publicAds.forEach((ad) => {
-      const key = `${ad.cityId}::${ad.districtId}`;
-      if (known.has(key)) return;
-      known.add(key);
-      list.push({
-        id: ad.districtId,
-        name: districtLabelOf(ad),
-        kind: ad.districtKind ?? "area",
-        cityId: ad.cityId,
-        count: 1,
-      });
-    });
-    return list;
-  }, [districtFacets, publicAds, districtLabelOf]);
-
   const results = useMemo(
-    () => applyFilters(publicAds, filters, districtOf),
-    [publicAds, filters, districtOf]
+    () => applyFilters(publicAds, filters),
+    [publicAds, filters]
   );
 
   const shown = results.slice(0, visible);
-  const groups = useMemo(
-    () => (grouped ? groupByDistrict(shown, districtOf) : []),
-    [grouped, shown, districtOf]
-  );
-
   const update = (patch: Partial<Filters>) => {
     setFilters((f) => ({ ...f, ...patch }));
     setVisible(pageSize);
@@ -191,12 +151,8 @@ export default function ListingsBrowser({
 
   const reset = () => {
     setFilters({ ...EMPTY_FILTERS, category: categoryLock ?? "all" });
-    setGrouped(false);
     setVisible(pageSize);
   };
-
-  const districtLabel = (id: string) =>
-    facets.find((f) => f.id === id)?.name ?? (id === "all" ? "كل المناطق" : "منطقة");
 
   /* عدّادات الماركات المتاحة (للمركبات) */
   const brandCounts = useMemo(() => {
@@ -212,22 +168,26 @@ export default function ListingsBrowser({
 
   const brandList = useMemo(() => {
     const q = brandQuery.trim();
-    const list = ALL_BRANDS.filter((b) => (brandCounts.get(b.id) ?? 0) > 0);
+    const list = BRANDS.filter((b) => (brandCounts.get(b.id) ?? 0) > 0);
     if (!q) return list;
     return list.filter((b) => brandMatches(b, q));
   }, [brandQuery, brandCounts]);
 
   const modelsOfBrand = brandModels(filters.brandId === "all" ? "" : filters.brandId);
 
-  const subtypeList = activeCategory !== "all" ? SUBTYPES[activeCategory] : [];
-  const kindCounts = useMemo(() => {
-    const c: Record<string, number> = { all: results.length };
-    DISTRICT_KINDS.forEach((k) => {
-      c[k.id] = publicAds.filter((a) => (a.districtKind ?? "area") === k.id).length;
-    });
-    return c;
-  }, [publicAds, results.length]);
+  /* عدّادات ماركات الهواتف المتوفرة */
+  const phoneBrandCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    publicAds
+      .filter((a) => a.category === "phones")
+      .forEach((a) => {
+        const key = a.subtypeId ?? a.brandId ?? "other-phone";
+        m[key] = (m[key] ?? 0) + 1;
+      });
+    return m;
+  }, [publicAds]);
 
+  const subtypeList = activeCategory !== "all" ? SUBTYPES[activeCategory] : [];
   const activeChips = useMemo(() => {
     const chips: { label: string; clear: () => void }[] = [];
     if (filters.q) chips.push({ label: `بحث: ${filters.q}`, clear: () => update({ q: "" }) });
@@ -286,16 +246,6 @@ export default function ListingsBrowser({
         label: DEAL_TYPES.find((d) => d.id === filters.dealType)?.name ?? "نوع التعامل",
         clear: () => update({ dealType: "all" }),
       });
-    if (filters.districtId !== "all")
-      chips.push({
-        label: `المنطقة: ${districtLabel(filters.districtId)}`,
-        clear: () => update({ districtId: "all" }),
-      });
-    if (filters.districtKind !== "all")
-      chips.push({
-        label: DISTRICT_KINDS.find((k) => k.id === filters.districtKind)?.name ?? "نوع المنطقة",
-        clear: () => update({ districtKind: "all" }),
-      });
     if (filters.minPriceUsd != null || filters.maxPriceUsd != null)
       chips.push({
         label: "نطاق السعر",
@@ -305,7 +255,7 @@ export default function ListingsBrowser({
       chips.push({ label: "المميّزة فقط", clear: () => update({ featuredOnly: false }) });
     return chips;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, facets, subtypeList]);
+  }, [filters, subtypeList]);
 
   const dealOptions = activeCategory !== "all" ? dealTypesFor(activeCategory) : [];
   const isRentable = activeCategory === "real-estate" || activeCategory === "vehicles";
@@ -631,6 +581,51 @@ export default function ListingsBrowser({
               </>
             )}
 
+            {/* ------------------------- هواتف: ماركات بالأيقونات الرسمية ------------------------- */}
+            {activeCategory === "phones" && (
+              <div className="mt-4 rounded-2xl border border-navy-100 p-3 dark:border-navy-800">
+                <h4 className="flex items-center gap-1.5 text-[12.5px] font-extrabold text-navy-900 dark:text-white">
+                  <Smartphone size={14} className="text-indigo-500" /> الفرز حسب ماركة الهاتف
+                </h4>
+                <div className="mt-2.5 grid grid-cols-3 gap-1.5">
+                  <button
+                    onClick={() => update({ subtype: "all", brandId: "all", modelId: "all" })}
+                    className={cn(
+                      "col-span-3 rounded-lg px-2 py-1.5 text-[11.5px] font-bold transition",
+                      filters.subtype === "all"
+                        ? "bg-navy-900 text-white dark:bg-white dark:text-navy-900"
+                        : "border border-navy-200 text-navy-600 dark:border-navy-700 dark:text-navy-200"
+                    )}
+                  >
+                    كل الماركات
+                  </button>
+                  {PHONE_BRANDS.filter((b) => (phoneBrandCounts[b.id] ?? 0) > 0).map((b) => (
+                    <button
+                      key={b.id}
+                      onClick={() =>
+                        update({ subtype: filters.subtype === b.id ? "all" : b.id, brandId: "all", modelId: "all" })
+                      }
+                      title={`${b.name} — ${phoneBrandCounts[b.id] ?? 0} إعلان`}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-xl border-2 p-1.5 transition",
+                        filters.subtype === b.id
+                          ? "border-indigo-500 bg-indigo-50 dark:border-indigo-500 dark:bg-indigo-500/10"
+                          : "border-navy-100 hover:border-indigo-300 dark:border-navy-800"
+                      )}
+                    >
+                      <BrandIcon brandId={b.id} size={30} />
+                      <span className="line-clamp-1 text-[10px] font-bold text-navy-600 dark:text-navy-200">
+                        {b.name}
+                      </span>
+                      <span className="text-[9.5px] font-bold text-indigo-600 dark:text-indigo-400">
+                        {phoneBrandCounts[b.id] ?? 0}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* -------------------- أنواع فرعية: أثاث/أجهزة/ملابس/وظائف -------------------- */}
             {subtypeList.length > 0 && (
               <div className="mt-4">
@@ -656,9 +651,7 @@ export default function ListingsBrowser({
             )}
 
             {/* الحالة (أثاث/أجهزة/ملابس) */}
-            {(activeCategory === "furniture" ||
-              activeCategory === "appliances" ||
-              activeCategory === "clothing") && (
+            {activeCategory !== "all" && CONDITION_CATEGORIES.includes(activeCategory) && (
               <div className="mt-4">
                 <label className="label">الحالة</label>
                 <div className="flex flex-wrap gap-1.5">
@@ -745,87 +738,23 @@ export default function ListingsBrowser({
               </div>
             )}
 
-            {/* ------------------------ الجغرافيا (ديناميكية) ------------------------ */}
-            <div className="mt-5 rounded-2xl border border-navy-100 p-3 dark:border-navy-800">
-              <h4 className="flex items-center gap-1.5 text-[12.5px] font-extrabold text-navy-900 dark:text-white">
-                <MapPin size={14} className="text-emeraldBrand-500" /> الفرز حسب المنطقة
-              </h4>
-
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <FilterChip
-                  active={filters.districtKind === "all"}
-                  onClick={() => update({ districtKind: "all" })}
-                  label="الكل"
-                />
-                {DISTRICT_KINDS.map((k) => (
-                  <FilterChip
-                    key={k.id}
-                    active={filters.districtKind === k.id}
-                    onClick={() => update({ districtKind: k.id })}
-                    label={`${k.short} (${kindCounts[k.id] ?? 0})`}
-                  />
-                ))}
-              </div>
-
-              <div className="mt-3">
-                <label className="label">المنطقة المحدّدة</label>
-                <select
-                  value={filters.districtId}
-                  onChange={(e) => update({ districtId: e.target.value })}
-                  className="select"
-                >
-                  <option value="all">كل المناطق ({facets.reduce((s, f) => s + f.count, 0)})</option>
-                  {facets.map((f) => (
-                    <option key={f.cityId + f.id} value={f.id}>
-                      {f.name} — {districtKindShort(f.kind)} ({f.count})
+            {/* ------------------------------ المدينة ------------------------------ */}
+            <div className="mt-4">
+              <label className="label">المدينة</label>
+              <select
+                value={filters.cityId}
+                onChange={(e) => update({ cityId: e.target.value })}
+                className="select"
+              >
+                <option value="all">كل المدن</option>
+                {cities
+                  .filter((c) => c.active)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.governorate}
                     </option>
                   ))}
-                </select>
-              </div>
-
-              {facets.length > 0 && (
-                <div className="mt-3">
-                  <p className="mb-1.5 text-[11px] font-bold text-navy-400">الأكثر إعلانات</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {facets.slice(0, 8).map((f) => (
-                      <button
-                        key={f.cityId + f.id}
-                        onClick={() =>
-                          update({ districtId: filters.districtId === f.id ? "all" : f.id })
-                        }
-                        className={cn(
-                          "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition",
-                          filters.districtId === f.id
-                            ? "bg-emeraldBrand-500 text-white"
-                            : "border border-navy-200 text-navy-600 hover:border-emeraldBrand-400 dark:border-navy-700 dark:text-navy-200"
-                        )}
-                      >
-                        {f.kind === "neighborhood" ? (
-                          <Home size={11} />
-                        ) : f.kind === "village" ? (
-                          <Trees size={11} />
-                        ) : (
-                          <MapIcon size={11} />
-                        )}
-                        {f.name}
-                        <span className="opacity-70">{f.count}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <label className="mt-3 flex cursor-pointer items-center justify-between rounded-xl bg-navy-50/70 p-2.5 dark:bg-navy-800/50">
-                <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-navy-700 dark:text-navy-100">
-                  <Layers size={13} className="text-amberBrand-500" /> تجميع النتائج حسب المنطقة
-                </span>
-                <input
-                  type="checkbox"
-                  checked={grouped}
-                  onChange={(e) => setGrouped(e.target.checked)}
-                  className="h-4 w-4 accent-amberBrand-500"
-                />
-              </label>
+              </select>
             </div>
 
             {/* نطاق السعر */}
@@ -907,24 +836,10 @@ export default function ListingsBrowser({
                   ? "في جميع التصنيفات"
                   : `في ${categoryName(activeCategory)}`}
                 {filters.brandId !== "all" && ` — ${brandName(filters.brandId)}`}
-                {filters.districtId !== "all" && ` — منطقة ${districtLabel(filters.districtId)}`}
               </span>
             </p>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setGrouped((v) => !v)}
-                className={cn(
-                  "btn btn-sm",
-                  grouped
-                    ? "bg-navy-900 text-white dark:bg-white dark:text-navy-900"
-                    : "border border-navy-200 text-navy-600 dark:border-navy-700 dark:text-navy-200"
-                )}
-                title="عرض النتائج مجمّعة تحت عنوان كل منطقة"
-              >
-                <Layers size={14} /> تجميع حسب المنطقة
-              </button>
-
               <div className="relative">
                 <select
                   value={filters.sort}
@@ -983,44 +898,6 @@ export default function ListingsBrowser({
                 </div>
               }
             />
-          ) : grouped ? (
-            <div className="space-y-7">
-              {groups.map((g) => (
-                <div key={`${g.info.kind}-${g.info.name}`}>
-                  <div className="mb-3 flex flex-wrap items-center gap-2 border-b-2 border-amberBrand-200 pb-2 dark:border-amberBrand-500/30">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-navy-900 text-amberBrand-400 dark:bg-white dark:text-navy-900">
-                      {g.info.kind === "neighborhood" ? (
-                        <Home size={14} />
-                      ) : g.info.kind === "village" ? (
-                        <Trees size={14} />
-                      ) : (
-                        <MapIcon size={14} />
-                      )}
-                    </span>
-                    <h3 className="text-[15px] font-extrabold text-navy-900 dark:text-white">
-                      {g.info.name}
-                    </h3>
-                    <span className="badge bg-navy-100 text-navy-600 dark:bg-navy-800 dark:text-navy-200">
-                      {districtKindShort(g.info.kind)}
-                    </span>
-                    <span className="text-[12px] font-bold text-navy-400">{g.ads.length} إعلان</span>
-                    <button
-                      onClick={() =>
-                        update({ districtId: g.ads[0]?.districtId ?? "all", districtKind: g.info.kind })
-                      }
-                      className="ms-auto text-[11.5px] font-bold text-amberBrand-600 hover:underline dark:text-amberBrand-400"
-                    >
-                      عرض هذه المنطقة فقط
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {g.ads.map((ad) => (
-                      <AdCard key={ad.id} ad={ad} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {shown.map((ad) => (

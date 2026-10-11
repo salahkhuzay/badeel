@@ -6,22 +6,20 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BadgeCheck,
+  Briefcase,
   Building2,
   Car,
   ChevronLeft,
   CircleDollarSign,
   Clock3,
   Home,
-  Layers,
   LayoutGrid,
-  Map,
   MapPin,
   PlusCircle,
   Search,
   ShieldCheck,
   Sparkles,
   TrendingUp,
-  Trees,
   Users,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -30,22 +28,18 @@ import Price from "@/components/Price";
 import { compactMoney } from "@/lib/currency";
 import { MAIN_CATEGORIES, PROPERTY_TYPES, VEHICLE_TYPES, dealTypeName } from "@/lib/taxonomy";
 import { themeOf } from "@/lib/theme";
-import { ALL_BRANDS } from "@/lib/brands";
+import { BRANDS } from "@/lib/brands";
 import BrandIcon from "@/components/BrandIcon";
 import CategoryTile, { categoryIcon } from "@/components/CategoryIcon";
-import { districtKindShort } from "@/lib/geo";
 import type { MainCategory } from "@/lib/types";
 
 export default function HomePage() {
   const router = useRouter();
-  const { publicAds, featuredAds, cities, settings, currency, districtFacets, districtLabelOf } =
-    useStore();
+  const { publicAds, featuredAds, cities, settings, currency, cityById } = useStore();
   const manbij = cities.find((c) => c.id === "manbij");
 
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<MainCategory | "all">("all");
-  const [district, setDistrict] = useState("all");
-  const [areaQuery, setAreaQuery] = useState("");
   const [tab, setTab] = useState<MainCategory | "all">("all");
 
   const activeAds = useMemo(
@@ -59,9 +53,6 @@ export default function HomePage() {
         ),
     [publicAds]
   );
-
-  /* المناطق مشتقة من إعلانات المستخدمين (إدخال يدوي) — لا قائمة ثابتة */
-  const areas = useMemo(() => districtFacets("public"), [districtFacets]);
 
   const listings = useMemo(
     () => (tab === "all" ? activeAds : activeAds.filter((a) => a.category === tab)).slice(0, 6),
@@ -77,7 +68,6 @@ export default function HomePage() {
       byCat,
       re: byCat["real-estate"],
       ve: byCat.vehicles,
-      neighbors: manbij?.districts.length ?? 0,
       views: publicAds.reduce((s, a) => s + a.views, 0),
     };
   }, [publicAds, manbij]);
@@ -104,7 +94,6 @@ export default function HomePage() {
     const params = new URLSearchParams();
     if (q.trim()) params.set("q", q.trim());
     if (cat !== "all") params.set("category", cat);
-    if (district !== "all") params.set("district", district);
     router.push(`/search?${params.toString()}`);
   };
 
@@ -175,19 +164,6 @@ export default function HomePage() {
                       </option>
                     ))}
                   </select>
-                  <select
-                    value={district}
-                    onChange={(e) => setDistrict(e.target.value)}
-                    className="select border-transparent bg-navy-50 sm:w-48 dark:bg-navy-800"
-                    aria-label="الحي"
-                  >
-                    <option value="all">كل المناطق والأحياء</option>
-                    {areas.map((d) => (
-                      <option key={d.cityId + d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
                   <button type="submit" className="btn-amber shrink-0 px-5">
                     <Search size={16} /> ابحث
                   </button>
@@ -225,7 +201,12 @@ export default function HomePage() {
                 <Metric label="عقارات" value={String(stats.byCat["real-estate"])} icon={<Building2 size={13} />} />
                 <Metric label="مركبات" value={String(stats.byCat.vehicles)} icon={<Car size={13} />} />
                 <Metric label="أثاث + أجهزة" value={String(stats.byCat.furniture + stats.byCat.appliances)} />
-                <Metric label="ملابس + وظائف" value={String(stats.byCat.clothing + stats.byCat.jobs)} />
+                <Metric label="ملابس + هواتف" value={String(stats.byCat.clothing + stats.byCat.phones)} />
+                <Metric
+                  label="وظائف (عرض + طلب)"
+                  value={String(stats.byCat.jobs)}
+                  icon={<Briefcase size={13} />}
+                />
                 <div className="col-span-2 rounded-xl border border-white/10 bg-navy-950/40 p-3">
                   <p className="text-[11px] text-navy-300">متوسط سعر المتر (شقق للبيع)</p>
                   <p className="mt-1 text-lg font-extrabold text-white">
@@ -305,7 +286,7 @@ export default function HomePage() {
             اختر الماركة لتظهر موديلاتها المتوفرة، ثم فرز النتائج حسب سنة الصنع.
           </p>
           <div className="mt-4 flex snap-x gap-2.5 overflow-x-auto pb-2">
-            {ALL_BRANDS.filter((b) => b.id !== "other").map((b) => (
+            {BRANDS.filter((b) => b.id !== "other").map((b) => (
               <Link
                 key={b.id}
                 href={`/category/vehicles?brand=${b.id}`}
@@ -389,94 +370,44 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ==================== المناطق (أحياء / قرى / ريف) ==================== */}
+      {/* ==================== المدن المتوفرة (بدون أحياء) ==================== */}
       <section className="container-page mt-14">
         <SectionHead
           icon={<MapPin size={18} className="text-emeraldBrand-500" />}
-          title="تصفّح حسب المنطقة والحي والقرية"
-          subtitle={
-            areas.length
-              ? `${areas.length} منطقة مُدخلة من المُعلنين — اضغط أي منطقة لعرض إعلاناتها`
-              : "تُبنى المناطق من إدخال المُعلنين اليدوي — كن أول من يُدخل منطقته"
-          }
-          href="/search?sort=district"
-          hrefLabel="فرز أبجدي"
+          title="تصفّح حسب المدينة"
+          subtitle="منبج الآن — ومدن أخرى تُفعَّل من لوحة التحكم عند التوسّع"
         />
-
-        {/* بحث حر عن منطقة */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const params = new URLSearchParams();
-            if (areaQuery.trim()) params.set("q", areaQuery.trim());
-            router.push(`/search?${params.toString()}`);
-          }}
-          className="card mb-4 flex flex-col gap-2 p-3 sm:flex-row sm:items-center"
-        >
-          <div className="relative flex-1">
-            <MapPin
-              size={16}
-              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emeraldBrand-500"
-            />
-            <input
-              value={areaQuery}
-              onChange={(e) => setAreaQuery(e.target.value)}
-              placeholder="ابحث عن منطقتك: حارة النعيم، قرية الجراحي، الريف الشرقي..."
-              className="input pr-9"
-              aria-label="بحث عن منطقة"
-            />
-          </div>
-          <button type="submit" className="btn-emerald shrink-0 px-5">
-            <Search size={16} /> ابحث في المنطقة
-          </button>
-        </form>
-
-        {areas.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {areas.map((d) => (
-              <Link
-                key={d.cityId + d.id}
-                href={`/search?district=${d.id}`}
-                className="group flex items-center gap-2 rounded-xl border border-navy-100 bg-white px-3.5 py-2 text-[13px] font-semibold text-navy-700 shadow-sm transition hover:border-amberBrand-400 hover:text-amberBrand-600 dark:border-navy-800 dark:bg-navy-900 dark:text-navy-100"
+        <div className="flex flex-wrap gap-2">
+          {cities
+            .filter((c) => c.active)
+            .map((c) => {
+              const count = publicAds.filter((a) => a.cityId === c.id).length;
+              return (
+                <Link
+                  key={c.id}
+                  href={`/search?city=${c.id}`}
+                  className="group flex items-center gap-2 rounded-xl border border-navy-100 bg-white px-4 py-2.5 text-[13.5px] font-bold text-navy-700 shadow-sm transition hover:border-emeraldBrand-400 hover:text-emeraldBrand-600 dark:border-navy-800 dark:bg-navy-900 dark:text-navy-100"
+                >
+                  <MapPin size={14} className="text-emeraldBrand-500" />
+                  {c.name}
+                  <span className="text-[11px] font-semibold text-navy-400">{c.governorate}</span>
+                  <span className="badge bg-navy-100 text-navy-500 dark:bg-navy-800 dark:text-navy-300">
+                    {count}
+                  </span>
+                </Link>
+              );
+            })}
+          {cities
+            .filter((c) => !c.active)
+            .map((c) => (
+              <span
+                key={c.id}
+                className="flex items-center gap-2 rounded-xl border border-dashed border-navy-200 px-4 py-2.5 text-[13px] font-semibold text-navy-400 dark:border-navy-700"
               >
-                {d.kind === "neighborhood" ? (
-                  <Home size={13} className="text-amberBrand-500" />
-                ) : d.kind === "village" ? (
-                  <Trees size={13} className="text-emeraldBrand-500" />
-                ) : (
-                  <Map size={13} className="text-navy-400" />
-                )}
-                {d.name}
-                <span className="badge bg-navy-100 text-navy-500 dark:bg-navy-800 dark:text-navy-300">
-                  {d.count}
-                </span>
-                <span className="text-[10px] font-bold text-navy-300">
-                  {districtKindShort(d.kind)}
-                </span>
-              </Link>
+                <MapPin size={14} /> {c.name} — قريباً
+              </span>
             ))}
-            <Link
-              href="/search?group=district"
-              className="group flex items-center gap-2 rounded-xl border border-dashed border-emeraldBrand-300 bg-emeraldBrand-50/60 px-3.5 py-2 text-[13px] font-bold text-emeraldBrand-700 transition hover:bg-emeraldBrand-50 dark:border-emeraldBrand-500/40 dark:bg-emeraldBrand-500/10 dark:text-emeraldBrand-400"
-            >
-              <Layers size={13} /> عرض كل الإعلانات مجمّعة حسب المنطقة
-            </Link>
-          </div>
-        ) : (
-          <div className="card p-6 text-center">
-            <MapPin size={22} className="mx-auto text-navy-300" />
-            <p className="mt-2 text-[13px] font-bold text-navy-700 dark:text-navy-100">
-              لا توجد مناطق بعد
-            </p>
-            <p className="mx-auto mt-1 max-w-lg text-[12px] leading-relaxed text-navy-500 dark:text-navy-300">
-              ألغينا قائمة الأحياء الجاهزة: كل منطقة تُدخل يدوياً من قبل المُعلن عند نشر الإعلان،
-              وتظهر هنا تلقائياً ليتمكن الجميع من الفرز والبحث حسبها.
-            </p>
-            <Link href="/post-ad" className="btn-amber mt-3">
-              <PlusCircle size={16} /> أضف إعلانك وأدخل منطقتك
-            </Link>
-          </div>
-        )}
+        </div>
       </section>
 
       {/* ============================ كيف يعمل بديل ============================ */}
@@ -602,7 +533,7 @@ export default function HomePage() {
                         {ad.title}
                       </span>
                       <span className="mt-0.5 block text-[11px] text-navy-400">
-                        {districtLabelOf(ad)} · {ad.areaSize}{" "}
+                        {cityById(ad.cityId)?.name ?? "منبج"} · {ad.areaSize}{" "}
                         {ad.areaUnit === "donum" ? "دونم" : "م²"} ·{" "}
                         {dealTypeName(ad.dealType) || "بيع"}
                       </span>

@@ -17,17 +17,30 @@ import {
 import { useStore } from "@/lib/store";
 import { computeStats } from "@/lib/filters";
 import { formatNumber } from "@/lib/currency";
-import { districtKindShort } from "@/lib/geo";
 import { categoryIcon } from "@/components/CategoryIcon";
 import { themeOf } from "@/lib/theme";
 
 /** بطاقات الإحصاءات + توزيع التصنيفات + أكثر الأحياء + آخر 7 أيام */
 export default function AdminStats({ onGoPending }: { onGoPending?: () => void }) {
-  const { ads, districtLabelOf } = useStore();
-  const s = computeStats(ads, (ad) => ({
-    name: districtLabelOf(ad),
-    kind: ad.districtKind ?? "area",
-  }));
+  const { ads, publicAds } = useStore();
+  const s = computeStats(ads);
+
+  /* أكثر ماركات السيارات والهواتف تواجداً في الإعلانات */
+  const topBrands = (() => {
+    const m: Record<string, { name: string; count: number; category: "vehicles" | "phones" }> = {};
+    publicAds.forEach((a) => {
+      if (a.category !== "vehicles" && a.category !== "phones") return;
+      const key = `${a.category}:${a.brandId ?? "other"}`;
+      const name = a.make || "أخرى";
+      if (!m[key]) m[key] = { name, count: 0, category: a.category };
+      m[key].count += 1;
+    });
+    return Object.entries(m)
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  })();
+  const maxBrand = Math.max(1, ...topBrands.map((b) => b.count));
 
   const barTone: Record<string, string> = {
     "real-estate": "bg-emeraldBrand-500",
@@ -39,7 +52,6 @@ export default function AdminStats({ onGoPending }: { onGoPending?: () => void }
   };
 
   const maxDay = Math.max(1, ...s.byDay.map((d) => d.count));
-  const maxDistrict = Math.max(1, ...s.topDistricts.map((d) => d.count));
   const totalCat = Math.max(1, s.byCategory.reduce((a, c) => a + c.count, 0));
 
   return (
@@ -117,46 +129,38 @@ export default function AdminStats({ onGoPending }: { onGoPending?: () => void }
           </div>
         </div>
 
-        {/* أكثر الأحياء */}
+        {/* أكثر الماركات */}
         <div className="card p-5">
           <h3 className="flex items-center gap-2 text-[13.5px] font-extrabold text-navy-900 dark:text-white">
-            <TrendingUp size={16} className="text-amberBrand-500" /> أكثر المناطق نشاطاً
+            <TrendingUp size={16} className="text-amberBrand-500" /> أكثر الماركات في السوق
           </h3>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {s.byDistrictKind.map((k) => (
-              <div
-                key={k.id}
-                className="rounded-xl border border-navy-100 p-2 text-center dark:border-navy-800"
-              >
-                <p className="text-[10.5px] font-semibold text-navy-400">{k.name}</p>
-                <p className="text-base font-extrabold text-navy-800 dark:text-navy-50">{k.count}</p>
-              </div>
-            ))}
-          </div>
+          <p className="mt-1 text-[11.5px] text-navy-400">
+            ماركات السيارات والهواتف الأكثر عرضاً — مفيد لمعرفة ما يبحث عنه السوق
+          </p>
           <ul className="mt-4 space-y-2.5">
-            {s.topDistricts.map((d) => (
-              <li key={d.id}>
+            {topBrands.map((b) => (
+              <li key={b.id}>
                 <div className="mb-1 flex items-center justify-between text-[12px]">
                   <Link
-                    href={`/search?district=${d.id}`}
+                    href={`/category/${b.category}?subtype=${b.id.split(":")[1]}`}
                     className="font-bold text-navy-700 hover:text-amberBrand-600 dark:text-navy-100"
                   >
-                    {d.name}
+                    {b.name}
                     <span className="ms-1 text-[10px] font-semibold text-navy-400">
-                      ({districtKindShort(d.kind)})
+                      ({b.category === "vehicles" ? "سيارات" : "هواتف"})
                     </span>
                   </Link>
-                  <span className="font-bold text-navy-500">{d.count}</span>
+                  <span className="font-bold text-navy-500">{b.count}</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-navy-100 dark:bg-navy-800">
                   <div
                     className="h-full rounded-full bg-gradient-to-l from-amberBrand-500 to-amberBrand-400"
-                    style={{ width: `${(d.count / maxDistrict) * 100}%` }}
+                    style={{ width: `${(b.count / maxBrand) * 100}%` }}
                   />
                 </div>
               </li>
             ))}
-            {s.topDistricts.length === 0 && (
+            {topBrands.length === 0 && (
               <li className="text-[12px] text-navy-400">لا توجد بيانات بعد.</li>
             )}
           </ul>

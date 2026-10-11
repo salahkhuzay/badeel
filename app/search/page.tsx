@@ -5,7 +5,7 @@ import ListingsBrowser from "@/components/ListingsBrowser";
 export const metadata: Metadata = {
   title: "البحث المتقدّم في إعلانات منبج",
   description:
-    "ابحث في كل إعلانات بديل: عقارات ومركبات في منبج وريفها، مع فلترة حسب الحي ونطاق السعر ونوع العقار أو المركبة.",
+    "ابحث في كل إعلانات بديل: عقارات، مركبات، هواتف، أثاث، أجهزة، ملابس ووظائف في منبج — مع فلترة حسب الماركة والموديل وسنة الصنع والحالة ونطاق السعر والمدينة.",
 };
 
 export default function SearchPage() {

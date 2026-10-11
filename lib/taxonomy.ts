@@ -24,7 +24,7 @@ export const MAIN_CATEGORIES: {
   name: string;
   icon: string; // اسم أيقونة lucide
   tagline: string;
-  accent: "emerald" | "amber" | "rose" | "sky" | "violet" | "navy";
+  accent: "emerald" | "amber" | "rose" | "sky" | "violet" | "indigo" | "navy";
 }[] = [
   {
     id: "real-estate",
@@ -60,6 +60,13 @@ export const MAIN_CATEGORIES: {
     icon: "Shirt",
     tagline: "ملابس رجالية ونسائية وأطفال، أحذية وحقائب وإكسسوارات",
     accent: "violet",
+  },
+  {
+    id: "phones",
+    name: "هواتف مستعملة وجديدة",
+    icon: "Smartphone",
+    tagline: "آيفون، سامسونغ، شاومي، هواوي، أوبو... جديدة ومستعملة بكل الموديلات",
+    accent: "indigo",
   },
   {
     id: "jobs",
@@ -156,6 +163,23 @@ export const SUBTYPES: Record<MainCategory, { id: string; name: string }[]> = {
     { id: "accessories", name: "ساعات وإكسسوارات" },
     { id: "other-clothing", name: "أخرى" },
   ],
+  phones: [
+    { id: "apple", name: "آيفون (Apple)" },
+    { id: "samsung", name: "سامسونغ" },
+    { id: "xiaomi", name: "شاومي" },
+    { id: "huawei", name: "هواوي" },
+    { id: "oppo", name: "أوبو" },
+    { id: "realme", name: "ريلمي" },
+    { id: "vivo", name: "فيفو" },
+    { id: "nokia", name: "نوكيا" },
+    { id: "infinix", name: "إنفينيكس" },
+    { id: "honor", name: "هونر" },
+    { id: "oneplus", name: "ون بلس" },
+    { id: "motorola", name: "موتورولا" },
+    { id: "tablet", name: "تابلت" },
+    { id: "accessory", name: "إكسسوارات وقطع" },
+    { id: "other-phone", name: "ماركة أخرى" },
+  ],
   jobs: [
     { id: "education", name: "تعليم وتدريس" },
     { id: "health", name: "صحة وتمريض" },
@@ -234,6 +258,7 @@ export const DEAL_TYPES_BY_CATEGORY: Record<MainCategory, DealType[]> = {
   furniture: ["sale"],
   appliances: ["sale"],
   clothing: ["sale"],
+  phones: ["sale"],
   jobs: ["sale"], // الراتب — يُعرض كقيمة دورية حسب نوع الدوام
 };
 
@@ -327,7 +352,12 @@ export const DONUM_TYPES: PropertyType[] = ["land-agricultural", "land-building"
 export const YEAR_REQUIRED: VehicleType[] = ["passenger", "truck", "machinery"];
 
 /** التصنيفات التي تُستخدم فيها الحالة */
-export const CONDITION_CATEGORIES: MainCategory[] = ["furniture", "appliances", "clothing"];
+export const CONDITION_CATEGORIES: MainCategory[] = [
+  "furniture",
+  "appliances",
+  "clothing",
+  "phones",
+];
 
 /** التصنيفات ذات الأنواع الفرعية العامة */
 export const SUBTYPE_CATEGORIES: MainCategory[] = [
@@ -354,6 +384,8 @@ export const categoryShort = (c: MainCategory) => {
       return "جهاز";
     case "clothing":
       return "ملابس";
+    case "phones":
+      return "هاتف";
     case "jobs":
       return "وظيفة";
   }

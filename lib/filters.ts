@@ -1,7 +1,6 @@
 import type {
   Ad,
   DealType,
-  DistrictKind,
   EmploymentType,
   ItemCondition,
   ListingKind,
@@ -11,16 +10,10 @@ import type {
   VehicleType,
 } from "./types";
 import { MAIN_CATEGORIES } from "./taxonomy";
-import { guessDistrictKind } from "./geo";
 
 /* ==========================================================================
    الفلترة والترتيب والتجميع والإحصاءات
    ========================================================================== */
-
-export interface DistrictInfo {
-  name: string;
-  kind: DistrictKind;
-}
 
 export interface Filters {
   q: string;
@@ -28,8 +21,7 @@ export interface Filters {
   propertyType: PropertyType | "all";
   vehicleType: VehicleType | "all";
   dealType: DealType | "all";
-  districtId: string | "all";
-  districtKind: DistrictKind | "all";
+  cityId: string | "all";
   /* المركبات */
   brandId: string | "all";
   modelId: string | "all";
@@ -52,7 +44,6 @@ export type SortKey =
   | "price-asc"
   | "price-desc"
   | "views"
-  | "district"
   | "year-desc"
   | "year-asc";
 
@@ -63,7 +54,6 @@ export const SORT_OPTIONS: { id: SortKey; name: string }[] = [
   { id: "year-desc", name: "الأحدث صنعاً (السنة)" },
   { id: "year-asc", name: "الأقدم صنعاً (السنة)" },
   { id: "views", name: "الأكثر مشاهدة" },
-  { id: "district", name: "حسب المنطقة (أبجدي)" },
 ];
 
 /** خيارات الفرز المتاحة لكل تصنيف */
@@ -78,8 +68,7 @@ export const EMPTY_FILTERS: Filters = {
   propertyType: "all",
   vehicleType: "all",
   dealType: "all",
-  districtId: "all",
-  districtKind: "all",
+  cityId: "all",
   brandId: "all",
   modelId: "all",
   yearFrom: null,
@@ -95,8 +84,8 @@ export const EMPTY_FILTERS: Filters = {
   sort: "newest",
 };
 
-/** البحث النصي يشمل: العنوان، الوصف، الماركة، الموديل، رقم الإعلان، اسم المنطقة */
-export function matchesQuery(ad: Ad, q: string, districtLabel = "") {
+/** البحث النصي يشمل: العنوان، الوصف، الماركة، الموديل، رقم الإعلان، اسم البائع */
+export function matchesQuery(ad: Ad, q: string) {
   if (!q.trim()) return true;
   const needle = normalizeArabic(q);
   const haystack = normalizeArabic(
@@ -107,7 +96,7 @@ export function matchesQuery(ad: Ad, q: string, districtLabel = "") {
       ad.make ?? "",
       ad.model ?? "",
       ad.sellerName,
-      districtLabel,
+      ad.storage ?? "",
       String(ad.year ?? ""),
     ].join(" ")
   );
@@ -129,19 +118,13 @@ export function normalizeArabic(input: string) {
     .toLowerCase();
 }
 
-export function applyFilters(
-  ads: Ad[],
-  f: Filters,
-  districtOf: (ad: Ad) => DistrictInfo
-) {
+export function applyFilters(ads: Ad[], f: Filters) {
   let out = ads.filter((ad) => {
-    const info = districtOf(ad);
     if (f.category !== "all" && ad.category !== f.category) return false;
     if (f.propertyType !== "all" && ad.propertyType !== f.propertyType) return false;
     if (f.vehicleType !== "all" && ad.vehicleType !== f.vehicleType) return false;
     if (f.dealType !== "all" && ad.dealType !== f.dealType) return false;
-    if (f.districtId !== "all" && ad.districtId !== f.districtId) return false;
-    if (f.districtKind !== "all" && info.kind !== f.districtKind) return false;
+    if (f.cityId !== "all" && ad.cityId !== f.cityId) return false;
     if (f.brandId !== "all" && ad.brandId !== f.brandId) return false;
     if (f.modelId !== "all" && ad.modelId !== f.modelId) return false;
     if (f.yearFrom != null && (ad.year ?? 0) < f.yearFrom) return false;
@@ -154,7 +137,7 @@ export function applyFilters(
     if (f.featuredOnly && !ad.featured) return false;
     if (f.minPriceUsd != null && ad.priceUsd < f.minPriceUsd) return false;
     if (f.maxPriceUsd != null && ad.priceUsd > f.maxPriceUsd) return false;
-    if (!matchesQuery(ad, f.q, info.name)) return false;
+    if (!matchesQuery(ad, f.q)) return false;
     return true;
   });
 
@@ -170,15 +153,6 @@ export function applyFilters(
         return (b.year ?? 0) - (a.year ?? 0);
       case "year-asc":
         return (a.year ?? 9999) - (b.year ?? 9999);
-      case "district": {
-        const da = districtOf(a).name;
-        const db = districtOf(b).name;
-        return (
-          da.localeCompare(db, "ar") ||
-          new Date(b.publishedAt ?? b.createdAt).getTime() -
-            new Date(a.publishedAt ?? a.createdAt).getTime()
-        );
-      }
       default:
         return (
           new Date(b.publishedAt ?? b.createdAt).getTime() -
@@ -190,21 +164,6 @@ export function applyFilters(
   return out;
 }
 
-/** تجميع الإعلانات تحت عناوين المناطق (أحياء / قرى / مناطق) */
-export function groupByDistrict(ads: Ad[], districtOf: (ad: Ad) => DistrictInfo) {
-  const map = new Map<string, { info: DistrictInfo; ads: Ad[] }>();
-  ads.forEach((ad) => {
-    const info = districtOf(ad);
-    const key = `${info.kind}::${info.name}`;
-    const prev = map.get(key);
-    if (prev) prev.ads.push(ad);
-    else map.set(key, { info, ads: [ad] });
-  });
-  return [...map.values()].sort((a, b) => a.info.name.localeCompare(b.info.name, "ar"));
-}
-
-/* ------------------------------ الإحصاءات ------------------------------ */
-
 export interface AdminStats {
   total: number;
   pending: number;
@@ -214,27 +173,14 @@ export interface AdminStats {
   featured: number;
   totalViews: number;
   byCategory: { id: MainCategory; name: string; count: number }[];
-  byDistrictKind: { id: DistrictKind; name: string; count: number }[];
-  topDistricts: { id: string; name: string; count: number; kind: DistrictKind }[];
   byDay: { label: string; count: number }[];
 }
 
-export function computeStats(
-  ads: Ad[],
-  districtOf: (ad: Ad) => DistrictInfo
-): AdminStats {
+export function computeStats(ads: Ad[]): AdminStats {
   const byCategoryMap = new Map<string, number>();
-  const byDistrictMap = new Map<string, { name: string; kind: DistrictKind; count: number }>();
-  const byKind = { neighborhood: 0, village: 0, area: 0 } as Record<DistrictKind, number>;
 
   ads.forEach((a) => {
     byCategoryMap.set(a.category, (byCategoryMap.get(a.category) ?? 0) + 1);
-    const info = districtOf(a);
-    byKind[info.kind] = (byKind[info.kind] ?? 0) + 1;
-    const key = `${info.kind}::${info.name}`;
-    const prev = byDistrictMap.get(key);
-    if (prev) prev.count += 1;
-    else byDistrictMap.set(key, { name: info.name, kind: info.kind, count: 1 });
   });
 
   const days = Array.from({ length: 7 }).map((_, i) => {
@@ -258,15 +204,6 @@ export function computeStats(
       name: c.name,
       count: byCategoryMap.get(c.id) ?? 0,
     })),
-    byDistrictKind: [
-      { id: "neighborhood" as DistrictKind, name: "أحياء", count: byKind.neighborhood },
-      { id: "village" as DistrictKind, name: "قرى", count: byKind.village },
-      { id: "area" as DistrictKind, name: "مناطق وريف", count: byKind.area },
-    ],
-    topDistricts: [...byDistrictMap.values()]
-      .map((d) => ({ id: d.name, name: d.name, count: d.count, kind: d.kind }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6),
     byDay: days,
   };
 }
@@ -282,5 +219,3 @@ export function countBy<T extends string>(ads: Ad[], key: (ad: Ad) => T | undefi
   return map;
 }
 
-/** نوع المنطقة المتوقع لاسم مكتوب يدوياً (لاستخدامه في الواجهات) */
-export const kindOfName = (name: string) => guessDistrictKind(name);

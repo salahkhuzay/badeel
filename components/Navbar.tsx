@@ -13,6 +13,7 @@ import {
   Phone,
   Plug,
   Shirt,
+  Smartphone,
   Sofa,
   LayoutDashboard,
   Menu,
@@ -33,8 +34,14 @@ const NAV = [
   { href: "/category/furniture", label: "أثاث منزلي", icon: Sofa },
   { href: "/category/appliances", label: "أدوات كهربائية", icon: Plug },
   { href: "/category/clothing", label: "ملابس وأزياء", icon: Shirt },
+  { href: "/category/phones", label: "هواتف", icon: Smartphone },
   { href: "/category/jobs", label: "وظائف", icon: Briefcase },
-  { href: "/how-it-works", label: "كيف يعمل؟", icon: ShieldCheck },
+];
+
+/* قائمة الجوال تضم «كيف يعمل بديل؟» إضافةً إلى التصنيفات */
+const MOBILE_NAV = [
+  ...NAV,
+  { href: "/how-it-works", label: "كيف يعمل بديل؟", icon: ShieldCheck },
 ];
 
 export default function Navbar() {
@@ -165,7 +172,7 @@ export default function Navbar() {
       {open && (
         <div className="animate-fade-up border-t border-navy-100 bg-white lg:hidden dark:border-navy-800 dark:bg-navy-950">
           <div className="container-page space-y-1 py-3">
-            {NAV.map((item) => {
+            {MOBILE_NAV.map((item) => {
               const Icon = item.icon;
               return (
                 <Link

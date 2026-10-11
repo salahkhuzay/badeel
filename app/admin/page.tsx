@@ -34,7 +34,7 @@ import Logo from "@/components/Logo";
 import AdminStats from "@/components/admin/AdminStats";
 import ModerationQueue from "@/components/admin/ModerationQueue";
 import AdsTable from "@/components/admin/AdsTable";
-import GeographyManager from "@/components/admin/GeographyManager";
+import CitiesManager from "@/components/admin/CitiesManager";
 import SettingsPanel from "@/components/admin/SettingsPanel";
 import AuditLog from "@/components/admin/AuditLog";
 import { cn, formatNumber } from "@/lib/currency";
@@ -97,7 +97,7 @@ export default function AdminPage() {
       badge: pendingAds.length,
     },
     { id: "ads", name: "إدارة الإعلانات", icon: <Table2 size={16} /> },
-    { id: "geo", name: "الأحياء والمدن", icon: <Map size={16} /> },
+    { id: "geo", name: "المدن", icon: <Map size={16} /> },
     { id: "settings", name: "الإعدادات والأمان", icon: <SettingsIcon size={16} /> },
     { id: "audit", name: "سجل العمليات", icon: <History size={16} /> },
   ];
@@ -278,10 +278,10 @@ export default function AdminPage() {
             <>
               <SectionTitle
                 icon={<Map size={18} className="text-emeraldBrand-500" />}
-                title="إدارة الجغرافيا المحلية والتوسّع الإقليمي"
-                desc="أضف أحياء وقرى منبج الجديدة، أو فعّل مدينة حلب وأضف أحياءها — كل ذلك من هنا."
+                title="إدارة المدن والتوسّع الإقليمي"
+                desc="فعّل مدينة لتصبح متاحة للنشر فوراً، أو ألغِ تفعيلها. لا حاجة لقوائم أحياء: الموقع يُوضَّح في وصف الإعلان."
               />
-              <GeographyManager />
+              <CitiesManager />
             </>
           )}
 

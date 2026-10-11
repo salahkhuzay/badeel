@@ -8,28 +8,24 @@ import {
   Car,
   Facebook,
   Mail,
-  Map,
-  MapPin,
   MessageCircle,
   Phone,
   Plug,
   Shirt,
+  Smartphone,
   Sofa,
-  Trees,
 } from "lucide-react";
 import Logo from "./Logo";
 import { useStore } from "@/lib/store";
 import { displayPhone, supportWhatsapp, telLink } from "@/lib/currency";
 import { mainCategoryLinks } from "@/lib/taxonomy";
+import SyriaFlag from "./SyriaFlag";
 
 export default function Footer() {
-  const { cities, settings, districtFacets } = useStore();
+  const { cities, settings } = useStore();
   const supportPhone = displayPhone(settings.contactPhone, settings.whatsappCountryCode);
   const tel = telLink(settings.contactPhone, settings.whatsappCountryCode);
   const wa = supportWhatsapp(settings.contactPhone, settings.whatsappCountryCode);
-  const manbij = cities.find((c) => c.id === "manbij");
-  /* المناطق مشتقة من إعلانات المستخدمين — لا قائمة ثابتة */
-  const areas = districtFacets("public").slice(0, 8);
 
   return (
     <footer className="mt-16 border-t border-navy-100 bg-white dark:border-navy-800 dark:bg-navy-950">
@@ -37,9 +33,9 @@ export default function Footer() {
         <div className="space-y-4">
           <Logo size={44} tagline />
           <p className="text-sm leading-relaxed text-navy-500 dark:text-navy-300">
-            منصة إعلانات مبوبة محلية في مدينة منبج وريفها: عقارات، سيارات ومركبات، أثاث منزلي،
-            أدوات كهربائية، ملابس ووظائف — بأسعار بالدولار والليرة السورية، ومراجعة إدارية لكل
-            إعلان قبل النشر.
+            منصة إعلانات مبوبة محلية في مدينة منبج: عقارات، سيارات ومركبات، هواتف جديدة ومستعملة،
+            أثاث منزلي، أدوات كهربائية، ملابس ووظائف — بأسعار بالدولار والليرة السورية، ومراجعة
+            إدارية لكل إعلان قبل النشر.
           </p>
           <div className="flex gap-2">
             <a
@@ -111,97 +107,55 @@ export default function Footer() {
 
         <div>
           <h4 className="mb-3 text-sm font-extrabold text-navy-900 dark:text-white">
-            مناطق وأحياء منبج
+            تواصل ودعم
           </h4>
-          {areas.length === 0 ? (
-            <p className="text-[12.5px] leading-relaxed text-navy-500 dark:text-navy-300">
-              تُبنى المناطق من إعلانات المستخدمين — كن أول من ينشر إعلاناً في منطقتك.
-            </p>
-          ) : (
-            <ul className="grid grid-cols-2 gap-1.5 text-[13px] text-navy-500 dark:text-navy-300">
-              {areas.map((d) => (
-                <li key={d.cityId + d.id}>
-                  <Link
-                    href={`/search?district=${d.id}`}
-                    className="inline-flex items-center gap-1 hover:text-amberBrand-600"
-                  >
-                    {d.kind === "neighborhood" ? (
-                      <MapPin size={11} className="text-amberBrand-500" />
-                    ) : d.kind === "village" ? (
-                      <Trees size={11} className="text-emeraldBrand-500" />
-                    ) : (
-                      <Map size={11} className="text-navy-400" />
-                    )}
-                    {d.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Link
-            href="/search?sort=district"
-            className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold text-amberBrand-600 hover:underline dark:text-amberBrand-400"
-          >
-            فرز كل الإعلانات حسب المنطقة →
-          </Link>
-        </div>
-
-        <div>
-          <h4 className="mb-3 text-sm font-extrabold text-navy-900 dark:text-white">
-            قادم قريباً
-          </h4>
-          <ul className="space-y-2 text-sm text-navy-500 dark:text-navy-300">
-            {cities
-              .filter((c) => !c.active)
-              .map((c) => (
-                <li key={c.id} className="flex items-center gap-2">
-                  <MapPin size={14} className="text-amberBrand-500" />
-                  {c.name} — {c.governorate}
-                  <span className="badge bg-navy-100 text-navy-500 dark:bg-navy-800 dark:text-navy-300">
-                    قريباً
-                  </span>
-                </li>
-              ))}
-          </ul>
-          <div className="mt-4 rounded-xl border border-navy-100 bg-navy-50/60 p-3.5 dark:border-navy-800 dark:bg-navy-900">
-            <p className="text-[12.5px] font-extrabold text-navy-800 dark:text-navy-50">
-              التواصل والدعم
-            </p>
-            <p className="mt-1 text-[12px] text-navy-500 dark:text-navy-300">
-              منبج — حلب · يومياً 9 صباحاً حتى 9 مساءً
-            </p>
-
-            <p className="mt-2.5 flex items-center gap-2 text-[13px] font-extrabold text-navy-800 dark:text-navy-50" dir="ltr">
-              <Phone size={14} className="text-amberBrand-500" /> {supportPhone}
-            </p>
-
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <a
-                href={tel}
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-navy-900 px-3 py-2 text-[12px] font-bold text-white transition hover:bg-navy-800 dark:bg-white dark:text-navy-900"
-              >
-                <Phone size={14} /> اتصال
+          <ul className="space-y-2.5 text-sm text-navy-500 dark:text-navy-300">
+            <li className="flex items-center gap-2">
+              <Phone size={14} className="text-amberBrand-500" />
+              <a href={tel} className="font-bold hover:text-amberBrand-600" dir="ltr">
+                {supportPhone}
               </a>
+            </li>
+            <li className="flex items-center gap-2">
+              <MessageCircle size={14} className="text-emeraldBrand-500" />
               <a
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emeraldBrand-500 px-3 py-2 text-[12px] font-bold text-white transition hover:bg-emeraldBrand-600"
+                className="hover:text-emeraldBrand-600"
               >
-                <MessageCircle size={14} /> واتساب
+                واتساب — رد سريع
               </a>
-            </div>
+            </li>
+            <li className="flex items-center gap-2">
+              <Facebook size={14} className="text-sky-500" />
+              <a
+                href={settings.facebookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-sky-600"
+              >
+                صفحتنا على فيسبوك
+              </a>
+            </li>
+            <li className="flex items-center gap-2">
+              <Mail size={14} className="text-navy-400" />
+              <a href="mailto:info@badeel.sy" className="hover:text-amberBrand-600">
+                info@badeel.sy
+              </a>
+            </li>
+            <li className="text-[12px] leading-relaxed">
+              منبج — حلب · يومياً من 9 صباحاً حتى 9 مساءً
+            </li>
+          </ul>
 
-            <a
-              href={settings.facebookUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-sky-300 px-3 py-2 text-[12px] font-bold text-sky-700 transition hover:bg-sky-50 dark:border-sky-500/40 dark:text-sky-400 dark:hover:bg-sky-500/10"
-            >
-              <Facebook size={14} /> تابعنا على فيسبوك
-            </a>
-          </div>
+          {cities.filter((c) => !c.active).length > 0 && (
+            <p className="mt-4 text-[11.5px] leading-relaxed text-navy-400">
+              قريباً: {cities.filter((c) => !c.active).map((c) => c.name).join(" · ")}
+            </p>
+          )}
         </div>
+
       </div>
 
       <div className="border-t border-navy-100 py-5 dark:border-navy-800">
@@ -223,10 +177,16 @@ export default function Footer() {
             <Link href="/category/clothing" className="inline-flex items-center gap-1.5 hover:text-amberBrand-600">
               <Shirt size={13} /> ملابس
             </Link>
+            <Link href="/category/phones" className="inline-flex items-center gap-1.5 hover:text-amberBrand-600">
+              <Smartphone size={13} /> هواتف
+            </Link>
             <Link href="/category/jobs" className="inline-flex items-center gap-1.5 hover:text-amberBrand-600">
               <Briefcase size={13} /> وظائف
             </Link>
-            <span>صُنع في منبج 🇸🇾</span>
+            <span className="inline-flex items-center gap-1.5">
+              <SyriaFlag size={18} className="rounded-[2px] ring-1 ring-navy-200 dark:ring-navy-700" />
+              سوريا
+            </span>
           </p>
         </div>
       </div>

@@ -16,6 +16,7 @@ import {
   Palette,
   Ruler,
   Shirt,
+  Smartphone,
   Sofa,
   Tag,
   Timer,
@@ -118,6 +119,17 @@ export function adSpecs(ad: Ad): Spec[] {
         S("التفاوض", YES_NO(ad.negotiable), <Tag size={14} />),
       ];
 
+    case "phones": {
+      const brand = ad.make || brandName(ad.brandId);
+      const model = ad.model || modelName(ad.brandId, ad.modelId);
+      return [
+        S("النوع", brand ? `${brand}${model ? ` — ${model}` : ""}` : "هاتف", <Smartphone size={14} />),
+        S("الحالة", conditionName(ad.condition), <CheckCircle2 size={14} />),
+        S("سعة التخزين", ad.storage || "غير محددة", <Package size={14} />),
+        S("التفاوض", YES_NO(ad.negotiable), <Tag size={14} />),
+      ];
+    }
+
     case "jobs":
       return [
         S("نوع الإعلان", jobKindName(ad.jobKind), <Briefcase size={14} />),
@@ -142,7 +154,8 @@ export function adSpecs(ad: Ad): Spec[] {
 
 /** شرائح مختصرة لبطاقة الإعلان */
 export function adChips(ad: Ad): Spec[] {
-  return adSpecs(ad).slice(0, 3);
+  const specs = adSpecs(ad);
+  return ad.category === "phones" ? specs.slice(0, 3) : specs.slice(0, 3);
 }
 
 /** هل الإعلان معروض للبيع أم للإيجار؟ */
@@ -157,18 +170,11 @@ export function dealBadge(ad: Ad): { label: string; className: string } | null {
   return { label: map[ad.dealType] ?? "للإيجار", className: "bg-navy-800 text-white" };
 }
 
-/** عنوان الموقع المختصر */
-export function LocationLine({
-  district,
-  city,
-}: {
-  district: string;
-  city?: string;
-}) {
+/** عنوان الموقع المختصر — المدينة فقط (أُلغيت الأحياء) */
+export function LocationLine({ city }: { city?: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <MapPin size={13} className="text-amberBrand-500" /> {district}
-      {city ? ` — ${city}` : ""}
+      <MapPin size={13} className="text-amberBrand-500" /> {city ?? "منبج"}
     </span>
   );
 }

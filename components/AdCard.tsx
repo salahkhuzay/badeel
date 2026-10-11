@@ -14,6 +14,7 @@ import {
   Phone,
   Plug,
   Shirt,
+  Smartphone,
   Sofa,
   Sparkles,
 } from "lucide-react";
@@ -32,8 +33,8 @@ import StatusBadge from "./StatusBadge";
    ========================================================================== */
 
 export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: boolean }) {
-  const { districtLabelOf, settings } = useStore();
-  const district = districtLabelOf(ad);
+  const { settings, cityById } = useStore();
+  const cityName = cityById(ad.cityId)?.name ?? "منبج";
   const isDone = ad.status === "sold" || ad.status === "rented";
 
   const waText = encodeURIComponent(
@@ -123,7 +124,7 @@ export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: bool
 
         <div className="mt-3 flex items-center gap-3 text-[11.5px] text-navy-400 dark:text-navy-400">
           <span className="inline-flex items-center gap-1">
-            <MapPin size={12} className="text-amberBrand-500" /> {district}
+            <MapPin size={12} className="text-amberBrand-500" /> {cityName}
           </span>
           <span className="inline-flex items-center gap-1">
             <Eye size={12} /> {ad.views}
@@ -236,6 +237,7 @@ const CATEGORY_FALLBACK_ICON: Record<string, React.ReactNode> = {
   furniture: <Sofa size={44} />,
   appliances: <Plug size={44} />,
   clothing: <Shirt size={44} />,
+  phones: <Smartphone size={44} />,
   jobs: <Briefcase size={44} />,
 };
 

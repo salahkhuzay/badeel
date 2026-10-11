@@ -46,6 +46,12 @@ export const CATEGORY_THEME: Record<MainCategory, CategoryTheme> = {
     text: "text-violet-600 dark:text-violet-400",
     border: "border-violet-300 dark:border-violet-500/40",
   },
+  phones: {
+    grad: "from-indigo-500 to-indigo-700",
+    soft: "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400",
+    text: "text-indigo-600 dark:text-indigo-400",
+    border: "border-indigo-300 dark:border-indigo-500/40",
+  },
   jobs: {
     grad: "from-navy-600 to-navy-900",
     soft: "bg-navy-100 text-navy-700 dark:bg-navy-800 dark:text-navy-100",

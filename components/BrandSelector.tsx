@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { CheckCircle2, Search } from "lucide-react";
-import { ALL_BRANDS, brandMatches, brandModels } from "@/lib/brands";
+import { BRANDS, brandMatches, brandModels } from "@/lib/brands";
 import { cn } from "@/lib/currency";
 import { normalizeArabic } from "@/lib/filters";
 import BrandIcon from "./BrandIcon";
@@ -14,14 +14,21 @@ import BrandIcon from "./BrandIcon";
    ========================================================================== */
 
 export default function BrandSelector({
+  brands = BRANDS,
   brandId,
   modelId,
   customMake,
   customModel,
   onChange,
   error,
+  placeholder = "ابحث عن الماركة: هيونداي، كيا، تويوتا...",
+  label = "الماركة *",
   showAllBrands = false,
 }: {
+  /** قائمة الماركات (سيارات افتراضياً، أو ماركات الهواتف) */
+  brands?: typeof BRANDS;
+  placeholder?: string;
+  label?: string;
   brandId: string;
   modelId: string;
   customMake?: string;
@@ -34,24 +41,24 @@ export default function BrandSelector({
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(showAllBrands);
 
-  const brands = useMemo(() => {
-    if (!query.trim()) return ALL_BRANDS;
+  const filtered = useMemo(() => {
+    if (!query.trim()) return brands;
     const q = query.trim();
     const qn = normalizeArabic(q);
-    return ALL_BRANDS.filter(
+    return brands.filter(
       (b) =>
         brandMatches(b, q) ||
         normalizeArabic([b.name, b.en, ...(b.alt ?? [])].filter(Boolean).join(" ")).includes(qn)
     );
-  }, [query]);
+  }, [query, brands]);
 
-  const models = brandModels(brandId);
-  const isOther = brandId === "other";
-  const visibleBrands = expanded || query.trim() ? brands : brands.slice(0, 8);
+  const models = brands.find((b) => b.id === brandId)?.models ?? brandModels(brandId);
+  const isOther = brandId === "other" || brandId === "other-phone";
+  const visibleBrands = expanded || query.trim() ? filtered : filtered.slice(0, 8);
 
   return (
     <div data-error={Boolean(error)}>
-      <label className="label">الماركة *</label>
+      <label className="label">{label}</label>
 
       {/* بحث سريع عن الماركة */}
       <div className="relative mb-3">
@@ -62,7 +69,7 @@ export default function BrandSelector({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="ابحث عن الماركة: هيونداي، كيا، تويوتا..."
+          placeholder={placeholder}
           className="input pr-9"
         />
       </div>
@@ -91,13 +98,13 @@ export default function BrandSelector({
         })}
       </div>
 
-      {!expanded && !query && brands.length > 8 && (
+      {!expanded && !query && filtered.length > 8 && (
         <button
           type="button"
           onClick={() => setExpanded(true)}
           className="mt-2 text-[11.5px] font-bold text-amberBrand-600 hover:underline dark:text-amberBrand-400"
         >
-          عرض كل الماركات ({brands.length}) ↓
+          عرض كل الماركات ({filtered.length}) ↓
         </button>
       )}
 
@@ -109,7 +116,7 @@ export default function BrandSelector({
           <div className="flex items-center gap-2">
             <BrandIcon brandId={brandId} size={26} />
             <p className="text-[12.5px] font-extrabold text-navy-800 dark:text-navy-50">
-              موديلات {ALL_BRANDS.find((b) => b.id === brandId)?.name}
+              موديلات {filtered.find((b) => b.id === brandId)?.name}
             </p>
             {modelId && (
               <span className="badge ms-auto bg-emeraldBrand-50 text-emeraldBrand-700 dark:bg-emeraldBrand-500/10 dark:text-emeraldBrand-400">

@@ -14,20 +14,17 @@ import type {
   AuthState,
   City,
   Currency,
-  District,
-  DistrictKind,
   ModerationAction,
   Settings,
 } from "./types";
 import { SEED_ADS, SEED_CITIES, SEED_SETTINGS } from "./seed";
 import { convert, safeStorage, uid } from "./currency";
-import { cleanDistrictName, districtId as makeDistrictId, guessDistrictKind } from "./geo";
 import { ADMIN_USERNAME, hashPassword, safeEqual } from "./auth";
 
 /* ==========================================================================
    مخزن الحالة العام — بديل | Badeel
    Context + useReducer + حفظ في localStorage (مع fallback في الذاكرة)
-   الجغرافيا ديناميكية (لا قوائم أحياء ثابتة) + جلسة إدارية آمنة.
+   المدينة فقط (أُلغيت الأحياء والمناطق) + جلسة إدارية آمنة.
    ========================================================================== */
 
 const STORAGE_KEY = "badeel.state.v1";
@@ -71,9 +68,6 @@ type Action =
   | { type: "ADD_AD"; ad: Ad }
   | { type: "MODERATE"; action: ModerationAction; actor?: string }
   | { type: "INC_VIEW"; id: string }
-  | { type: "UPSERT_DISTRICT"; cityId: string; district: District }
-  | { type: "SET_DISTRICT_KIND"; cityId: string; districtId: string; kind: DistrictKind }
-  | { type: "DELETE_DISTRICT"; cityId: string; districtId: string }
   | { type: "TOGGLE_CITY"; cityId: string }
   | { type: "UPDATE_SETTINGS"; settings: Partial<Settings> }
   | { type: "AUTH_LOGGED_IN"; minutes: number }
@@ -90,14 +84,20 @@ const plusMinutes = (m: number) => new Date(Date.now() + m * 60000).toISOString(
 function normalize(saved: Partial<AppState>): Partial<AppState> {
   const cities = saved.cities ?? initialState.cities;
   const ads = (saved.ads ?? initialState.ads).map((ad) => {
-    if (ad.districtLabel) return ad;
-    const city = cities.find((c) => c.id === ad.cityId);
-    const d = city?.districts.find((x) => x.id === ad.districtId);
-    if (!d) return ad;
-    return { ...ad, districtLabel: d.name, districtKind: ad.districtKind ?? d.kind };
+    /* ترحيل: إزالة حقول المنطقة القديمة من الإعلانات المحفوظة سابقاً */
+    const { districtId, districtLabel, districtKind, ...rest } = ad as Ad & {
+      districtId?: string;
+      districtLabel?: string;
+      districtKind?: string;
+    };
+    return rest as Ad;
   });
   /* دمج إعدادات الأمان الجديدة إن كانت النسخة المحفوظة أقدم */
   const settings = { ...SEED_SETTINGS, ...(saved.settings ?? {}) };
+  /* ترحيل: تصحيح رقم الدعم القديم المخزَّن عند من سبق أن فتح المنصة */
+  const LEGACY_PHONES = ["0933177597", "0933177595"];
+  if (!settings.contactPhone || LEGACY_PHONES.includes(settings.contactPhone))
+    settings.contactPhone = SEED_SETTINGS.contactPhone;
   const auth = { ...initialAuth, ...(saved.auth ?? {}) };
   /* إن كان الإعداد القديم يحتوي authUser فقد أُلغيت هذه الحالة */
   return { ...saved, cities, ads, settings, auth };
@@ -200,44 +200,6 @@ function reducer(state: AppState, action: Action): AppState {
       };
     }
 
-    case "UPSERT_DISTRICT":
-      return {
-        ...state,
-        cities: state.cities.map((c) => {
-          if (c.id !== action.cityId) return c;
-          if (c.districts.some((d) => d.id === action.district.id)) return c;
-          return { ...c, districts: [...c.districts, action.district] };
-        }),
-      };
-
-    case "SET_DISTRICT_KIND":
-      return {
-        ...state,
-        cities: state.cities.map((c) =>
-          c.id === action.cityId
-            ? {
-                ...c,
-                districts: c.districts.map((d) =>
-                  d.id === action.districtId ? { ...d, kind: action.kind } : d
-                ),
-              }
-            : c
-        ),
-        ads: state.ads.map((a) =>
-          a.districtId === action.districtId ? { ...a, districtKind: action.kind } : a
-        ),
-      };
-
-    case "DELETE_DISTRICT":
-      return {
-        ...state,
-        cities: state.cities.map((c) =>
-          c.id === action.cityId
-            ? { ...c, districts: c.districts.filter((d) => d.id !== action.districtId) }
-            : c
-        ),
-      };
-
     case "TOGGLE_CITY":
       return {
         ...state,
@@ -337,14 +299,6 @@ function reducer(state: AppState, action: Action): AppState {
   }
 }
 
-export interface DistrictFacet {
-  id: string;
-  name: string;
-  kind: DistrictKind;
-  cityId: string;
-  count: number;
-}
-
 export type LoginResult =
   | { ok: true }
   | { ok: false; reason: "locked"; waitMs: number }
@@ -355,10 +309,6 @@ interface StoreValue extends AppState {
   pendingAds: Ad[];
   featuredAds: Ad[];
   cityById: (id: string) => City | undefined;
-  districtName: (cityId: string, districtId: string) => string;
-  districtLabelOf: (ad: Ad) => string;
-  districtFacets: (scope?: "public" | "all") => DistrictFacet[];
-  districtNames: () => string[];
   toUsd: (amount: number, from: Currency) => number;
   toSyp: (amount: number, from: Currency) => number;
   setCurrency: (c: Currency) => void;
@@ -366,9 +316,6 @@ interface StoreValue extends AppState {
   addAd: (ad: Ad) => void;
   moderate: (action: ModerationAction) => void;
   incrementViews: (id: string) => void;
-  ensureDistrict: (cityId: string, name: string, kind?: DistrictKind) => string;
-  setDistrictKind: (cityId: string, districtId: string, kind: DistrictKind) => void;
-  deleteDistrict: (cityId: string, districtId: string) => void;
   toggleCity: (cityId: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
   resetDemo: () => void;
@@ -429,58 +376,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     root.style.colorScheme = state.theme;
   }, [state.theme]);
 
-  const ensureDistrict = useCallback(
-    (cityId: string, name: string, kind?: DistrictKind) => {
-      const clean = cleanDistrictName(name);
-      const id = makeDistrictId(cityId, clean);
-      const city = state.cities.find((c) => c.id === cityId);
-      const existing = city?.districts.find((d) => d.id === id);
-      if (!existing && clean.length >= 2) {
-        dispatch({
-          type: "UPSERT_DISTRICT",
-          cityId,
-          district: { id, name: clean, kind: kind ?? guessDistrictKind(clean), createdBy: "user" },
-        });
-      }
-      return id;
-    },
-    [state.cities]
-  );
-
   const value = useMemo<StoreValue>(() => {
     const cityById = (id: string) => state.cities.find((c) => c.id === id);
     const publicAds = state.ads.filter((a) => ["active", "sold", "rented"].includes(a.status));
-
-    const districtName = (cityId: string, districtId: string) => {
-      const c = cityById(cityId);
-      return c?.districts.find((d) => d.id === districtId)?.name ?? "—";
-    };
-
-    const districtLabelOf = (ad: Ad) =>
-      ad.districtLabel || districtName(ad.cityId, ad.districtId) || "منطقة غير محددة";
-
-    const districtFacets = (scope: "public" | "all" = "public"): DistrictFacet[] => {
-      const source = scope === "public" ? publicAds : state.ads;
-      const map = new Map<string, DistrictFacet>();
-      source.forEach((ad) => {
-        const key = `${ad.cityId}::${ad.districtId}`;
-        const city = cityById(ad.cityId);
-        const reg = city?.districts.find((d) => d.id === ad.districtId);
-        const name = districtLabelOf(ad);
-        const kind = reg?.kind ?? ad.districtKind ?? guessDistrictKind(name);
-        const prev = map.get(key);
-        if (prev) prev.count += 1;
-        else map.set(key, { id: ad.districtId, name, kind, cityId: ad.cityId, count: 1 });
-      });
-      return [...map.values()].sort(
-        (a, b) => b.count - a.count || a.name.localeCompare(b.name, "ar")
-      );
-    };
-
-    const districtNames = () =>
-      [...new Set(districtFacets("public").map((f) => f.name))].sort((a, b) =>
-        a.localeCompare(b, "ar")
-      );
 
     const toUsd = (amount: number, from: Currency) =>
       convert(amount, from, "USD", state.settings.usdToSyp);
@@ -493,10 +391,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       pendingAds: state.ads.filter((a) => a.status === "pending"),
       featuredAds: publicAds.filter((a) => a.featured && a.status === "active"),
       cityById,
-      districtName,
-      districtLabelOf,
-      districtFacets,
-      districtNames,
       toUsd,
       toSyp,
 
@@ -506,11 +400,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       moderate: (action) =>
         dispatch({ type: "MODERATE", action, actor: state.settings.adminUsername }),
       incrementViews: (id) => dispatch({ type: "INC_VIEW", id }),
-      ensureDistrict,
-      setDistrictKind: (cityId, districtId, kind) =>
-        dispatch({ type: "SET_DISTRICT_KIND", cityId, districtId, kind }),
-      deleteDistrict: (cityId, districtId) =>
-        dispatch({ type: "DELETE_DISTRICT", cityId, districtId }),
       toggleCity: (cityId) => dispatch({ type: "TOGGLE_CITY", cityId }),
       updateSettings: (s) => dispatch({ type: "UPDATE_SETTINGS", settings: s }),
       resetDemo: () => dispatch({ type: "RESET_DEMO" }),
@@ -583,7 +472,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return Math.max(0, (new Date(state.auth.sessionExpiresAt).getTime() - Date.now()) / 60000);
       },
     };
-  }, [state, ensureDistrict]);
+  }, [state]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

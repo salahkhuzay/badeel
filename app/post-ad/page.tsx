@@ -26,6 +26,7 @@ import {
   Plug,
   Ruler,
   Send,
+  Smartphone,
   Shirt,
   Sofa,
   Sparkles,
@@ -65,19 +66,12 @@ import {
   categoryName,
   dealTypesFor,
 } from "@/lib/taxonomy";
-import { ALL_BRANDS, VEHICLE_YEARS, brandName, modelName } from "@/lib/brands";
-import {
-  DISTRICT_KINDS,
-  cleanDistrictName,
-  districtId as makeDistrictId,
-  guessDistrictKind,
-} from "@/lib/geo";
+import { PHONE_BRANDS, PHONE_STORAGE, VEHICLE_YEARS, brandName, modelName } from "@/lib/brands";
 import type {
   Ad,
   BodyCondition,
   Currency,
   DealType,
-  DistrictKind,
   EmploymentType,
   FuelType,
   ItemCondition,
@@ -96,6 +90,7 @@ const CATEGORY_ICON: Record<MainCategory, React.ReactNode> = {
   furniture: <Sofa size={22} />,
   appliances: <Plug size={22} />,
   clothing: <Shirt size={22} />,
+  phones: <Smartphone size={22} />,
   jobs: <Briefcase size={22} />,
 };
 
@@ -105,6 +100,7 @@ const CATEGORY_TONE: Record<MainCategory, string> = {
   furniture: "from-rose-500 to-rose-700",
   appliances: "from-sky-500 to-sky-700",
   clothing: "from-violet-500 to-violet-700",
+  phones: "from-indigo-500 to-indigo-700",
   jobs: "from-navy-600 to-navy-900",
 };
 
@@ -157,6 +153,7 @@ interface FormState {
   subtypeId: string;
   condition: ItemCondition | "";
   itemBrand: string; // ماركة الجهاز
+  storage: string; // سعة تخزين الهاتف
   sizeText: string; // مقاس الملابس
   /* وظائف */
   jobKind: ListingKind;
@@ -169,8 +166,6 @@ interface FormState {
   currency: Currency;
   negotiable: boolean;
   cityId: string;
-  districtName: string;
-  districtKind: DistrictKind;
   images: string[];
   sellerName: string;
   sellerPhone: string;
@@ -197,6 +192,7 @@ const INITIAL: FormState = {
   subtypeId: "",
   condition: "",
   itemBrand: "",
+  storage: "",
   sizeText: "",
   jobKind: "offer",
   employmentType: "",
@@ -207,8 +203,6 @@ const INITIAL: FormState = {
   currency: "USD",
   negotiable: true,
   cityId: "manbij",
-  districtName: "",
-  districtKind: "area",
   images: [],
   sellerName: "",
   sellerPhone: "",
@@ -217,7 +211,7 @@ const INITIAL: FormState = {
 };
 
 export default function PostAdPage() {
-  const { cities, settings, addAd, ads, toUsd, toSyp, ensureDistrict, districtFacets } = useStore();
+  const { cities, settings, addAd, ads, toUsd, toSyp } = useStore();
   const toast = useToast();
 
   const [form, setForm] = useState<FormState>(INITIAL);
@@ -232,7 +226,6 @@ export default function PostAdPage() {
   };
 
   const activeCities = cities.filter((c) => c.active);
-  const knownDistricts = districtFacets("all").filter((f) => f.cityId === form.cityId);
 
   const priceNumber = Number(form.price) || 0;
   const converted = useMemo(() => {
@@ -255,8 +248,6 @@ export default function PostAdPage() {
     if (form.title.trim().length < 10) e.title = "أدخل عنواناً واضحاً لا يقل عن 10 أحرف.";
     if (form.description.trim().length < 30)
       e.description = "اكتب وصفاً مفصّلاً لا يقل عن 30 حرفاً.";
-    if (cleanDistrictName(form.districtName).length < 2)
-      e.districtName = "اكتب اسم الحي أو القرية أو المنطقة (حرفان على الأقل).";
     if (!isJob && (!priceNumber || priceNumber <= 0)) e.price = "أدخل سعراً صحيحاً أكبر من صفر.";
     if (form.sellerName.trim().length < 3) e.sellerName = "أدخل اسمك أو اسم المكتب.";
     if (form.sellerPhone.replace(/\D/g, "").length < 8)
@@ -283,6 +274,13 @@ export default function PostAdPage() {
     } else if (cat === "furniture" || cat === "appliances" || cat === "clothing") {
       if (!form.subtypeId) e.subtypeId = "اختر النوع.";
       if (!form.condition) e.condition = "حدّد الحالة.";
+    } else if (cat === "phones") {
+      if (!form.brandId) e.brandId = "اختر ماركة الهاتف.";
+      if (form.brandId === "other-phone") {
+        if (!form.customMake.trim()) e.brandId = "اكتب اسم الماركة.";
+        if (!form.customModel.trim()) e.modelId = "اكتب الموديل.";
+      } else if (!form.modelId) e.modelId = "اختر الموديل.";
+      if (!form.condition) e.condition = "حدّد حالة الجهاز (جديد أم مستعمل).";
     } else if (cat === "jobs") {
       if (!form.subtypeId) e.subtypeId = "اختر مجال العمل.";
       if (!form.employmentType) e.employmentType = "حدّد نوع الدوام.";
@@ -305,7 +303,7 @@ export default function PostAdPage() {
   function buildAd(): Ad {
     const price = Number(form.price) || 0;
     const subtypeLabel = subtypeList.find((s) => s.id === form.subtypeId)?.name;
-    const isOtherBrand = form.brandId === "other";
+    const isOtherBrand = form.brandId === "other" || form.brandId === "other-phone";
     const make = isOtherBrand ? form.customMake.trim() : brandName(form.brandId);
     const model = isOtherBrand ? form.customModel.trim() : modelName(form.brandId, form.modelId);
 
@@ -332,9 +330,19 @@ export default function PostAdPage() {
       vehicleType: cat === "vehicles" ? (form.vehicleType as VehicleType) : undefined,
       brandId: cat === "vehicles" ? form.brandId : undefined,
       modelId: cat === "vehicles" && !isOtherBrand ? form.modelId : undefined,
-      make: cat === "vehicles" ? make : cat === "appliances" ? form.itemBrand.trim() || undefined : undefined,
+      make:
+        cat === "vehicles" || cat === "phones"
+          ? make
+          : cat === "appliances"
+            ? form.itemBrand.trim() || undefined
+            : undefined,
       model:
-        cat === "vehicles" ? model : cat === "clothing" ? form.sizeText.trim() || undefined : undefined,
+        cat === "vehicles" || cat === "phones"
+          ? model
+          : cat === "clothing"
+            ? form.sizeText.trim() || undefined
+            : undefined,
+      storage: cat === "phones" && form.storage ? form.storage : undefined,
       year: cat === "vehicles" && form.year ? Number(form.year) : undefined,
       bodyCondition: cat === "vehicles" ? (form.bodyCondition as BodyCondition) : undefined,
       fuelType: cat === "vehicles" ? (form.fuelType as FuelType) : undefined,
@@ -348,9 +356,6 @@ export default function PostAdPage() {
       negotiable: isJob ? form.negotiable : form.negotiable,
 
       cityId: form.cityId,
-      districtId: makeDistrictId(form.cityId, cleanDistrictName(form.districtName)),
-      districtLabel: cleanDistrictName(form.districtName),
-      districtKind: form.districtKind,
 
       images: form.images,
       sellerName: form.sellerName.trim(),
@@ -378,7 +383,6 @@ export default function PostAdPage() {
     setShowPreview(false);
     if (!validate()) return;
     const ad = { ...buildAd(), ref: previewRef !== "BD-###" ? previewRef : nextRef(ads) };
-    ensureDistrict(form.cityId, form.districtName, form.districtKind);
     addAd(ad);
     setDone(ad);
     toast({
@@ -451,11 +455,16 @@ export default function PostAdPage() {
     form.title,
     form.description,
     form.price,
-    form.districtName,
     form.sellerName,
     form.sellerPhone,
     form.images.length ? "x" : "",
-    cat === "real-estate" ? form.propertyType : cat === "vehicles" ? form.vehicleType : form.subtypeId,
+    cat === "real-estate"
+      ? form.propertyType
+      : cat === "vehicles"
+        ? form.vehicleType
+        : cat === "phones"
+          ? form.brandId
+          : form.subtypeId,
   ].filter(Boolean).length;
 
   const previewData: Ad = { ...buildAd(), ref: previewRef };
@@ -493,6 +502,7 @@ export default function PostAdPage() {
                   "furniture",
                   "appliances",
                   "clothing",
+                  "phones",
                   "jobs",
                 ] as MainCategory[]
               ).map((c) => {
@@ -881,6 +891,82 @@ export default function PostAdPage() {
             </Section>
           )}
 
+          {cat === "phones" && (
+            <Section
+              step="2"
+              title="تفاصيل الهاتف"
+              desc="الماركة والموديل بالأيقونات الرسمية + الحالة + سعة التخزين"
+            >
+              <BrandSelector
+                brands={PHONE_BRANDS}
+                brandId={form.brandId}
+                modelId={form.modelId}
+                customMake={form.customMake}
+                customModel={form.customModel}
+                error={errors.brandId || errors.modelId}
+                onChange={(patch) => {
+                  if (patch.brandId !== undefined) set("brandId", patch.brandId);
+                  if (patch.modelId !== undefined) set("modelId", patch.modelId);
+                  if (patch.customMake !== undefined) set("customMake", patch.customMake);
+                  if (patch.customModel !== undefined) set("customModel", patch.customModel);
+                }}
+              />
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div data-error={Boolean(errors.condition)}>
+                  <label className="label">حالة الجهاز *</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        { id: "new" as const, name: "جديد" },
+                        { id: "like-new" as const, name: "مستعمل كالجديد" },
+                        { id: "good" as const, name: "مستعمل بحالة جيدة" },
+                        { id: "needs-repair" as const, name: "يحتاج صيانة" },
+                      ]
+                    ).map((c) => (
+                      <button
+                        type="button"
+                        key={c.id}
+                        onClick={() => set("condition", c.id)}
+                        className={cn(
+                          "option-card items-center justify-center py-2.5",
+                          form.condition === c.id && "option-card-active"
+                        )}
+                      >
+                        <span className="text-[12px] font-bold text-navy-800 dark:text-navy-100">
+                          {c.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  {errors.condition && <p className="error-text">{errors.condition}</p>}
+                </div>
+
+                <div>
+                  <label className="label">سعة التخزين</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PHONE_STORAGE.map((st) => (
+                      <button
+                        type="button"
+                        key={st}
+                        onClick={() => set("storage", form.storage === st ? "" : st)}
+                        className={cn(
+                          "rounded-xl border-2 px-3 py-2 text-[12px] font-bold transition",
+                          form.storage === st
+                            ? "border-amberBrand-500 bg-amberBrand-50 text-amberBrand-700 dark:border-amberBrand-500 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+                            : "border-navy-100 text-navy-600 hover:border-amberBrand-300 dark:border-navy-800 dark:text-navy-200"
+                        )}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="hint">اختياري — يساعد المشتري على التمييز بين النسخ.</p>
+                </div>
+              </div>
+            </Section>
+          )}
+
           {cat === "jobs" && (
             <Section step="2" title="تفاصيل الوظيفة" desc="عرض وظيفة (تبحث عن موظف) أو طلب عمل (تبحث عن عمل)">
               <div>
@@ -960,21 +1046,14 @@ export default function PostAdPage() {
             </Section>
           )}
 
-          {/* ========================== 3) الموقع الجغرافي ========================== */}
-          <Section
-            step="3"
-            title="الموقع الجغرافي"
-            desc="إدخال يدوي: اكتب اسم الحي أو القرية أو المنطقة كما يعرفها أهلها"
-          >
+          {/* ============================== 3) المدينة ============================== */}
+          <Section step="3" title="المدينة" desc="اختر المدينة التي يقع فيها ما تعرضه">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="label">المدينة</label>
                 <select
                   value={form.cityId}
-                  onChange={(e) => {
-                    set("cityId", e.target.value);
-                    set("districtName", "");
-                  }}
+                  onChange={(e) => set("cityId", e.target.value)}
                   className="select"
                 >
                   {activeCities.map((c) => (
@@ -983,78 +1062,11 @@ export default function PostAdPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div data-error={Boolean(errors.districtName)}>
-                <label className="label">الحي / القرية / المنطقة *</label>
-                <div className="relative">
-                  <MapPin size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emeraldBrand-500" />
-                  <input
-                    value={form.districtName}
-                    onChange={(e) => {
-                      set("districtName", e.target.value);
-                      if (e.target.value.trim().length >= 2)
-                        set("districtKind", guessDistrictKind(e.target.value));
-                    }}
-                    list="known-districts"
-                    placeholder="اكتبها بنفسك: حارة النعيم، قرية الجراحي، طريق حلب..."
-                    className="input pr-9"
-                    autoComplete="off"
-                  />
-                  <datalist id="known-districts">
-                    {knownDistricts.map((d) => (
-                      <option key={d.id} value={d.name} />
-                    ))}
-                  </datalist>
-                </div>
-                {errors.districtName && <p className="error-text">{errors.districtName}</p>}
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="label">نوع المنطقة</label>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {DISTRICT_KINDS.map((k) => (
-                  <button
-                    type="button"
-                    key={k.id}
-                    onClick={() => set("districtKind", k.id)}
-                    className={cn("option-card justify-center py-2.5", form.districtKind === k.id && "option-card-active")}
-                  >
-                    <span className="text-[12.5px] font-bold text-navy-800 dark:text-navy-100">{k.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {knownDistricts.length > 0 && (
-              <div className="mt-4">
-                <p className="mb-2 flex items-center gap-1.5 text-[11.5px] font-bold text-navy-400">
-                  <Layers size={12} className="text-amberBrand-500" /> مناطق مُستخدمة حالياً — اضغط لاختيارها
+                <p className="hint">
+                  المدن الإضافية تُفعَّل من لوحة التحكم (الأحياء والمدن) عند التوسّع خارج منبج.
                 </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {knownDistricts.map((d) => (
-                    <button
-                      type="button"
-                      key={d.id}
-                      onClick={() => {
-                        set("districtName", d.name);
-                        set("districtKind", d.kind);
-                      }}
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold transition",
-                        cleanDistrictName(form.districtName) === d.name
-                          ? "bg-emeraldBrand-500 text-white"
-                          : "border border-navy-200 text-navy-600 hover:border-emeraldBrand-400 dark:border-navy-700 dark:text-navy-200"
-                      )}
-                    >
-                      {d.name}
-                      <span className="opacity-70">({d.count})</span>
-                    </button>
-                  ))}
-                </div>
               </div>
-            )}
+            </div>
           </Section>
 
           {/* ============================== 4) المحتوى ============================== */}

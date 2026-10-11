@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import ListingsBrowser from "@/components/ListingsBrowser";
 import CategoryHeader from "@/components/CategoryHeader";
 import BrandIcon from "@/components/BrandIcon";
-import { ALL_BRANDS } from "@/lib/brands";
+import { BRANDS, PHONE_BRANDS } from "@/lib/brands";
 import { MAIN_CATEGORIES } from "@/lib/taxonomy";
 import type { MainCategory } from "@/lib/types";
 
@@ -17,6 +17,7 @@ const SLUGS: MainCategory[] = [
   "furniture",
   "appliances",
   "clothing",
+  "phones",
   "jobs",
 ];
 
@@ -44,6 +45,10 @@ const META: Record<MainCategory, { title: string; desc: string }> = {
   clothing: {
     title: "ملابس وأزياء في منبج — رجالي ونسائي وأطفال",
     desc: "ملابس وأزياء جديدة ومستعملة في منبج: ملابس رجالية، نسائية، أطفال، أحذية، حقائب وإكسسوارات — بأسعار مناسبة وتواصل مباشر عبر واتساب.",
+  },
+  phones: {
+    title: "هواتف مستعملة وجديدة للبيع في منبج — آيفون وسامسونغ وشاومي",
+    desc: "سوق الهواتف في منبج: آيفون، سامسونغ، شاومي، هواوي، أوبو، ريلمي، فيفو، نوكيا وغيرها — جديدة ومستعملة، بفرز حسب الماركة والموديل والحالة وسعة التخزين، وتواصل مباشر عبر واتساب.",
   },
   jobs: {
     title: "وظائف في منبج — عروض وظائف وطلبات عمل",
@@ -83,7 +88,7 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
               </Link>
             </div>
             <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1">
-              {ALL_BRANDS.filter((b) => b.id !== "other").map((b) => (
+              {BRANDS.filter((b) => b.id !== "other").map((b) => (
                 <Link
                   key={b.id}
                   href={`/category/vehicles?brand=${b.id}`}
@@ -105,6 +110,37 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
                   ماركة أخرى
                 </span>
               </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* شريط ماركات الهواتف — كل أيقونة تفتح سوق موديلاتها */}
+      {slug === "phones" && (
+        <div className="border-b border-navy-100 bg-indigo-50/50 dark:border-navy-800 dark:bg-indigo-500/5">
+          <div className="container-page py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-[13.5px] font-extrabold text-navy-900 dark:text-white">
+                تسوّق حسب ماركة الهاتف
+                <span className="ms-2 text-[11.5px] font-semibold text-navy-400">
+                  اضغط أي ماركة لعرض موديلاتها
+                </span>
+              </h2>
+            </div>
+            <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1">
+              {PHONE_BRANDS.filter((b) => b.id !== "other-phone").map((b) => (
+                <Link
+                  key={b.id}
+                  href={`/category/phones?subtype=${b.id}`}
+                  className="flex w-[74px] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl border-2 border-transparent bg-white p-2 transition hover:border-indigo-400 dark:bg-navy-900"
+                  title={`${b.name} — ${b.models.length} موديل`}
+                >
+                  <BrandIcon brandId={b.id} size={36} />
+                  <span className="line-clamp-1 text-center text-[10.5px] font-bold text-navy-700 dark:text-navy-100">
+                    {b.name}
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
         </div>

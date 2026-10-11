@@ -33,7 +33,7 @@ const FILTERS: { id: AdStatus | "all"; name: string }[] = [
 
 /** جدول إدارة كل الإعلانات مع إجراءات بضغطة واحدة */
 export default function AdsTable() {
-  const { ads, moderate, districtLabelOf } = useStore();
+  const { ads, moderate, cityById } = useStore();
   const toast = useToast();
   const [status, setStatus] = useState<AdStatus | "all">("all");
   const [q, setQ] = useState("");
@@ -152,7 +152,7 @@ export default function AdsTable() {
                   </span>
                 </td>
                 <td className="text-[12px] text-navy-600 dark:text-navy-200">
-                  {districtLabelOf(ad)}
+                  {cityById(ad.cityId)?.name ?? "منبج"}
                 </td>
                 <td className="whitespace-nowrap text-[12.5px]">
                   <InlinePrice priceUsd={ad.priceUsd} priceSyp={ad.priceSyp} />

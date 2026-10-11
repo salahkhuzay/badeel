@@ -58,7 +58,7 @@ import {
 export default function AdDetailPage() {
   const params = useParams<{ ref: string }>();
   const ref = decodeURIComponent(String(params?.ref ?? ""));
-  const { ads, publicAds, settings, incrementViews, districtLabelOf, cityById } = useStore();
+  const { ads, publicAds, settings, incrementViews, cityById } = useStore();
   const toast = useToast();
 
   const ad = useMemo(() => ads.find((a) => a.ref === ref), [ads, ref]);
@@ -89,7 +89,6 @@ export default function AdDetailPage() {
     );
   }
 
-  const district = districtLabelOf(ad);
   const city = cityById(ad.cityId);
   const cc = settings.whatsappCountryCode;
   const wa = `https://wa.me/${normalizePhone(ad.sellerWhatsapp, cc)}?text=${encodeURIComponent(
@@ -129,8 +128,8 @@ export default function AdDetailPage() {
           {ad.subtypeLabel ? ` · ${ad.subtypeLabel}` : ""}
         </Link>
         <span>/</span>
-        <Link href={`/search?district=${ad.districtId}`} className="hover:text-amberBrand-600">
-          {district}
+        <Link href={`/search?city=${ad.cityId}`} className="hover:text-amberBrand-600">
+          {city?.name ?? "منبج"}
         </Link>
         <span>/</span>
         <span className="truncate font-semibold text-navy-600 dark:text-navy-200">{ad.ref}</span>
@@ -198,7 +197,7 @@ export default function AdDetailPage() {
                 </h1>
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-navy-500 dark:text-navy-300">
                   <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={13} className="text-amberBrand-500" /> {district} — {city?.name}
+                    <MapPin size={13} className="text-amberBrand-500" /> {city?.name ?? "منبج"}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <Eye size={13} /> {ad.views} مشاهدة

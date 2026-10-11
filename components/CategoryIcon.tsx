@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Briefcase, Building2, Car, Plug, Shirt, Sofa } from "lucide-react";
+import { Briefcase, Building2, Car, Plug, Shirt, Smartphone, Sofa } from "lucide-react";
 import type { MainCategory } from "@/lib/types";
 import { themeOf } from "@/lib/theme";
 import { cn } from "@/lib/currency";
@@ -14,6 +14,7 @@ export const CATEGORY_ICON: Record<MainCategory, React.ReactNode> = {
   furniture: <Sofa />,
   appliances: <Plug />,
   clothing: <Shirt />,
+  phones: <Smartphone />,
   jobs: <Briefcase />,
 };
 
