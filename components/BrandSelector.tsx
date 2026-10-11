@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { CheckCircle2, Search } from "lucide-react";
 import { BRANDS, brandMatches, brandModels } from "@/lib/brands";
+import { bodyTypeOfModel, type BodyTypeId } from "@/lib/vehicleBodies";
 import { cn } from "@/lib/currency";
 import { normalizeArabic } from "@/lib/filters";
 import BrandIcon from "./BrandIcon";
@@ -24,6 +25,7 @@ export default function BrandSelector({
   placeholder = "ابحث عن الماركة: هيونداي، كيا، تويوتا...",
   label = "الماركة *",
   showAllBrands = false,
+  bodyFilter = "all",
 }: {
   /** قائمة الماركات (سيارات افتراضياً، أو ماركات الهواتف) */
   brands?: typeof BRANDS;
@@ -37,22 +39,37 @@ export default function BrandSelector({
   error?: string;
   /** عرض كل الماركات دفعة واحدة (بدون بحث) */
   showAllBrands?: boolean;
+  /** حصر الماركات والطرازات في نوع هيكل محدد (سيارات) */
+  bodyFilter?: BodyTypeId | "all";
 }) {
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(showAllBrands);
 
+  /* الماركات التي لها طرازات في نوع الهيكل المختار */
+  const scoped = useMemo(() => {
+    if (bodyFilter === "all") return brands;
+    const withModels = brands.filter((b) =>
+      b.models.some((m) => bodyTypeOfModel(b.id, m) === bodyFilter)
+    );
+    return withModels.length ? withModels : brands;
+  }, [brands, bodyFilter]);
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return brands;
+    if (!query.trim()) return scoped;
     const q = query.trim();
     const qn = normalizeArabic(q);
-    return brands.filter(
+    return scoped.filter(
       (b) =>
         brandMatches(b, q) ||
         normalizeArabic([b.name, b.en, ...(b.alt ?? [])].filter(Boolean).join(" ")).includes(qn)
     );
-  }, [query, brands]);
+  }, [query, scoped]);
 
-  const models = brands.find((b) => b.id === brandId)?.models ?? brandModels(brandId);
+  const allModels = brands.find((b) => b.id === brandId)?.models ?? brandModels(brandId);
+  const models =
+    bodyFilter === "all"
+      ? allModels
+      : allModels.filter((m) => bodyTypeOfModel(brandId, m) === bodyFilter);
   const isOther = brandId === "other" || brandId === "other-phone";
   const visibleBrands = expanded || query.trim() ? filtered : filtered.slice(0, 8);
 

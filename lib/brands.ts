@@ -5,6 +5,9 @@
    ========================================================================== */
 
 import { LOGOS } from "./logos";
+import { CAR_EXTRA, MOTO_BRANDS, EQUIP_BRANDS } from "./brands-more";
+
+export { MOTO_BRANDS, EQUIP_BRANDS };
 
 export interface BrandModel {
   id: string;
@@ -622,6 +625,9 @@ export const BRANDS: Brand[] = [
   },
 ];
 
+/* ماركات إضافية شائعة في السوق السوري (فورد، شيفروليه، هوندا، سوزوكي، دايو) */
+for (const b of CAR_EXTRA) BRANDS.push(b);
+
 /* ============================ ماركات الهواتف ============================ */
 
 export const PHONE_BRANDS: Brand[] = [
@@ -908,9 +914,10 @@ export const PHONE_BRANDS: Brand[] = [
 
 /* ============================== أدوات مساعدة ============================== */
 
-const ALL = [...BRANDS, ...PHONE_BRANDS];
+/** ماركات السيارات + الدراجات النارية + الآليات + الهواتف */
+const ALL = [...BRANDS, ...MOTO_BRANDS, ...EQUIP_BRANDS, ...PHONE_BRANDS];
 
-/** كل الماركات (سيارات + هواتف) */
+/** كل الماركات (سيارات + دراجات + آليات + هواتف) */
 export const ALL_BRANDS = ALL;
 
 export const brandById = (id?: string) => ALL.find((b) => b.id === id);
@@ -959,3 +966,18 @@ export const brandMatches = (brand: Brand, query: string) => {
   const haystack = [brand.name, brand.en, ...(brand.alt ?? [])].join(" ").toLowerCase();
   return haystack.includes(q);
 };
+
+/* ==================== تجميع الماركات بحسب الفئة ==================== */
+
+/** ماركات السيارات (تشمل الماركات الإضافية) — بلا ماركة «أخرى» */
+export const VEHICLE_BRANDS = BRANDS.filter((b) => b.id !== "other");
+
+/** دراجات نارية وسكوتر */
+export const MOTORCYCLE_BRANDS = MOTO_BRANDS.filter((b) => b.id !== "other-moto");
+
+/** آليات ثقيلة وجرارات */
+export const EQUIPMENT_BRANDS = EQUIP_BRANDS.filter((b) => b.id !== "other-equip");
+
+/** أوجد ماركة في أي من القوائم الثلاث */
+export const vehicleBrandById = (id?: string) =>
+  [...BRANDS, ...MOTO_BRANDS, ...EQUIP_BRANDS].find((b) => b.id === id);

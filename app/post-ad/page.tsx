@@ -47,6 +47,8 @@ import AdCard from "@/components/AdCard";
 import StatusBadge from "@/components/StatusBadge";
 import AdPreviewModal from "@/components/AdPreviewModal";
 import BrandSelector from "@/components/BrandSelector";
+import VehicleBodyIcon from "@/components/VehicleBodyIcon";
+import { BODY_TYPES, type BodyTypeId } from "@/lib/vehicleBodies";
 import { cn, formatMoney, nextRef, uid } from "@/lib/currency";
 import {
   CONDITIONS,
@@ -141,6 +143,7 @@ interface FormState {
   ownership: OwnershipType | "";
   /* مركبات */
   vehicleType: VehicleType | "";
+  bodyType: BodyTypeId | "";
   brandId: string;
   modelId: string;
   customMake: string;
@@ -181,6 +184,7 @@ const INITIAL: FormState = {
   areaUnit: "m2",
   ownership: "",
   vehicleType: "",
+  bodyType: "sedan",
   brandId: "",
   modelId: "",
   customMake: "",
@@ -261,6 +265,7 @@ export default function PostAdPage() {
       if (!form.ownership) e.ownership = "حدّد وضع أوراق الملكية.";
     } else if (cat === "vehicles") {
       if (!form.vehicleType) e.vehicleType = "اختر نوع المركبة.";
+      if (!form.bodyType) e.bodyType = "اختر نوع السيارة (سيدان، SUV، بيك أب...).";
       if (!form.brandId) e.brandId = "اختر الماركة من الأيقونات.";
       if (form.brandId === "other") {
         if (!form.customMake.trim()) e.brandId = "اكتب اسم الماركة.";
@@ -328,6 +333,7 @@ export default function PostAdPage() {
       ownership: cat === "real-estate" ? (form.ownership as OwnershipType) : undefined,
 
       vehicleType: cat === "vehicles" ? (form.vehicleType as VehicleType) : undefined,
+      bodyType: cat === "vehicles" && form.bodyType ? (form.bodyType as string) : undefined,
       brandId: cat === "vehicles" ? form.brandId : undefined,
       modelId: cat === "vehicles" && !isOtherBrand ? form.modelId : undefined,
       make:
@@ -692,6 +698,44 @@ export default function PostAdPage() {
                 {errors.vehicleType && <p className="error-text">{errors.vehicleType}</p>}
               </div>
 
+              {/* نوع السيارة (الهيكل) بأيقونات مرسومة */}
+              <div className="mt-5">
+                <label className="label">نوع السيارة (الهيكل) *</label>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {BODY_TYPES.filter((t) => t.id !== "other").map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      title={t.hint}
+                      onClick={() => {
+                        if (form.bodyType !== t.id) {
+                          set("bodyType", t.id);
+                          /* صفّر الماركة والطراز لأن قائمتهما تتغير بحسب النوع */
+                          set("brandId", "");
+                          set("modelId", "");
+                        }
+                      }}
+                      className={cn(
+                        "option-card flex-col items-center gap-1.5 py-3 text-center",
+                        form.bodyType === t.id && "option-card-active"
+                      )}
+                    >
+                      <span className="text-navy-600 dark:text-navy-100">
+                        <VehicleBodyIcon type={t.id} size={44} />
+                      </span>
+                      <span className="text-[11.5px] font-bold leading-tight text-navy-800 dark:text-navy-100">
+                        {t.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <p className="hint">
+                  {BODY_TYPES.find((t) => t.id === form.bodyType)?.hint ??
+                    "اختر نوع السيارة، ثم ستُعرض ماركات هذا النوع وطرازاته فقط."}
+                </p>
+                {errors.bodyType && <p className="error-text">{errors.bodyType}</p>}
+              </div>
+
               {/* الماركة والموديل بالأيقونات */}
               <div className="mt-5">
                 <BrandSelector
@@ -699,6 +743,7 @@ export default function PostAdPage() {
                   modelId={form.modelId}
                   customMake={form.customMake}
                   customModel={form.customModel}
+                  bodyFilter={form.bodyType || "all"}
                   error={errors.brandId || errors.modelId}
                   onChange={(patch) => {
                     if (patch.brandId !== undefined) set("brandId", patch.brandId);

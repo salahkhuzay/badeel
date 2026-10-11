@@ -102,6 +102,9 @@ export interface Ad {
   /* هواتف */
   storage?: string; // سعة التخزين (64GB, 128GB...)
 
+  /* نوع هيكل المركبة (سيدان، SUV، بيك أب...) */
+  bodyType?: string;
+
   /* مركبات */
   vehicleType?: VehicleType;
   brandId?: string; // معرّف الماركة (hyundai, kia...)

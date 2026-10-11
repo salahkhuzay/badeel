@@ -10,6 +10,7 @@ import type {
   VehicleType,
 } from "./types";
 import { MAIN_CATEGORIES } from "./taxonomy";
+import { bodyTypeOfAd } from "./vehicleBodies";
 
 /* ==========================================================================
    الفلترة والترتيب والتجميع والإحصاءات
@@ -23,6 +24,7 @@ export interface Filters {
   dealType: DealType | "all";
   cityId: string | "all";
   /* المركبات */
+  bodyType: string | "all"; // نوع الهيكل: sedan, suv, pickup...
   brandId: string | "all";
   modelId: string | "all";
   yearFrom: number | null;
@@ -69,6 +71,7 @@ export const EMPTY_FILTERS: Filters = {
   vehicleType: "all",
   dealType: "all",
   cityId: "all",
+  bodyType: "all",
   brandId: "all",
   modelId: "all",
   yearFrom: null,
@@ -123,6 +126,7 @@ export function applyFilters(ads: Ad[], f: Filters) {
     if (f.category !== "all" && ad.category !== f.category) return false;
     if (f.propertyType !== "all" && ad.propertyType !== f.propertyType) return false;
     if (f.vehicleType !== "all" && ad.vehicleType !== f.vehicleType) return false;
+    if (f.bodyType !== "all" && bodyTypeOfAd(ad) !== f.bodyType) return false;
     if (f.dealType !== "all" && ad.dealType !== f.dealType) return false;
     if (f.cityId !== "all" && ad.cityId !== f.cityId) return false;
     if (f.brandId !== "all" && ad.brandId !== f.brandId) return false;

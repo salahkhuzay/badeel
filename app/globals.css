@@ -216,3 +216,17 @@ body.no-scroll {
     display: none !important;
   }
 }
+
+/* ===================== أيقونات أنواع السيارات ===================== */
+.body-icon-glass,
+.body-icon-hub {
+  fill: rgba(255, 255, 255, 0.92);
+}
+.dark .body-icon-glass,
+.dark .body-icon-hub {
+  fill: rgba(15, 23, 42, 0.92);
+}
+.body-icon-cargo {
+  fill: currentColor;
+  opacity: 0.5;
+}

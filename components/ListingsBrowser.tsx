@@ -65,6 +65,8 @@ import {
 import { cn, formatNumber } from "@/lib/currency";
 import AdCard from "./AdCard";
 import BrandIcon from "./BrandIcon";
+import VehicleBodyIcon from "./VehicleBodyIcon";
+import { BODY_TYPES, bodyTypeOfAd, type BodyTypeId } from "@/lib/vehicleBodies";
 import EmptyState from "./EmptyState";
 
 /* ==========================================================================
@@ -123,6 +125,7 @@ export default function ListingsBrowser({
         yearTo: p.get("to") ? Number(p.get("to")) : f.yearTo,
         plateRegion: (p.get("plate") as PlateRegion) || f.plateRegion,
         cityId: p.get("city") ?? f.cityId,
+        bodyType: p.get("body") ?? f.bodyType,
         subtype: p.get("subtype") ?? f.subtype,
         condition: (p.get("condition") as ItemCondition) || f.condition,
         jobKind: (p.get("jobkind") as ListingKind) || f.jobKind,
@@ -220,6 +223,11 @@ export default function ListingsBrowser({
       chips.push({
         label: `النمرة: ${PLATE_REGIONS.find((p) => p.id === filters.plateRegion)?.name}`,
         clear: () => update({ plateRegion: "all" }),
+      });
+    if (filters.bodyType !== "all")
+      chips.push({
+        label: `النوع: ${BODY_TYPES.find((t) => t.id === filters.bodyType)?.name ?? ""}`,
+        clear: () => update({ bodyType: "all" }),
       });
     if (filters.subtype !== "all")
       chips.push({
@@ -559,6 +567,61 @@ export default function ListingsBrowser({
                   </div>
                 </div>
 
+                {/* نوع السيارة (الهيكل) — بأيقونات مرسومة لكل نوع */}
+                <div className="mt-4">
+                  <label className="label">نوع السيارة (الهيكل)</label>
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                    <button
+                      onClick={() => update({ bodyType: "all" })}
+                      className={cn(
+                        "rounded-xl border-2 px-2 py-2 text-[11.5px] font-bold transition",
+                        filters.bodyType === "all"
+                          ? "border-navy-900 bg-navy-900 text-white dark:border-white dark:bg-white dark:text-navy-900"
+                          : "border-navy-100 text-navy-600 hover:border-navy-300 dark:border-navy-800 dark:text-navy-200"
+                      )}
+                    >
+                      كل الأنواع
+                    </button>
+                    {BODY_TYPES.filter((t) => t.id !== "other").map((t) => {
+                      const active = filters.bodyType === t.id;
+                      const count = publicAds.filter(
+                        (a) => a.category === "vehicles" && bodyTypeOfAd(a) === t.id
+                      ).length;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => update({ bodyType: active ? "all" : t.id })}
+                          title={t.hint}
+                          className={cn(
+                            "flex flex-col items-center gap-0.5 rounded-xl border-2 p-1.5 transition",
+                            active
+                              ? "border-amberBrand-500 bg-amberBrand-50 dark:border-amberBrand-500 dark:bg-amberBrand-500/10"
+                              : "border-navy-100 hover:border-amberBrand-300 dark:border-navy-800"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              active ? "text-amberBrand-600 dark:text-amberBrand-400" : "text-navy-700 dark:text-navy-100"
+                            )}
+                          >
+                            <VehicleBodyIcon type={t.id as BodyTypeId} size={34} />
+                          </span>
+                          <span className="text-[10.5px] font-bold text-navy-700 dark:text-navy-100">
+                            {t.name}
+                          </span>
+                          <span className="text-[9.5px] font-semibold text-navy-400">
+                            {count} إعلان
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="hint">
+                    تصنيف تلقائي: كل طراز يُصنَّف من ماركته وموديله — وإن اخترت نوعاً لن تظهر إلا
+                    إعلاناته.
+                  </p>
+                </div>
+
                 {/* نمرة التسجيل */}
                 <div className="mt-4">
                   <label className="label">نمرة التسجيل</label>
@@ -756,6 +819,17 @@ export default function ListingsBrowser({
                   ))}
               </select>
             </div>
+
+            {/* رابط مستكشف الأنواع */}
+            {activeCategory === "vehicles" && (
+              <Link
+                href="/car-types"
+                className="mt-4 flex items-center justify-between gap-2 rounded-xl border-2 border-dashed border-amberBrand-400 bg-amberBrand-50/60 p-3 text-[12px] font-extrabold text-amberBrand-700 transition hover:bg-amberBrand-50 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+              >
+                <span>تصفّح الأنواع: نوع ← ماركات ← طرازات (بالصور)</span>
+                <span aria-hidden>←</span>
+              </Link>
+            )}
 
             {/* نطاق السعر */}
             <div className="mt-4">

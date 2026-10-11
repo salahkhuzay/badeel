@@ -28,6 +28,8 @@ import Price from "@/components/Price";
 import { compactMoney } from "@/lib/currency";
 import { MAIN_CATEGORIES, PROPERTY_TYPES, VEHICLE_TYPES, dealTypeName } from "@/lib/taxonomy";
 import { themeOf } from "@/lib/theme";
+import VehicleBodyIcon from "@/components/VehicleBodyIcon";
+import { BODY_TYPES, bodyTypeCounts } from "@/lib/vehicleBodies";
 import { BRANDS } from "@/lib/brands";
 import BrandIcon from "@/components/BrandIcon";
 import CategoryTile, { categoryIcon } from "@/components/CategoryIcon";
@@ -73,6 +75,8 @@ export default function HomePage() {
   }, [publicAds, manbij]);
 
   // متوسط سعر الشقق للبيع (مؤشر سوق محلي مميز)
+  const typeCounts = useMemo(() => bodyTypeCounts(), []);
+
   const marketIndex = useMemo(() => {
     const apartments = publicAds.filter(
       (a) => a.propertyType === "apartment" && a.dealType === "sale" && a.areaSize
@@ -300,6 +304,34 @@ export default function HomePage() {
               </Link>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ==================== أنواع السيارات: نوع ← ماركات ← طرازات ==================== */}
+      <section className="container-page mt-12">
+        <SectionHead
+          icon={<Car size={18} className="text-amberBrand-500" />}
+          title="أنواع السيارات بالأيقونات"
+          subtitle="اختر النوع لتشاهد ماركاته الرسمية وكل طرازاتها"
+          href="/car-types"
+        />
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+          {BODY_TYPES.filter((t) => t.id !== "other").map((t) => (
+            <Link
+              key={t.id}
+              href={`/car-types?type=${t.id}`}
+              title={t.hint}
+              className="card group flex flex-col items-center gap-1.5 p-3 text-center transition hover:border-amberBrand-400"
+            >
+              <span className="text-navy-700 transition group-hover:text-amberBrand-600 dark:text-navy-100">
+                <VehicleBodyIcon type={t.id} size={52} />
+              </span>
+              <span className="text-[12px] font-extrabold text-navy-900 dark:text-white">{t.name}</span>
+              <span className="text-[10.5px] font-semibold text-navy-400">
+                {typeCounts[t.id] ?? 0} طراز
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 
