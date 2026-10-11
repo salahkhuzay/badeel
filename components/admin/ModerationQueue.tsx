@@ -22,6 +22,7 @@ import { useToast } from "@/components/Toast";
 import { displayPhone, formatDate, timeAgo } from "@/lib/currency";
 import {
   bodyConditionName,
+  categoryName,
   dealTypeName,
   fuelTypeName,
   ownershipName,
@@ -30,6 +31,8 @@ import {
   vehicleTypeName,
 } from "@/lib/taxonomy";
 import type { Ad } from "@/lib/types";
+import { categoryIcon } from "@/components/CategoryIcon";
+import { adSpecs } from "@/components/AdSpecs";
 
 /** طابور المراجعة: كل إعلان جديد يبدأ بحالة "قيد المراجعة" ولا يُنشر إلا بعد الموافقة */
 export default function ModerationQueue() {
@@ -106,7 +109,7 @@ export default function ModerationQueue() {
                     <img src={ad.images[0]} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-navy-400">
-                      {ad.category === "real-estate" ? <Building2 size={26} /> : <Car size={26} />}
+                      {categoryIcon(ad.category, 26)}
                     </div>
                   )}
                 </div>
@@ -127,22 +130,11 @@ export default function ModerationQueue() {
 
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <Chip>{city?.name} — {districtLabelOf(ad)}</Chip>
-                    {ad.category === "real-estate" ? (
-                      <>
-                        <Chip>{propertyTypeName(ad.propertyType)}</Chip>
-                        <Chip>{dealTypeName(ad.dealType)}</Chip>
-                        <Chip>{ad.areaSize} {ad.areaUnit === "donum" ? "دونم" : "م²"}</Chip>
-                        <Chip>{ownershipName(ad.ownership)}</Chip>
-                      </>
-                    ) : (
-                      <>
-                        <Chip>{vehicleTypeName(ad.vehicleType)}</Chip>
-                        <Chip>{ad.make} {ad.model} {ad.year}</Chip>
-                        <Chip>{bodyConditionName(ad.bodyCondition)}</Chip>
-                        <Chip>{fuelTypeName(ad.fuelType)}</Chip>
-                        <Chip>{plateRegionName(ad.plateRegion)}</Chip>
-                      </>
-                    )}
+                    <Chip>{categoryName(ad.category)}</Chip>
+                    {ad.subtypeLabel && <Chip>{ad.subtypeLabel}</Chip>}
+                    {adSpecs(ad).slice(0, 5).map((sp) => (
+                      <Chip key={sp.label}>{sp.value}</Chip>
+                    ))}
                     <Chip>
                       {ad.priceUsd.toLocaleString("en-US")} $ · {ad.priceSyp.toLocaleString("en-US")} ل.س
                     </Chip>

@@ -14,9 +14,6 @@ export const DISTRICT_KINDS: { id: DistrictKind; name: string; short: string }[]
   { id: "area", name: "منطقة / ريف", short: "منطقة" },
 ];
 
-export const districtKindName = (kind?: DistrictKind) =>
-  DISTRICT_KINDS.find((k) => k.id === kind)?.name ?? "منطقة / ريف";
-
 export const districtKindShort = (kind?: DistrictKind) =>
   DISTRICT_KINDS.find((k) => k.id === kind)?.short ?? "منطقة";
 

@@ -9,11 +9,18 @@ export type AdStatus =
   | "active" // منشور
   | "rejected" // مرفوض
   | "sold" // تم البيع
-  | "rented"; // تم التأجير
+  | "rented"; // تم التأجير (أو تم الإيجار)
 
-export type MainCategory = "real-estate" | "vehicles";
+/* -------------------------- التصنيفات الرئيسية -------------------------- */
+export type MainCategory =
+  | "real-estate" // عقارات
+  | "vehicles" // سيارات ومركبات
+  | "furniture" // أثاث منزلي
+  | "appliances" // أدوات وأجهزة كهربائية
+  | "clothing" // ملابس وأزياء
+  | "jobs"; // وظائف
 
-/* ------------------------------- العقارات ------------------------------- */
+/* ------------------------------ العقارات ------------------------------ */
 export type PropertyType =
   | "apartment" // شقة سكنية
   | "house" // منزل عربي
@@ -22,16 +29,6 @@ export type PropertyType =
   | "shop" // محل تجاري
   | "warehouse"; // مستودع
 
-export type DealType = "sale" | "rent-monthly" | "rent-yearly";
-
-export type AreaUnit = "m2" | "donum";
-
-export type OwnershipType =
-  | "tabu-green" // طابو أخضر
-  | "court-ruling" // حكم محكمة
-  | "real-estate-agency" // وكالة عقارية
-  | "arqari-siyaq"; // عرقاري - سياق
-
 /* ------------------------------- المركبات ------------------------------- */
 export type VehicleType =
   | "passenger" // سيارة سياحية
@@ -39,60 +36,96 @@ export type VehicleType =
   | "motorcycle" // دراجة نارية
   | "machinery"; // آليات ثقيلة / جرار زراعي
 
-export type BodyCondition =
-  | "original" // خالية العلام أورجينال
-  | "partial-damage" // قص وبخ جزئي
-  | "needs-service"; // تحتاج صيانة
+/* --------------------------- نوع التعامل/الإيجار --------------------------- */
+export type DealType =
+  | "sale" // بيع
+  | "rent-daily" // إيجار يومي
+  | "rent-monthly" // إيجار شهري
+  | "rent-yearly"; // إيجار سنوي
 
-export type FuelType = "petrol" | "diesel" | "electric";
+/** عرض أو طلب — للوظائف (عرض وظيفة / طلب عمل) وأي تصنيف يقبل الطلب */
+export type ListingKind = "offer" | "seek";
 
+/* ------------------------------- الحالة ------------------------------- */
+export type ItemCondition = "new" | "like-new" | "good" | "needs-repair";
+
+/* -------------------------------- الوظائف -------------------------------- */
+export type EmploymentType = "full-time" | "part-time" | "temporary" | "daily" | "remote";
+
+/* ------------------------------ أوراق الملكية ------------------------------ */
+export type OwnershipType =
+  | "tabu-green"
+  | "court-ruling"
+  | "real-estate-agency"
+  | "arqari-siyaq";
+
+/* -------------------------- نمر السيارات (محدّث) -------------------------- */
 export type PlateRegion =
-  | "manbij" // نمرة منبج
-  | "aleppo" // نمرة حلب
+  | "registered" // مجمرك
+  | "new-import" // إدخال جديد
   | "idlib" // نمرة إدلب
-  | "unregistered-european"; // غير مجمرك - أوروبي
+  | "north" // نمرة الشمال
+  | "democratic" // نمرة الديمقراطي
+  | "regime"; // نمرة النظام
 
-/* ------------------------------- التصنيفات ------------------------------- */
+export type BodyCondition = "original" | "partial-damage" | "needs-service";
+export type FuelType = "petrol" | "diesel" | "electric" | "hybrid";
+
+/* ------------------------------- الإعلان ------------------------------- */
 export interface Ad {
   id: string;
-  ref: string; // رقم مرجعي قصير يظهر للمستخدم (مثال: BD-1042)
+  ref: string; // رقم مرجعي قصير (مثال: BD-1042)
   title: string;
   description: string;
   category: MainCategory;
+
+  /** نوع فرعي عام (أنواع الأثاث / الأجهزة / الملابس / مجالات العمل) */
+  subtypeId?: string;
+  subtypeLabel?: string;
+
+  /** عرض أو طلب (الوظائف) */
+  jobKind?: ListingKind;
+  employmentType?: EmploymentType;
+  experienceYears?: number;
+
+  /** حالة السلعة (أثاث / أجهزة / ملابس) */
+  condition?: ItemCondition;
 
   /* عقارات */
   propertyType?: PropertyType;
   dealType?: DealType;
   areaSize?: number;
-  areaUnit?: AreaUnit;
+  areaUnit?: "m2" | "donum";
   ownership?: OwnershipType;
 
   /* مركبات */
   vehicleType?: VehicleType;
-  make?: string;
-  model?: string;
-  year?: number;
+  brandId?: string; // معرّف الماركة (hyundai, kia...)
+  modelId?: string; // معرّف الموديل داخل الماركة
+  make?: string; // اسم الماركة نصاً (للعرض والبحث)
+  model?: string; // اسم الموديل نصاً
+  year?: number; // سنة الصنع
   bodyCondition?: BodyCondition;
   fuelType?: FuelType;
   plateRegion?: PlateRegion;
 
   /* السعر — يُخزَّن دائماً بالعملتين */
-  price: number; // القيمة كما أدخلها المستخدم
-  currency: Currency; // عملة الإدخال
-  priceUsd: number; // سعر محوَّل للدولار
-  priceSyp: number; // سعر محوَّل لليرة
+  price: number;
+  currency: Currency;
+  priceUsd: number;
+  priceSyp: number;
   negotiable: boolean;
+  /** هل السعر غير محدّد (مثل وظائف بدون راتب معلن) */
+  priceOnRequest?: boolean;
 
-  /* الموقع — إدخال يدوي من المستخدم، ويُخزَّن الاسم مع الإعلان نفسه
-     (districtId مُشتق من الاسم + districtLabel احتياطي) ليصبح الإعلان
-     مستقلاً عن أي قائمة مسبقة — DB-ready */
+  /* الموقع — إدخال يدوي من المستخدم */
   cityId: string;
   districtId: string;
   districtLabel?: string;
   districtKind?: DistrictKind;
 
   /* إعلام */
-  images: string[]; // مسارات محلية (/images/..) أو روابط
+  images: string[];
   sellerName: string;
   sellerPhone: string;
   sellerWhatsapp: string;
@@ -115,24 +148,41 @@ export interface District {
   id: string;
   name: string;
   kind: DistrictKind;
-  /** المصدر: seed = بيانات تجريبية، user = كتبها مستخدم في نموذج الإعلان، admin = أضافها المسؤول */
   createdBy?: "seed" | "user" | "admin";
 }
 
 export interface City {
   id: string;
-  name: string; // منبج
-  governorate: string; // حلب
+  name: string;
+  governorate: string;
   active: boolean;
   districts: District[];
 }
 
 /* -------------------------------- الإعدادات -------------------------------- */
 export interface Settings {
-  usdToSyp: number; // سعر صرف الدولار مقابل الليرة السورية
-  whatsappCountryCode: string; // 963
+  usdToSyp: number;
+  whatsappCountryCode: string;
   siteSlogan: string;
   contactPhone: string;
+  facebookUrl: string;
+  /* الأمان */
+  adminUsername: string;
+  adminSalt: string;
+  adminHash: string;
+  passwordChanged: boolean; // هل غيّر المسؤول كلمة المرور الافتراضية؟
+  sessionMinutes: number; // انتهاء الجلسة بالخمول
+  maxLoginAttempts: number;
+  lockMinutes: number;
+}
+
+export interface AuthState {
+  loggedIn: boolean;
+  sessionExpiresAt: string | null;
+  sessionEpoch: number; // لخروج "من جميع الأجهزة"
+  failedAttempts: number;
+  lockedUntil: string | null;
+  lastLoginAt: string | null;
 }
 
 /* -------------------------------- الأحداث -------------------------------- */
@@ -150,4 +200,5 @@ export interface AuditEntry {
   adRef: string;
   action: string;
   at: string;
+  kind?: "ad" | "auth" | "geo" | "settings";
 }

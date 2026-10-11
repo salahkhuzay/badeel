@@ -2,10 +2,15 @@ import type {
   Ad,
   DealType,
   DistrictKind,
+  EmploymentType,
+  ItemCondition,
+  ListingKind,
   MainCategory,
+  PlateRegion,
   PropertyType,
   VehicleType,
 } from "./types";
+import { MAIN_CATEGORIES } from "./taxonomy";
 import { guessDistrictKind } from "./geo";
 
 /* ==========================================================================
@@ -25,21 +30,47 @@ export interface Filters {
   dealType: DealType | "all";
   districtId: string | "all";
   districtKind: DistrictKind | "all";
+  /* المركبات */
+  brandId: string | "all";
+  modelId: string | "all";
+  yearFrom: number | null;
+  yearTo: number | null;
+  plateRegion: PlateRegion | "all";
+  /* التصنيفات الفرعية (أثاث/أجهزة/ملابس/وظائف) */
+  subtype: string | "all";
+  condition: ItemCondition | "all";
+  jobKind: ListingKind | "all";
+  employmentType: EmploymentType | "all";
   minPriceUsd: number | null; // الفلترة على أساس الدولار (العملة المرجعية)
   maxPriceUsd: number | null;
   featuredOnly: boolean;
   sort: SortKey;
 }
 
-export type SortKey = "newest" | "price-asc" | "price-desc" | "views" | "district";
+export type SortKey =
+  | "newest"
+  | "price-asc"
+  | "price-desc"
+  | "views"
+  | "district"
+  | "year-desc"
+  | "year-asc";
 
 export const SORT_OPTIONS: { id: SortKey; name: string }[] = [
-  { id: "newest", name: "الأحدث أولاً" },
+  { id: "newest", name: "الأحدث إضافةً" },
   { id: "price-asc", name: "الأرخص أولاً" },
   { id: "price-desc", name: "الأغلى أولاً" },
+  { id: "year-desc", name: "الأحدث صنعاً (السنة)" },
+  { id: "year-asc", name: "الأقدم صنعاً (السنة)" },
   { id: "views", name: "الأكثر مشاهدة" },
   { id: "district", name: "حسب المنطقة (أبجدي)" },
 ];
+
+/** خيارات الفرز المتاحة لكل تصنيف */
+export const sortOptionsFor = (c: MainCategory | "all") =>
+  c === "vehicles"
+    ? SORT_OPTIONS
+    : SORT_OPTIONS.filter((o) => o.id !== "year-desc" && o.id !== "year-asc");
 
 export const EMPTY_FILTERS: Filters = {
   q: "",
@@ -49,6 +80,15 @@ export const EMPTY_FILTERS: Filters = {
   dealType: "all",
   districtId: "all",
   districtKind: "all",
+  brandId: "all",
+  modelId: "all",
+  yearFrom: null,
+  yearTo: null,
+  plateRegion: "all",
+  subtype: "all",
+  condition: "all",
+  jobKind: "all",
+  employmentType: "all",
   minPriceUsd: null,
   maxPriceUsd: null,
   featuredOnly: false,
@@ -102,6 +142,15 @@ export function applyFilters(
     if (f.dealType !== "all" && ad.dealType !== f.dealType) return false;
     if (f.districtId !== "all" && ad.districtId !== f.districtId) return false;
     if (f.districtKind !== "all" && info.kind !== f.districtKind) return false;
+    if (f.brandId !== "all" && ad.brandId !== f.brandId) return false;
+    if (f.modelId !== "all" && ad.modelId !== f.modelId) return false;
+    if (f.yearFrom != null && (ad.year ?? 0) < f.yearFrom) return false;
+    if (f.yearTo != null && (ad.year ?? 9999) > f.yearTo) return false;
+    if (f.plateRegion !== "all" && ad.plateRegion !== f.plateRegion) return false;
+    if (f.subtype !== "all" && ad.subtypeId !== f.subtype) return false;
+    if (f.condition !== "all" && ad.condition !== f.condition) return false;
+    if (f.jobKind !== "all" && ad.jobKind !== f.jobKind) return false;
+    if (f.employmentType !== "all" && ad.employmentType !== f.employmentType) return false;
     if (f.featuredOnly && !ad.featured) return false;
     if (f.minPriceUsd != null && ad.priceUsd < f.minPriceUsd) return false;
     if (f.maxPriceUsd != null && ad.priceUsd > f.maxPriceUsd) return false;
@@ -117,6 +166,10 @@ export function applyFilters(
         return b.priceUsd - a.priceUsd;
       case "views":
         return b.views - a.views;
+      case "year-desc":
+        return (b.year ?? 0) - (a.year ?? 0);
+      case "year-asc":
+        return (a.year ?? 9999) - (b.year ?? 9999);
       case "district": {
         const da = districtOf(a).name;
         const db = districtOf(b).name;
@@ -200,18 +253,11 @@ export function computeStats(
     rejected: ads.filter((a) => a.status === "rejected").length,
     featured: ads.filter((a) => a.featured).length,
     totalViews: ads.reduce((s, a) => s + a.views, 0),
-    byCategory: [
-      {
-        id: "real-estate" as MainCategory,
-        name: "عقارات",
-        count: byCategoryMap.get("real-estate") ?? 0,
-      },
-      {
-        id: "vehicles" as MainCategory,
-        name: "سيارات ومركبات",
-        count: byCategoryMap.get("vehicles") ?? 0,
-      },
-    ],
+    byCategory: MAIN_CATEGORIES.map((c) => ({
+      id: c.id,
+      name: c.name,
+      count: byCategoryMap.get(c.id) ?? 0,
+    })),
     byDistrictKind: [
       { id: "neighborhood" as DistrictKind, name: "أحياء", count: byKind.neighborhood },
       { id: "village" as DistrictKind, name: "قرى", count: byKind.village },

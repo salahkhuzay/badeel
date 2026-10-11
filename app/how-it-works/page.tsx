@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   AlertTriangle,
   BadgeCheck,
+  Briefcase,
   Building2,
   Car,
   CheckCircle2,
@@ -16,16 +17,20 @@ import {
   Phone,
   PlusCircle,
   ShieldCheck,
+  Sofa,
   Sparkles,
   Trash2,
   Users,
 } from "lucide-react";
 import Price from "@/components/Price";
 import { useStore } from "@/lib/store";
+import { displayPhone, supportWhatsapp, telLink } from "@/lib/currency";
 
 export default function HowItWorksPage() {
   const { settings, publicAds } = useStore();
   const sample = publicAds.find((a) => a.status === "active");
+  const supportPhone = displayPhone(settings.contactPhone, settings.whatsappCountryCode);
+  const tel = telLink(settings.contactPhone, settings.whatsappCountryCode);
 
   return (
     <div className="pb-6">
@@ -40,9 +45,9 @@ export default function HowItWorksPage() {
             المجموعات المفتوحة؟
           </h1>
           <p className="mt-3 max-w-3xl text-[13.5px] leading-relaxed text-navy-200">
-            بديل منصّة محلية لمنبج تجمع العرض والطلب على العقارات والمركبات في مكان واحد منظّم، مع
-            مراجعة بشرية لكل إعلان، وعرض للأسعار بالعملتين، وتواصل مباشر بين الطرفين دون وسيط أو
-            عمولة.
+            بديل منصّة محلية لمنبج تجمع العرض والطلب في مكان واحد منظّم: عقارات، سيارات ومركبات،
+            أثاث منزلي، أدوات كهربائية، ملابس، ووظائف (عرض وظيفة/طلب عمل) — مع مراجعة بشرية لكل
+            إعلان، وعرض للأسعار بالعملتين، وتواصل مباشر بين الطرفين دون وسيط أو عمولة.
           </p>
         </div>
       </section>
@@ -54,7 +59,7 @@ export default function HowItWorksPage() {
             n: "1",
             icon: <PlusCircle size={20} />,
             t: "أضف إعلانك مجاناً",
-            d: "نموذج ذكي: يطلب الحقول المناسبة فقط حسب نوع الإعلان (عقار أو مركبة) ويحسب السعر بالعملتين مباشرة.",
+            d: "نموذج ذكي: يطلب الحقول المناسبة فقط حسب التصنيف — ماركة وموديل وسنة صنع للمركبات، نوع وحالة للأثاث والأجهزة والملابس، عرض أو طلب للوظائف — ويحسب السعر بالعملتين مباشرة.",
             tone: "amber",
           },
           {
@@ -180,8 +185,83 @@ export default function HowItWorksPage() {
             <Item>الماركة والموديل وسنة الصنع.</Item>
             <Item>حالة الجسم: خالية العلام أورجينال، قص وبخ جزئي، أو تحتاج صيانة.</Item>
             <Item>نوع الوقود: بنزين، مازوت، كهرباء.</Item>
-            <Item>نمرة التسجيل: نمرة منبج، نمرة حلب، نمرة إدلب، أو غير مجمرك/أوروبي.</Item>
+            <Item>
+              نمرة التسجيل: مجمرك، إدخال جديد، نمرة إدلب، نمرة الشمال، نمرة الديمقراطي، أو نمرة
+              النظام.
+            </Item>
+            <Item>
+              الماركة والموديل من قائمة الأيقونات (هيونداي، كيا، تويوتا، مرسيدس، ميتسوبيشي، جيب،
+              لاندروفر، رنج روفر، بي إم دبليو، أودي، فولكس فاغن، مازدا، نيسان، سكودا، شام، بيجو،
+              رينو)، ولمن لا يجد ماركته: «ماركة أخرى» بكتابة يدوية.
+            </Item>
+            <Item>نوع التعامل: بيع، أو إيجار يومي/شهري حسب الحاجة.</Item>
           </ul>
+        </div>
+      </section>
+
+      {/* تصنيفات إضافية: أثاث وأجهزة وملابس ووظائف */}
+      <section className="container-page mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="card p-6">
+          <h2 className="flex items-center gap-2 text-[16px] font-extrabold text-navy-900 dark:text-white">
+            <Sofa size={18} className="text-rose-500" /> الأثاث والأجهزة والملابس
+          </h2>
+          <ul className="mt-3 space-y-2 text-[12.5px] leading-relaxed text-navy-600 dark:text-navy-200">
+            <Item>حدّد النوع: غرفة نوم، كنبة، طاولة، خزانة... أو ثلاجة، غسالة، مكيف، مولّد.</Item>
+            <Item>حدّد الحالة: جديد، مستعمل بحالة ممتازة، مستعمل بحالة جيدة، أو يحتاج صيانة.</Item>
+            <Item>للأجهزة: اذكر الماركة، وللملابس: اذكر المقاس (S/M/L أو الرقم).</Item>
+            <Item>أضف صوراً واضحة للقطعة نفسها — الصور من الإنترنت سبب رئيسي للرفض.</Item>
+          </ul>
+        </div>
+
+        <div className="card p-6">
+          <h2 className="flex items-center gap-2 text-[16px] font-extrabold text-navy-900 dark:text-white">
+            <Briefcase size={18} className="text-navy-600 dark:text-navy-200" /> الوظائف: عرض أم طلب؟
+          </h2>
+          <ul className="mt-3 space-y-2 text-[12.5px] leading-relaxed text-navy-600 dark:text-navy-200">
+            <Item>«عرض وظيفة» إن كنت صاحب عمل وتبحث عن موظف، و«طلب عمل» إن كنت تبحث عن عمل.</Item>
+            <Item>حدّد مجال العمل: تعليم، صحة، هندسة، بناء، مطاعم، سائقين، حرفيين، إداري...</Item>
+            <Item>حدّد نوع الدوام: كامل، جزئي، بالورديات، حر، أو تدريب.</Item>
+            <Item>الأجر اختياري — إن تركته فارغاً يُعرض «الأجر: يُتفق عليه» ويُحدَّث بالتفاوض المباشر.</Item>
+          </ul>
+        </div>
+      </section>
+
+      {/* الدعم والتواصل */}
+      <section className="container-page mt-10">
+        <div className="card flex flex-col items-center gap-4 p-6 text-center sm:flex-row sm:justify-between sm:text-right">
+          <div>
+            <h2 className="flex items-center justify-center gap-2 text-[16px] font-extrabold text-navy-900 sm:justify-start dark:text-white">
+              <Phone size={18} className="text-amberBrand-500" /> التواصل والدعم
+            </h2>
+            <p className="mt-1.5 text-[12.5px] leading-relaxed text-navy-500 dark:text-navy-300">
+              لأي استفسار أو طلب تعديل/إغلاق إعلان، تواصل مع فريق بديل مباشرة — اتصال أو واتساب،
+              أو عبر صفحتنا على فيسبوك.
+            </p>
+            <p className="mt-2 text-[15px] font-extrabold text-navy-800 dark:text-navy-50" dir="ltr">
+              {supportPhone}
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            <a href={tel} className="btn-primary px-5">
+              <Phone size={16} /> اتصال
+            </a>
+            <a
+              href={supportWhatsapp(settings.contactPhone, settings.whatsappCountryCode)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn bg-emeraldBrand-500 px-5 text-white hover:bg-emeraldBrand-600"
+            >
+              <MessageCircle size={16} /> واتساب
+            </a>
+            <a
+              href={settings.facebookUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost px-5"
+            >
+              فيسبوك
+            </a>
+          </div>
         </div>
       </section>
 
@@ -280,10 +360,7 @@ export default function HowItWorksPage() {
             <Link href="/post-ad" className="btn-amber px-6 py-3">
               <PlusCircle size={17} /> أضف إعلانك
             </Link>
-            <a
-              href={`tel:+${settings.whatsappCountryCode}${settings.contactPhone.replace(/^0/, "")}`}
-              className="btn-ghost px-6 py-3"
-            >
+            <a href={tel} className="btn-ghost px-6 py-3">
               <Phone size={17} /> اتصل بالدعم
             </a>
             <Link href="/admin" className="btn-primary px-6 py-3">

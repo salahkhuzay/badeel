@@ -2,24 +2,24 @@
 
 import React from "react";
 import Link from "next/link";
-import { Building2, Car, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { MAIN_CATEGORIES } from "@/lib/taxonomy";
+import { MAIN_CATEGORIES, dealTypesFor, JOB_KINDS, RENTABLE } from "@/lib/taxonomy";
+import { themeOf } from "@/lib/theme";
+import type { MainCategory } from "@/lib/types";
+import CategoryTile from "./CategoryIcon";
+import { cn } from "@/lib/currency";
 
-/** رأس صفحة التصنيف — صورة/تدرّج + عدّادات سريعة */
-export default function CategoryHeader({
-  slug,
-}: {
-  slug: "real-estate" | "vehicles";
-}) {
+/** رأس صفحة التصنيف — يعمل للتصنيفات الستّة كلها */
+export default function CategoryHeader({ slug }: { slug: MainCategory }) {
   const { publicAds } = useStore();
   const meta = MAIN_CATEGORIES.find((c) => c.id === slug)!;
-  const isRe = slug === "real-estate";
-  const Icon = isRe ? Building2 : Car;
+  const theme = themeOf(slug);
 
   const ads = publicAds.filter((a) => a.category === slug);
+  const rentable = RENTABLE.includes(slug);
   const sale = ads.filter((a) => !a.dealType || a.dealType === "sale").length;
-  const rent = ads.filter((a) => a.dealType === "rent-monthly" || a.dealType === "rent-yearly").length;
+  const rent = ads.filter((a) => a.dealType?.startsWith("rent")).length;
 
   return (
     <div className="border-b border-navy-100 bg-white dark:border-navy-800 dark:bg-navy-950">
@@ -34,13 +34,7 @@ export default function CategoryHeader({
 
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <span
-              className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-sm ${
-                isRe ? "from-emeraldBrand-500 to-emeraldBrand-700" : "from-amberBrand-500 to-amberBrand-700"
-              }`}
-            >
-              <Icon size={26} />
-            </span>
+            <CategoryTile id={slug} size={56} iconSize={26} />
             <div>
               <h1 className="text-xl font-extrabold text-navy-900 dark:text-white sm:text-2xl">
                 {meta.name} في منبج
@@ -49,11 +43,67 @@ export default function CategoryHeader({
             </div>
           </div>
 
-          <div className="flex gap-2.5">
+          <div className="flex flex-wrap gap-2.5">
             <Stat label="إجمالي الإعلانات" value={ads.length} />
-            <Stat label={isRe ? "للبيع" : "معروضة"} value={sale} tone="emerald" />
-            {isRe && <Stat label="للإيجار" value={rent} tone="amber" />}
+            {rentable && (
+              <>
+                <Stat label="للبيع" value={sale} tone="emerald" />
+                <Stat label="للإيجار" value={rent} tone="amber" />
+              </>
+            )}
+            {slug === "jobs" && (
+              <>
+                <Stat
+                  label={JOB_KINDS[0].name}
+                  value={ads.filter((a) => a.jobKind !== "seek").length}
+                  tone="emerald"
+                />
+                <Stat
+                  label={JOB_KINDS[1].name}
+                  value={ads.filter((a) => a.jobKind === "seek").length}
+                  tone="amber"
+                />
+              </>
+            )}
           </div>
+        </div>
+
+        {/* اختصارات سريعة لكل تصنيف */}
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          <Link
+            href={`/category/${slug}`}
+            className={cn("chip border", theme.border, theme.soft, "font-bold")}
+          >
+            كل {meta.name}
+          </Link>
+          {rentable &&
+            dealTypesFor(slug).map((d) => (
+              <Link
+                key={d.id}
+                href={`/category/${slug}?deal=${d.id}`}
+                className="chip border border-navy-200 font-bold text-navy-600 transition hover:border-amberBrand-400 dark:border-navy-700 dark:text-navy-200"
+              >
+                {d.name}
+              </Link>
+            ))}
+          {slug === "vehicles" && (
+            <Link
+              href="/category/vehicles?sort=year-desc"
+              className="chip border border-navy-200 font-bold text-navy-600 transition hover:border-amberBrand-400 dark:border-navy-700 dark:text-navy-200"
+            >
+              الأحدث صنعاً
+            </Link>
+          )}
+          {slug === "jobs" &&
+            JOB_KINDS.map((k) => (
+              <Link
+                key={k.id}
+                href={`/category/jobs?jobkind=${k.id}`}
+                className="chip border border-navy-200 font-bold text-navy-600 transition hover:border-amberBrand-400 dark:border-navy-700 dark:text-navy-200"
+              >
+                {k.name}
+              </Link>
+            ))}
         </div>
       </div>
     </div>

@@ -29,6 +29,10 @@ import AdCard from "@/components/AdCard";
 import Price from "@/components/Price";
 import { compactMoney } from "@/lib/currency";
 import { MAIN_CATEGORIES, PROPERTY_TYPES, VEHICLE_TYPES, dealTypeName } from "@/lib/taxonomy";
+import { themeOf } from "@/lib/theme";
+import { ALL_BRANDS } from "@/lib/brands";
+import BrandIcon from "@/components/BrandIcon";
+import CategoryTile, { categoryIcon } from "@/components/CategoryIcon";
 import { districtKindShort } from "@/lib/geo";
 import type { MainCategory } from "@/lib/types";
 
@@ -60,17 +64,19 @@ export default function HomePage() {
   const areas = useMemo(() => districtFacets("public"), [districtFacets]);
 
   const listings = useMemo(
-    () => (tab === "all" ? activeAds : activeAds.filter((a) => a.category === tab)).slice(0, 8),
+    () => (tab === "all" ? activeAds : activeAds.filter((a) => a.category === tab)).slice(0, 6),
     [activeAds, tab]
   );
 
   const stats = useMemo(() => {
-    const re = publicAds.filter((a) => a.category === "real-estate").length;
-    const ve = publicAds.filter((a) => a.category === "vehicles").length;
+    const byCat = Object.fromEntries(
+      MAIN_CATEGORIES.map((c) => [c.id, publicAds.filter((a) => a.category === c.id).length])
+    ) as Record<MainCategory, number>;
     return {
       total: publicAds.length,
-      re,
-      ve,
+      byCat,
+      re: byCat["real-estate"],
+      ve: byCat.vehicles,
       neighbors: manbij?.districts.length ?? 0,
       views: publicAds.reduce((s, a) => s + a.views, 0),
     };
@@ -132,8 +138,9 @@ export default function HomePage() {
                 بديل — <span className="text-amberBrand-400">خيارك الأفضل</span> للبيع والشراء في منبج
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-navy-200 sm:text-base">
-                سوق محلي متخصص بالعقارات والسيارات: شقق، منازل عربية، أراضٍ، محلات، سياحي، شاحنات
-                وآليات. كل الأسعار بالدولار والليرة السورية، وكل إعلان يُراجع قبل النشر.
+                سوق منبج المحلي لكل شيء: عقارات للبيع والإيجار، سيارات بالماركة وسنة الصنع، أثاث
+                منزلي، أدوات كهربائية، ملابس، ووظائف (عرض وطلب عمل). كل الأسعار بالدولار والليرة
+                السورية، وكل إعلان يُراجع قبل النشر.
               </p>
 
               {/* البحث */}
@@ -215,8 +222,10 @@ export default function HomePage() {
               <dl className="grid grid-cols-2 gap-3">
                 <Metric label="إعلان منشور" value={String(stats.total)} />
                 <Metric label="إعلان مميّز" value={String(featuredAds.length)} />
-                <Metric label="عقارات" value={String(stats.re)} icon={<Building2 size={13} />} />
-                <Metric label="مركبات" value={String(stats.ve)} icon={<Car size={13} />} />
+                <Metric label="عقارات" value={String(stats.byCat["real-estate"])} icon={<Building2 size={13} />} />
+                <Metric label="مركبات" value={String(stats.byCat.vehicles)} icon={<Car size={13} />} />
+                <Metric label="أثاث + أجهزة" value={String(stats.byCat.furniture + stats.byCat.appliances)} />
+                <Metric label="ملابس + وظائف" value={String(stats.byCat.clothing + stats.byCat.jobs)} />
                 <div className="col-span-2 rounded-xl border border-white/10 bg-navy-950/40 p-3">
                   <p className="text-[11px] text-navy-300">متوسط سعر المتر (شقق للبيع)</p>
                   <p className="mt-1 text-lg font-extrabold text-white">
@@ -249,41 +258,67 @@ export default function HomePage() {
 
       {/* ========================= التصنيفات السريعة ========================= */}
       <section className="container-page -mt-6 relative z-10">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {MAIN_CATEGORIES.map((c) => {
             const count = publicAds.filter((a) => a.category === c.id).length;
-            const Icon = c.id === "real-estate" ? Building2 : Car;
-            const tone =
-              c.id === "real-estate"
-                ? "from-emeraldBrand-500 to-emeraldBrand-700"
-                : "from-amberBrand-500 to-amberBrand-700";
             return (
               <Link
                 key={c.id}
                 href={`/category/${c.id}`}
-                className="card card-hover group flex items-center gap-4 p-5"
+                className="card card-hover group flex items-center gap-4 p-4.5"
               >
-                <span
-                  className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${tone} text-white shadow-sm`}
-                >
-                  <Icon size={26} />
-                </span>
+                <CategoryTile id={c.id} size={54} iconSize={25} />
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-base font-extrabold text-navy-900 dark:text-white">{c.name}</h3>
-                  <p className="mt-0.5 line-clamp-1 text-[12.5px] text-navy-500 dark:text-navy-300">
+                  <h3 className="text-[15px] font-extrabold text-navy-900 dark:text-white">{c.name}</h3>
+                  <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-navy-500 dark:text-navy-300">
                     {c.tagline}
                   </p>
-                  <span className="mt-1 inline-block text-[11px] font-bold text-amberBrand-600 dark:text-amberBrand-400">
+                  <span className={`mt-1 inline-block text-[11px] font-bold ${themeOf(c.id).text}`}>
                     {count} إعلان متاح
                   </span>
                 </div>
                 <ChevronLeft
-                  size={20}
+                  size={19}
                   className="shrink-0 text-navy-300 transition group-hover:-translate-x-1 group-hover:text-amberBrand-500"
                 />
               </Link>
             );
           })}
+        </div>
+      </section>
+
+      {/* ==================== شريط ماركات السيارات (أيقونات) ==================== */}
+      <section className="container-page mt-10">
+        <div className="card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-base font-extrabold text-navy-900 dark:text-white">
+              <Car size={18} className="text-amberBrand-500" /> تسوّق حسب ماركة السيارة
+            </h2>
+            <Link
+              href="/category/vehicles"
+              className="inline-flex items-center gap-1 text-[12px] font-bold text-amberBrand-600 hover:underline dark:text-amberBrand-400"
+            >
+              كل السيارات <ChevronLeft size={14} />
+            </Link>
+          </div>
+          <p className="mt-1 text-[12px] text-navy-500 dark:text-navy-300">
+            اختر الماركة لتظهر موديلاتها المتوفرة، ثم فرز النتائج حسب سنة الصنع.
+          </p>
+          <div className="mt-4 flex snap-x gap-2.5 overflow-x-auto pb-2">
+            {ALL_BRANDS.filter((b) => b.id !== "other").map((b) => (
+              <Link
+                key={b.id}
+                href={`/category/vehicles?brand=${b.id}`}
+                className="flex w-[78px] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl border-2 border-transparent p-2 transition hover:border-amberBrand-400 hover:bg-amberBrand-50/60 dark:hover:bg-amberBrand-500/10"
+              >
+                <BrandIcon brandId={b.id} size={38} />
+                <span className="line-clamp-1 text-center text-[10.5px] font-bold text-navy-700 dark:text-navy-100">
+                  {b.name}
+                </span>
+                <span className="text-[9.5px] font-bold text-navy-400">{b.models.length} موديل</span>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -316,28 +351,28 @@ export default function HomePage() {
               إعلانات راجعها فريق بديل ونشرها — {activeAds.length} إعلاناً نشطاً
             </p>
           </div>
-          <div className="flex rounded-xl bg-navy-100/80 p-1 dark:bg-navy-800">
+          <div className="flex max-w-full gap-0.5 overflow-x-auto rounded-xl bg-navy-100/80 p-1 dark:bg-navy-800">
             {[
-              { id: "all" as const, label: "الكل", icon: LayoutGrid },
-              { id: "real-estate" as const, label: "عقارات", icon: Building2 },
-              { id: "vehicles" as const, label: "مركبات", icon: Car },
-            ].map((t) => {
-              const Icon = t.icon;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                    tab === t.id
-                      ? "bg-white text-navy-900 shadow-sm dark:bg-navy-900 dark:text-white"
-                      : "text-navy-500 hover:text-navy-900 dark:text-navy-300"
-                  }`}
-                >
-                  <Icon size={14} />
-                  {t.label}
-                </button>
-              );
-            })}
+              { id: "all" as const, label: "الكل", icon: <LayoutGrid size={14} /> },
+              ...MAIN_CATEGORIES.map((c) => ({
+                id: c.id,
+                label: c.name,
+                icon: categoryIcon(c.id, 14),
+              })),
+            ].map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                  tab === t.id
+                    ? "bg-white text-navy-900 shadow-sm dark:bg-navy-900 dark:text-white"
+                    : "text-navy-500 hover:text-navy-900 dark:text-navy-300"
+                }`}
+              >
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -508,9 +543,17 @@ export default function HomePage() {
             })}
           </div>
           <div className="divider my-4" />
-          <h3 className="flex items-center gap-2 text-sm font-extrabold text-navy-900 dark:text-white">
-            <Car size={16} className="text-amberBrand-500" /> أنواع المركبات
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-sm font-extrabold text-navy-900 dark:text-white">
+              <Car size={16} className="text-amberBrand-500" /> أنواع المركبات
+            </h3>
+            <Link
+              href="/category/vehicles"
+              className="text-[11.5px] font-bold text-amberBrand-600 hover:underline dark:text-amberBrand-400"
+            >
+              فرز حسب الماركة وسنة الصنع
+            </Link>
+          </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {VEHICLE_TYPES.map((v) => {
               const count = publicAds.filter((a) => a.vehicleType === v.id).length;

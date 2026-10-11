@@ -11,6 +11,7 @@ import React, {
 import type {
   Ad,
   AuditEntry,
+  AuthState,
   City,
   Currency,
   District,
@@ -21,27 +22,33 @@ import type {
 import { SEED_ADS, SEED_CITIES, SEED_SETTINGS } from "./seed";
 import { convert, safeStorage, uid } from "./currency";
 import { cleanDistrictName, districtId as makeDistrictId, guessDistrictKind } from "./geo";
+import { ADMIN_USERNAME, hashPassword, safeEqual } from "./auth";
 
 /* ==========================================================================
-   مخزن الحالة العام (Mock State Management)
-   - React Context + useReducer
-   - حفظ تلقائي في localStorage (مع fallback في الذاكرة)
-   - الجغرافيا ديناميكية بالكامل: لا توجد قائمة أحياء ثابتة؛ كل منطقة
-     تُنشأ من إدخال المستخدم اليدوي أو من لوحة التحكم.
+   مخزن الحالة العام — بديل | Badeel
+   Context + useReducer + حفظ في localStorage (مع fallback في الذاكرة)
+   الجغرافيا ديناميكية (لا قوائم أحياء ثابتة) + جلسة إدارية آمنة.
    ========================================================================== */
 
 const STORAGE_KEY = "badeel.state.v1";
-const ADMIN_USER = "admin";
-const ADMIN_PASS = "badeel2026";
+
+const initialAuth: AuthState = {
+  loggedIn: false,
+  sessionExpiresAt: null,
+  sessionEpoch: 1,
+  failedAttempts: 0,
+  lockedUntil: null,
+  lastLoginAt: null,
+};
 
 export interface AppState {
   ads: Ad[];
   cities: City[];
   settings: Settings;
+  auth: AuthState;
   audit: AuditEntry[];
   currency: Currency;
   theme: "light" | "dark";
-  adminUser: string | null;
   hydrated: boolean;
 }
 
@@ -49,10 +56,10 @@ const initialState: AppState = {
   ads: SEED_ADS,
   cities: SEED_CITIES,
   settings: SEED_SETTINGS,
+  auth: initialAuth,
   audit: [],
   currency: "USD",
   theme: "light",
-  adminUser: null,
   hydrated: false,
 };
 
@@ -68,16 +75,18 @@ type Action =
   | { type: "SET_DISTRICT_KIND"; cityId: string; districtId: string; kind: DistrictKind }
   | { type: "DELETE_DISTRICT"; cityId: string; districtId: string }
   | { type: "TOGGLE_CITY"; cityId: string }
-  | { type: "ADD_CITY"; city: City }
   | { type: "UPDATE_SETTINGS"; settings: Partial<Settings> }
-  | { type: "LOGIN"; user: string }
-  | { type: "LOGOUT" }
+  | { type: "AUTH_LOGGED_IN"; minutes: number }
+  | { type: "AUTH_FAIL"; lockedUntil: string | null; attempts: number }
+  | { type: "AUTH_LOGOUT" }
+  | { type: "AUTH_REFRESH"; minutes: number }
+  | { type: "AUTH_LOGOUT_ALL" }
+  | { type: "LOG"; entry: AuditEntry }
   | { type: "RESET_DEMO" };
 
 const now = () => new Date().toISOString();
+const plusMinutes = (m: number) => new Date(Date.now() + m * 60000).toISOString();
 
-/* تطبيع الحالة القادمة من التخزين المحلي:
-   - تعبئة districtLabel للإعلانات القديمة من سجل المناطق المحفوظ */
 function normalize(saved: Partial<AppState>): Partial<AppState> {
   const cities = saved.cities ?? initialState.cities;
   const ads = (saved.ads ?? initialState.ads).map((ad) => {
@@ -87,10 +96,20 @@ function normalize(saved: Partial<AppState>): Partial<AppState> {
     if (!d) return ad;
     return { ...ad, districtLabel: d.name, districtKind: ad.districtKind ?? d.kind };
   });
-  return { ...saved, cities, ads };
+  /* دمج إعدادات الأمان الجديدة إن كانت النسخة المحفوظة أقدم */
+  const settings = { ...SEED_SETTINGS, ...(saved.settings ?? {}) };
+  const auth = { ...initialAuth, ...(saved.auth ?? {}) };
+  /* إن كان الإعداد القديم يحتوي authUser فقد أُلغيت هذه الحالة */
+  return { ...saved, cities, ads, settings, auth };
 }
 
 function reducer(state: AppState, action: Action): AppState {
+  const log = (entry: Omit<AuditEntry, "id" | "at">): AuditEntry => ({
+    id: uid("log"),
+    at: now(),
+    ...entry,
+  });
+
   switch (action.type) {
     case "HYDRATE":
       return { ...state, ...action.payload, hydrated: true };
@@ -115,20 +134,13 @@ function reducer(state: AppState, action: Action): AppState {
 
     case "MODERATE": {
       const act = action.action;
-      const log = (ad: Ad, label: string): AuditEntry => ({
-        id: uid("log"),
-        adRef: ad.ref,
-        action: label,
-        at: now(),
-      });
       let entry: AuditEntry | null = null;
-
       const ads = state.ads.map((a) => {
         if (a.id !== act.id) return a;
         const actor = action.actor ?? "admin";
         switch (act.type) {
           case "APPROVE":
-            entry = log(a, `الموافقة على الإعلان ${a.ref}`);
+            entry = log({ adRef: a.ref, action: `الموافقة على الإعلان ${a.ref}`, kind: "ad" });
             return {
               ...a,
               status: "active" as const,
@@ -137,19 +149,32 @@ function reducer(state: AppState, action: Action): AppState {
               moderatedBy: actor,
             };
           case "REJECT":
-            entry = log(a, `رفض الإعلان ${a.ref} — السبب: ${act.reason}`);
-            return { ...a, status: "rejected" as const, rejectionReason: act.reason, moderatedBy: actor };
+            entry = log({
+              adRef: a.ref,
+              action: `رفض الإعلان ${a.ref} — السبب: ${act.reason}`,
+              kind: "ad",
+            });
+            return {
+              ...a,
+              status: "rejected" as const,
+              rejectionReason: act.reason,
+              moderatedBy: actor,
+            };
           case "MARK_SOLD":
-            entry = log(a, `تعليم الإعلان ${a.ref} كمُباع`);
+            entry = log({ adRef: a.ref, action: `تعليم الإعلان ${a.ref} كمُباع`, kind: "ad" });
             return { ...a, status: "sold" as const, soldAt: now(), moderatedBy: actor };
           case "MARK_RENTED":
-            entry = log(a, `تعليم الإعلان ${a.ref} كمؤجَّر`);
+            entry = log({ adRef: a.ref, action: `تعليم الإعلان ${a.ref} كمؤجَّر`, kind: "ad" });
             return { ...a, status: "rented" as const, soldAt: now(), moderatedBy: actor };
           case "REOPEN":
-            entry = log(a, `إعادة نشر الإعلان ${a.ref}`);
+            entry = log({ adRef: a.ref, action: `إعادة نشر الإعلان ${a.ref}`, kind: "ad" });
             return { ...a, status: "active" as const, soldAt: null, moderatedBy: actor };
           case "TOGGLE_FEATURED":
-            entry = log(a, `${a.featured ? "إلغاء تمييز" : "تمييز"} الإعلان ${a.ref}`);
+            entry = log({
+              adRef: a.ref,
+              action: `${a.featured ? "إلغاء تمييز" : "تمييز"} الإعلان ${a.ref}`,
+              kind: "ad",
+            });
             return { ...a, featured: !a.featured, moderatedBy: actor };
           default:
             return a;
@@ -161,7 +186,7 @@ function reducer(state: AppState, action: Action): AppState {
           ? (() => {
               const target = state.ads.find((a) => a.id === act.id);
               return target
-                ? [log(target, `حذف الإعلان ${target.ref}`), ...state.audit]
+                ? [log({ adRef: target.ref, action: `حذف الإعلان ${target.ref}`, kind: "ad" }), ...state.audit]
                 : state.audit;
             })()
           : entry
@@ -171,7 +196,7 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         ads: act.type === "DELETE_AD" ? state.ads.filter((a) => a.id !== act.id) : ads,
-        audit: audit.slice(0, 60),
+        audit: audit.slice(0, 80),
       };
     }
 
@@ -198,7 +223,6 @@ function reducer(state: AppState, action: Action): AppState {
               }
             : c
         ),
-        // تحديث نوع المنطقة في الإعلانات المرتبطة أيضاً
         ads: state.ads.map((a) =>
           a.districtId === action.districtId ? { ...a, districtKind: action.kind } : a
         ),
@@ -222,17 +246,83 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
 
-    case "ADD_CITY":
-      return { ...state, cities: [...state.cities, action.city] };
-
     case "UPDATE_SETTINGS":
-      return { ...state, settings: { ...state.settings, ...action.settings } };
+      return {
+        ...state,
+        settings: { ...state.settings, ...action.settings },
+        audit: [
+          log({ adRef: "—", action: "تحديث إعدادات المنصة", kind: "settings" }),
+          ...state.audit,
+        ].slice(0, 80),
+      };
 
-    case "LOGIN":
-      return { ...state, adminUser: action.user };
+    /* ------------------------------- الأمان ------------------------------- */
+    case "AUTH_LOGGED_IN":
+      return {
+        ...state,
+        auth: {
+          ...state.auth,
+          loggedIn: true,
+          sessionExpiresAt: plusMinutes(action.minutes),
+          failedAttempts: 0,
+          lockedUntil: null,
+          lastLoginAt: now(),
+        },
+        audit: [
+          log({ adRef: "—", action: "تسجيل دخول ناجح إلى لوحة التحكم", kind: "auth" }),
+          ...state.audit,
+        ].slice(0, 80),
+      };
 
-    case "LOGOUT":
-      return { ...state, adminUser: null };
+    case "AUTH_FAIL":
+      return {
+        ...state,
+        auth: {
+          ...state.auth,
+          failedAttempts: action.attempts,
+          lockedUntil: action.lockedUntil,
+        },
+        audit: [
+          log({
+            adRef: "—",
+            action: action.lockedUntil
+              ? `محاولات دخول فاشلة (${action.attempts}) — تم قفل اللوحة مؤقتاً`
+              : `محاولة دخول فاشلة (${action.attempts})`,
+            kind: "auth",
+          }),
+          ...state.audit,
+        ].slice(0, 80),
+      };
+
+    case "AUTH_LOGOUT":
+      return {
+        ...state,
+        auth: { ...state.auth, loggedIn: false, sessionExpiresAt: null },
+      };
+
+    case "AUTH_REFRESH":
+      return {
+        ...state,
+        auth: { ...state.auth, sessionExpiresAt: plusMinutes(action.minutes) },
+      };
+
+    case "AUTH_LOGOUT_ALL":
+      return {
+        ...state,
+        auth: {
+          ...state.auth,
+          loggedIn: false,
+          sessionExpiresAt: null,
+          sessionEpoch: state.auth.sessionEpoch + 1,
+        },
+        audit: [
+          log({ adRef: "—", action: "خروج من جميع الجلسات (إبطال كل الأجهزة)", kind: "auth" }),
+          ...state.audit,
+        ].slice(0, 80),
+      };
+
+    case "LOG":
+      return { ...state, audit: [action.entry, ...state.audit].slice(0, 80) };
 
     case "RESET_DEMO":
       return {
@@ -255,35 +345,40 @@ export interface DistrictFacet {
   count: number;
 }
 
+export type LoginResult =
+  | { ok: true }
+  | { ok: false; reason: "locked"; waitMs: number }
+  | { ok: false; reason: "credentials"; remaining: number };
+
 interface StoreValue extends AppState {
-  /* مشتقات جاهزة */
   publicAds: Ad[];
   pendingAds: Ad[];
   featuredAds: Ad[];
   cityById: (id: string) => City | undefined;
   districtName: (cityId: string, districtId: string) => string;
-  /** اسم منطقة الإعلان — يُقرأ من الإعلان نفسه أولاً (الإدخال اليدوي) */
   districtLabelOf: (ad: Ad) => string;
-  /** قائمة المناطق المشتقة من الإعلانات فعلياً + السجل الإداري، مع العدّادات */
   districtFacets: (scope?: "public" | "all") => DistrictFacet[];
   districtNames: () => string[];
   toUsd: (amount: number, from: Currency) => number;
   toSyp: (amount: number, from: Currency) => number;
-  /* إجراءات */
   setCurrency: (c: Currency) => void;
   toggleTheme: () => void;
   addAd: (ad: Ad) => void;
   moderate: (action: ModerationAction) => void;
   incrementViews: (id: string) => void;
-  /** إنشاء المنطقة عند أول إدخال يدوي، أو إرجاع معرّفها إن كانت موجودة */
   ensureDistrict: (cityId: string, name: string, kind?: DistrictKind) => string;
   setDistrictKind: (cityId: string, districtId: string, kind: DistrictKind) => void;
   deleteDistrict: (cityId: string, districtId: string) => void;
   toggleCity: (cityId: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
-  login: (user: string, pass: string) => boolean;
-  logout: () => void;
   resetDemo: () => void;
+  /* الأمان */
+  login: (user: string, pass: string) => Promise<LoginResult>;
+  logout: () => void;
+  logoutAll: () => void;
+  refreshSession: () => void;
+  changePassword: (current: string, next: string) => Promise<{ ok: boolean; error?: string }>;
+  sessionMinutesLeft: () => number;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -291,7 +386,6 @@ const StoreContext = createContext<StoreValue | null>(null);
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  /* الاسترجاع من التخزين المحلي */
   useEffect(() => {
     const saved = safeStorage.get<Partial<AppState>>(STORAGE_KEY);
     const prefersDark =
@@ -302,43 +396,39 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       payload: {
         ...normalize(saved ?? {}),
         theme: saved?.theme ?? (prefersDark ? "dark" : "light"),
-        adminUser: saved?.adminUser ?? null,
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* الحفظ التلقائي */
   useEffect(() => {
     if (!state.hydrated) return;
     safeStorage.set(STORAGE_KEY, {
       ads: state.ads,
       cities: state.cities,
       settings: state.settings,
+      auth: state.auth,
       audit: state.audit,
       currency: state.currency,
       theme: state.theme,
-      adminUser: state.adminUser,
     });
   }, [
     state.hydrated,
     state.ads,
     state.cities,
     state.settings,
+    state.auth,
     state.audit,
     state.currency,
     state.theme,
-    state.adminUser,
   ]);
 
-  /* تطبيق الوضع الليلي على عنصر html */
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("dark", state.theme === "dark");
     root.style.colorScheme = state.theme;
   }, [state.theme]);
 
-  /* إنشاء منطقة من إدخال يدوي (يُستدعى من نموذج الإعلان) */
   const ensureDistrict = useCallback(
     (cityId: string, name: string, kind?: DistrictKind) => {
       const clean = cleanDistrictName(name);
@@ -349,12 +439,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         dispatch({
           type: "UPSERT_DISTRICT",
           cityId,
-          district: {
-            id,
-            name: clean,
-            kind: kind ?? guessDistrictKind(clean),
-            createdBy: "user",
-          },
+          district: { id, name: clean, kind: kind ?? guessDistrictKind(clean), createdBy: "user" },
         });
       }
       return id;
@@ -364,9 +449,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<StoreValue>(() => {
     const cityById = (id: string) => state.cities.find((c) => c.id === id);
-    const publicAds = state.ads.filter((a) =>
-      ["active", "sold", "rented"].includes(a.status)
-    );
+    const publicAds = state.ads.filter((a) => ["active", "sold", "rented"].includes(a.status));
 
     const districtName = (cityId: string, districtId: string) => {
       const c = cityById(cityId);
@@ -376,7 +459,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const districtLabelOf = (ad: Ad) =>
       ad.districtLabel || districtName(ad.cityId, ad.districtId) || "منطقة غير محددة";
 
-    /** المناطق مشتقة من الإعلانات فعلياً — لا قائمة ثابتة */
     const districtFacets = (scope: "public" | "all" = "public"): DistrictFacet[] => {
       const source = scope === "public" ? publicAds : state.ads;
       const map = new Map<string, DistrictFacet>();
@@ -388,14 +470,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const kind = reg?.kind ?? ad.districtKind ?? guessDistrictKind(name);
         const prev = map.get(key);
         if (prev) prev.count += 1;
-        else
-          map.set(key, {
-            id: ad.districtId,
-            name,
-            kind,
-            cityId: ad.cityId,
-            count: 1,
-          });
+        else map.set(key, { id: ad.districtId, name, kind, cityId: ad.cityId, count: 1 });
       });
       return [...map.values()].sort(
         (a, b) => b.count - a.count || a.name.localeCompare(b.name, "ar")
@@ -429,7 +504,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       toggleTheme: () => dispatch({ type: "TOGGLE_THEME" }),
       addAd: (ad) => dispatch({ type: "ADD_AD", ad }),
       moderate: (action) =>
-        dispatch({ type: "MODERATE", action, actor: state.adminUser ?? "admin" }),
+        dispatch({ type: "MODERATE", action, actor: state.settings.adminUsername }),
       incrementViews: (id) => dispatch({ type: "INC_VIEW", id }),
       ensureDistrict,
       setDistrictKind: (cityId, districtId, kind) =>
@@ -438,13 +513,75 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: "DELETE_DISTRICT", cityId, districtId }),
       toggleCity: (cityId) => dispatch({ type: "TOGGLE_CITY", cityId }),
       updateSettings: (s) => dispatch({ type: "UPDATE_SETTINGS", settings: s }),
-      login: (user, pass) => {
-        const ok = user.trim().toLowerCase() === ADMIN_USER && pass === ADMIN_PASS;
-        if (ok) dispatch({ type: "LOGIN", user: ADMIN_USER });
-        return ok;
-      },
-      logout: () => dispatch({ type: "LOGOUT" }),
       resetDemo: () => dispatch({ type: "RESET_DEMO" }),
+
+      /* ------------------------------ الأمان ------------------------------ */
+      login: async (user, pass) => {
+        const wait = state.auth.lockedUntil
+          ? new Date(state.auth.lockedUntil).getTime() - Date.now()
+          : 0;
+        if (wait > 0) return { ok: false, reason: "locked", waitMs: wait };
+
+        const userOk = user.trim().toLowerCase() === state.settings.adminUsername.toLowerCase();
+        const hash = await hashPassword(pass, state.settings.adminSalt);
+        const passOk = safeEqual(hash, state.settings.adminHash);
+
+        if (userOk && passOk) {
+          dispatch({ type: "AUTH_LOGGED_IN", minutes: state.settings.sessionMinutes });
+          return { ok: true };
+        }
+
+        const attempts = state.auth.failedAttempts + 1;
+        const shouldLock = attempts >= state.settings.maxLoginAttempts;
+        const lockedUntil = shouldLock ? plusMinutes(state.settings.lockMinutes) : null;
+        dispatch({
+          type: "AUTH_FAIL",
+          attempts: shouldLock ? 0 : attempts,
+          lockedUntil,
+        });
+        if (shouldLock)
+          return { ok: false, reason: "locked", waitMs: state.settings.lockMinutes * 60000 };
+        return { ok: false, reason: "credentials", remaining: state.settings.maxLoginAttempts - attempts };
+      },
+
+      logout: () => dispatch({ type: "AUTH_LOGOUT" }),
+      logoutAll: () => dispatch({ type: "AUTH_LOGOUT_ALL" }),
+      refreshSession: () => dispatch({ type: "AUTH_REFRESH", minutes: state.settings.sessionMinutes }),
+
+      changePassword: async (current, next) => {
+        const currentHash = await hashPassword(current, state.settings.adminSalt);
+        if (!safeEqual(currentHash, state.settings.adminHash))
+          return { ok: false, error: "كلمة المرور الحالية غير صحيحة." };
+
+        const salt = Array.from(
+          typeof crypto !== "undefined" && crypto.getRandomValues
+            ? crypto.getRandomValues(new Uint8Array(16))
+            : new Uint8Array(16).map(() => Math.floor(Math.random() * 256))
+        )
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        const hash = await hashPassword(next, salt);
+        dispatch({
+          type: "UPDATE_SETTINGS",
+          settings: { adminSalt: salt, adminHash: hash, passwordChanged: true },
+        });
+        dispatch({
+          type: "LOG",
+          entry: {
+            id: uid("log"),
+            adRef: "—",
+            at: now(),
+            action: "تغيير كلمة مرور لوحة التحكم",
+            kind: "auth",
+          },
+        });
+        return { ok: true };
+      },
+
+      sessionMinutesLeft: () => {
+        if (!state.auth.sessionExpiresAt) return 0;
+        return Math.max(0, (new Date(state.auth.sessionExpiresAt).getTime() - Date.now()) / 60000);
+      },
     };
   }, [state, ensureDistrict]);
 
@@ -457,5 +594,5 @@ export function useStore() {
   return ctx;
 }
 
-/** بيانات الدخول التجريبية للوحة التحكم */
-export const DEMO_CREDENTIALS = { user: ADMIN_USER, pass: ADMIN_PASS };
+/** اسم مستخدم لوحة التحكم (لا تُعرض كلمة المرور في الواجهة إطلاقاً) */
+export const ADMIN_USER = ADMIN_USERNAME;

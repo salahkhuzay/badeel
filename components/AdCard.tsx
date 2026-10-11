@@ -3,29 +3,26 @@
 import React from "react";
 import Link from "next/link";
 import {
-  BadgeCheck,
+  Briefcase,
   Building,
-  CalendarDays,
+  Building2,
   Car,
   Eye,
-  Fuel,
+  Layers,
   MapPin,
   MessageCircle,
   Phone,
-  Ruler,
+  Plug,
+  Shirt,
+  Sofa,
   Sparkles,
-  Warehouse,
 } from "lucide-react";
 import type { Ad } from "@/lib/types";
 import { useStore } from "@/lib/store";
 import { compactMoney, timeAgo } from "@/lib/currency";
-import {
-  bodyConditionName,
-  dealTypeName,
-  ownershipName,
-  propertyTypeName,
-  vehicleTypeName,
-} from "@/lib/taxonomy";
+import { categoryName } from "@/lib/taxonomy";
+import { themeOf } from "@/lib/theme";
+import { adChips, dealBadge } from "./AdSpecs";
 import Price from "./Price";
 import StatusBadge from "./StatusBadge";
 
@@ -46,6 +43,8 @@ export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: bool
   const tel = `tel:+${normalize(ad.sellerPhone, settings.whatsappCountryCode)}`;
 
   const img = ad.images?.[0];
+  const deal = dealBadge(ad);
+  const theme = themeOf(ad.category);
 
   return (
     <article className="card card-hover group flex flex-col overflow-hidden">
@@ -61,7 +60,7 @@ export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: bool
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-navy-800 to-navy-900 text-navy-500">
-            {ad.category === "real-estate" ? <Building size={44} /> : <Car size={44} />}
+            {CATEGORY_FALLBACK_ICON[ad.category]}
             <span className="absolute bottom-3 text-[11px] font-semibold text-navy-300">
               لا توجد صور — تواصل مع المُعلن
             </span>
@@ -76,15 +75,13 @@ export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: bool
                 <Sparkles size={11} /> مميّز
               </span>
             )}
-            {ad.category === "real-estate" && (
-              <span className="badge bg-white/90 text-navy-700 backdrop-blur dark:bg-navy-900/90 dark:text-navy-100">
-                {propertyTypeName(ad.propertyType)}
-              </span>
-            )}
-            {ad.category === "vehicles" && (
-              <span className="badge bg-white/90 text-navy-700 backdrop-blur dark:bg-navy-900/90 dark:text-navy-100">
-                {vehicleTypeName(ad.vehicleType)}
-              </span>
+            <span className="badge bg-white/90 text-navy-700 backdrop-blur dark:bg-navy-900/90 dark:text-navy-100">
+              {ad.category === "vehicles" && ad.make
+                ? `${ad.make}${ad.model ? ` ${ad.model}` : ""}`
+                : categoryName(ad.category) + (ad.subtypeLabel ? ` · ${ad.subtypeLabel}` : "")}
+            </span>
+            {deal && (
+              <span className={`badge ${deal.className} shadow-sm`}>{deal.label}</span>
             )}
           </div>
         </div>
@@ -119,19 +116,9 @@ export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: bool
 
         {/* المواصفات السريعة */}
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {ad.category === "real-estate" ? (
-            <>
-              <Spec icon={<Ruler size={12} />} text={`${ad.areaSize} ${ad.areaUnit === "donum" ? "دونم" : "م²"}`} />
-              <Spec icon={<BadgeCheck size={12} />} text={ownershipName(ad.ownership)} />
-              <Spec icon={<CalendarDays size={12} />} text={dealTypeName(ad.dealType)} />
-            </>
-          ) : (
-            <>
-              <Spec icon={<Car size={12} />} text={`${ad.make ?? ""} ${ad.model ?? ""}`.trim() || "—"} />
-              <Spec icon={<CalendarDays size={12} />} text={String(ad.year ?? "—")} />
-              <Spec icon={<Fuel size={12} />} text={bodyConditionName(ad.bodyCondition)} />
-            </>
-          )}
+          {adChips(ad).map((c) => (
+            <Spec key={c.label} icon={c.icon} text={c.value} />
+          ))}
         </div>
 
         <div className="mt-3 flex items-center gap-3 text-[11.5px] text-navy-400 dark:text-navy-400">
@@ -148,15 +135,42 @@ export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: bool
 
         <div className="divider my-3" />
 
+        {ad.category === "jobs" && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="badge bg-navy-900 text-white dark:bg-white dark:text-navy-900">
+              {ad.jobKind === "seek" ? "باحث عن عمل" : "صاحب عمل"}
+            </span>
+            {(ad.employmentType || ad.experienceYears != null) && (
+              <span className="text-[11px] font-semibold text-navy-400">
+                {[ad.employmentType === "full-time" ? "دوام كامل" : "", ad.experienceYears != null ? `خبرة ${ad.experienceYears} سنة` : ""]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="mt-auto flex items-end justify-between gap-3">
+          {ad.priceOnRequest || (ad.category === "jobs" && !ad.price) ? (
+            <span className="text-[15px] font-extrabold text-navy-700 dark:text-navy-100">
+              الأجر: يُتفق عليه
+            </span>
+          ) : (
           <Price
             priceUsd={ad.priceUsd}
             priceSyp={ad.priceSyp}
             size="md"
             suffix={
-              ad.dealType === "rent-monthly" ? "/ شهرياً" : ad.dealType === "rent-yearly" ? "/ سنوياً" : undefined
+              ad.dealType === "rent-daily"
+                ? "/ يومياً"
+                : ad.dealType === "rent-monthly"
+                  ? "/ شهرياً"
+                  : ad.dealType === "rent-yearly"
+                    ? "/ سنوياً"
+                    : undefined
             }
           />
+          )}
           <div className="flex shrink-0 gap-1.5">
             <a
               href={wa}
@@ -214,3 +228,14 @@ export { normalize as normalizePhoneClient };
 /** مبلغ مختصر جاهز للاستخدام في الشرائح */
 export const shortPrice = (ad: Ad, currency: "USD" | "SYP") =>
   compactMoney(currency === "USD" ? ad.priceUsd : ad.priceSyp, currency);
+
+/** أيقونة افتراضية لكل تصنيف (عند عدم وجود صورة) */
+const CATEGORY_FALLBACK_ICON: Record<string, React.ReactNode> = {
+  "real-estate": <Building size={44} />,
+  vehicles: <Car size={44} />,
+  furniture: <Sofa size={44} />,
+  appliances: <Plug size={44} />,
+  clothing: <Shirt size={44} />,
+  jobs: <Briefcase size={44} />,
+};
+

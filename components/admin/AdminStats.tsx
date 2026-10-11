@@ -18,6 +18,8 @@ import { useStore } from "@/lib/store";
 import { computeStats } from "@/lib/filters";
 import { formatNumber } from "@/lib/currency";
 import { districtKindShort } from "@/lib/geo";
+import { categoryIcon } from "@/components/CategoryIcon";
+import { themeOf } from "@/lib/theme";
 
 /** بطاقات الإحصاءات + توزيع التصنيفات + أكثر الأحياء + آخر 7 أيام */
 export default function AdminStats({ onGoPending }: { onGoPending?: () => void }) {
@@ -26,6 +28,15 @@ export default function AdminStats({ onGoPending }: { onGoPending?: () => void }
     name: districtLabelOf(ad),
     kind: ad.districtKind ?? "area",
   }));
+
+  const barTone: Record<string, string> = {
+    "real-estate": "bg-emeraldBrand-500",
+    vehicles: "bg-amberBrand-500",
+    furniture: "bg-rose-500",
+    appliances: "bg-sky-500",
+    clothing: "bg-violet-500",
+    jobs: "bg-navy-600",
+  };
 
   const maxDay = Math.max(1, ...s.byDay.map((d) => d.count));
   const maxDistrict = Math.max(1, ...s.topDistricts.map((d) => d.count));
@@ -76,12 +87,11 @@ export default function AdminStats({ onGoPending }: { onGoPending?: () => void }
           <div className="mt-4 space-y-3">
             {s.byCategory.map((c) => {
               const pct = Math.round((c.count / totalCat) * 100);
-              const isRe = c.id === "real-estate";
               return (
                 <div key={c.id}>
                   <div className="mb-1 flex items-center justify-between text-[12px]">
                     <span className="inline-flex items-center gap-1.5 font-bold text-navy-700 dark:text-navy-100">
-                      {isRe ? <Building2 size={13} /> : <Car size={13} />}
+                      <span className={themeOf(c.id).text}>{categoryIcon(c.id, 13)}</span>
                       {c.name}
                     </span>
                     <span className="font-bold text-navy-500">
@@ -90,9 +100,7 @@ export default function AdminStats({ onGoPending }: { onGoPending?: () => void }
                   </div>
                   <div className="h-2.5 overflow-hidden rounded-full bg-navy-100 dark:bg-navy-800">
                     <div
-                      className={`h-full rounded-full ${
-                        isRe ? "bg-emeraldBrand-500" : "bg-amberBrand-500"
-                      }`}
+                      className={`h-full rounded-full ${barTone[c.id] ?? "bg-navy-600"}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>

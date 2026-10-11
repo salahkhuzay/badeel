@@ -1,5 +1,6 @@
 import type { Ad, Currency, Settings } from "./types";
 import { CURRENCY_LABEL } from "./taxonomy";
+import { ADMIN_USERNAME, DEFAULT_ADMIN_HASH, DEFAULT_ADMIN_SALT } from "./auth";
 
 /* ==========================================================================
    محرّك العملة المزدوجة + أدوات التنسيق العربية
@@ -10,7 +11,16 @@ export const DEFAULT_SETTINGS: Settings = {
   usdToSyp: 13000,
   whatsappCountryCode: "963",
   siteSlogan: "بديل — خيارك الأفضل للبيع والشراء في منبج",
-  contactPhone: "0955555555",
+  contactPhone: "0933177597", // هاتف التواصل والدعم (اتصال + واتساب)
+  facebookUrl: "https://www.facebook.com/", // يُستبدل بصفحة بديل الرسمية لاحقاً
+  /* ---- الأمان ---- */
+  adminUsername: ADMIN_USERNAME,
+  adminSalt: DEFAULT_ADMIN_SALT,
+  adminHash: DEFAULT_ADMIN_HASH,
+  passwordChanged: false,
+  sessionMinutes: 20,
+  maxLoginAttempts: 5,
+  lockMinutes: 10,
 };
 
 /** تحويل مبلغ من عملة إلى أخرى */
@@ -119,6 +129,15 @@ export function whatsappLink(
   return `https://wa.me/${normalizePhone(phone, countryCode)}?text=${encodeURIComponent(
     text
   )}`;
+}
+
+/** رابط واتساب لرسالة عامة (التواصل والدعم) */
+export function supportWhatsapp(
+  phone: string,
+  countryCode = "963",
+  message = "مرحباً، أرغب بالاستفسار عن منصة بديل"
+) {
+  return `https://wa.me/${normalizePhone(phone, countryCode)}?text=${encodeURIComponent(message)}`;
 }
 
 export function telLink(phone: string, countryCode = "963") {

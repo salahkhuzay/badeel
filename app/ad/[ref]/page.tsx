@@ -25,9 +25,13 @@ import {
   User,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { MAIN_CATEGORIES } from "@/lib/taxonomy";
+import { categoryIcon } from "@/components/CategoryIcon";
+import type { MainCategory } from "@/lib/types";
 import { InlinePrice } from "@/components/Price";
 import Price from "@/components/Price";
 import StatusBadge from "@/components/StatusBadge";
+import { adSpecs, dealBadge } from "@/components/AdSpecs";
 import AdCard from "@/components/AdCard";
 import EmptyState from "@/components/EmptyState";
 import { useToast } from "@/components/Toast";
@@ -42,6 +46,7 @@ import {
   VEHICLE_TYPES,
   areaUnitName,
   bodyConditionName,
+  categoryName,
   dealTypeName,
   fuelTypeName,
   ownershipName,
@@ -92,26 +97,7 @@ export default function AdDetailPage() {
   )}`;
   const tel = `tel:+${normalizePhone(ad.sellerPhone, cc)}`;
 
-  const specs: { label: string; value: string; icon: React.ReactNode }[] =
-    ad.category === "real-estate"
-      ? [
-          { label: "نوع العقار", value: propertyTypeName(ad.propertyType), icon: <Building2 size={14} /> },
-          { label: "نوع التعامل", value: dealTypeName(ad.dealType), icon: <CalendarDays size={14} /> },
-          {
-            label: "المساحة",
-            value: `${ad.areaSize} ${ad.areaUnit === "donum" ? "دونم" : "متر مربع"}`,
-            icon: <Ruler size={14} />,
-          },
-          { label: "أوراق الملكية", value: ownershipName(ad.ownership), icon: <BadgeCheck size={14} /> },
-        ]
-      : [
-          { label: "نوع المركبة", value: vehicleTypeName(ad.vehicleType), icon: <Car size={14} /> },
-          { label: "الماركة والموديل", value: `${ad.make ?? "—"} ${ad.model ?? ""}`, icon: <Tag size={14} /> },
-          { label: "سنة الصنع", value: String(ad.year ?? "—"), icon: <CalendarDays size={14} /> },
-          { label: "حالة الجسم", value: bodyConditionName(ad.bodyCondition), icon: <CheckCircle2 size={14} /> },
-          { label: "نوع الوقود", value: fuelTypeName(ad.fuelType), icon: <Fuel size={14} /> },
-          { label: "نمرة التسجيل", value: plateRegionName(ad.plateRegion), icon: <BadgeCheck size={14} /> },
-        ];
+  const specs = adSpecs(ad);
 
   const similar = publicAds
     .filter((a) => a.id !== ad.id && a.category === ad.category && a.status === "active")
@@ -139,7 +125,8 @@ export default function AdDetailPage() {
         </Link>
         <span>/</span>
         <Link href={`/category/${ad.category}`} className="hover:text-amberBrand-600">
-          {ad.category === "real-estate" ? "عقارات" : "سيارات ومركبات"}
+          {categoryName(ad.category)}
+          {ad.subtypeLabel ? ` · ${ad.subtypeLabel}` : ""}
         </Link>
         <span>/</span>
         <Link href={`/search?district=${ad.districtId}`} className="hover:text-amberBrand-600">
@@ -164,7 +151,7 @@ export default function AdDetailPage() {
                 />
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-navy-400">
-                  {ad.category === "real-estate" ? <Building2 size={54} /> : <Car size={54} />}
+                  {categoryIcon(ad.category, 54, "text-navy-400")}
                   <p className="text-xs font-semibold">لم يُرفق المُعلن صوراً لهذا الإعلان</p>
                 </div>
               )}
@@ -176,6 +163,11 @@ export default function AdDetailPage() {
                   </span>
                 )}
                 <StatusBadge status={ad.status} className="bg-white/95 dark:bg-navy-900/95" />
+                {dealBadge(ad) && (
+                  <span className={`badge ${dealBadge(ad)!.className} shadow`}>
+                    {dealBadge(ad)!.label}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -386,7 +378,7 @@ export default function AdDetailPage() {
         <section className="mt-12">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-extrabold text-navy-900 dark:text-white">
-              إعلانات مشابهة في {ad.category === "real-estate" ? "العقارات" : "المركبات"}
+              إعلانات مشابهة في {categoryName(ad.category)}
             </h2>
             <Link
               href={`/category/${ad.category}`}

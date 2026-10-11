@@ -19,7 +19,7 @@ import { useToast } from "@/components/Toast";
 import StatusBadge from "@/components/StatusBadge";
 import { InlinePrice } from "@/components/Price";
 import { formatDate, timeAgo } from "@/lib/currency";
-import { STATUS_META, propertyTypeName, vehicleTypeName } from "@/lib/taxonomy";
+import { STATUS_META, categoryName, categoryShort, plateRegionName } from "@/lib/taxonomy";
 import type { Ad, AdStatus } from "@/lib/types";
 
 const FILTERS: { id: AdStatus | "all"; name: string }[] = [
@@ -141,12 +141,14 @@ export default function AdsTable() {
                 </td>
                 <td className="text-[12px]">
                   <span className="font-semibold text-navy-700 dark:text-navy-100">
-                    {ad.category === "real-estate" ? "عقار" : "مركبة"}
+                    {categoryName(ad.category)}
                   </span>
                   <span className="mt-0.5 block text-[11px] text-navy-400">
-                    {ad.category === "real-estate"
-                      ? propertyTypeName(ad.propertyType)
-                      : vehicleTypeName(ad.vehicleType)}
+                    {ad.subtypeLabel
+                      ? ad.subtypeLabel
+                      : ad.category === "vehicles" && ad.plateRegion
+                        ? plateRegionName(ad.plateRegion)
+                        : categoryShort(ad.category)}
                   </span>
                 </td>
                 <td className="text-[12px] text-navy-600 dark:text-navy-200">

@@ -1,10 +1,21 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { CircleDollarSign, Phone, RefreshCw, Save, ShieldAlert, Trash2, Wifi } from "lucide-react";
+import {
+  CircleDollarSign,
+  Facebook,
+  Phone,
+  RefreshCw,
+  Save,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  Wifi,
+} from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/Toast";
-import { formatMoney } from "@/lib/currency";
+import { displayPhone, formatMoney } from "@/lib/currency";
+import SecurityPanel from "./SecurityPanel";
 
 /** إعدادات المنصة: سعر الصرف، بيانات التواصل، وإعادة تعيين البيانات التجريبية */
 export default function SettingsPanel() {
@@ -15,12 +26,14 @@ export default function SettingsPanel() {
   const [phone, setPhone] = useState(settings.contactPhone);
   const [cc, setCc] = useState(settings.whatsappCountryCode);
   const [slogan, setSlogan] = useState(settings.siteSlogan);
+  const [facebook, setFacebook] = useState(settings.facebookUrl);
 
   useEffect(() => {
     setRate(String(settings.usdToSyp));
     setPhone(settings.contactPhone);
     setCc(settings.whatsappCountryCode);
     setSlogan(settings.siteSlogan);
+    setFacebook(settings.facebookUrl);
   }, [settings]);
 
   const save = (e: React.FormEvent) => {
@@ -39,6 +52,7 @@ export default function SettingsPanel() {
       contactPhone: phone.trim(),
       whatsappCountryCode: cc.replace(/\D/g, "") || "963",
       siteSlogan: slogan.trim(),
+      facebookUrl: facebook.trim() || settings.facebookUrl,
     });
     toast({
       type: "success",
@@ -50,7 +64,8 @@ export default function SettingsPanel() {
   const rateNumber = Number(rate) || 0;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-2">
       <form onSubmit={save} className="card p-5">
         <h3 className="flex items-center gap-2 text-[14px] font-extrabold text-navy-900 dark:text-white">
           <CircleDollarSign size={17} className="text-amberBrand-500" /> محرّك العملة المزدوجة
@@ -124,9 +139,37 @@ export default function SettingsPanel() {
         </div>
 
         <div className="mt-3">
+          <label className="label">رابط صفحة فيسبوك (يظهر في الترويسة والتذييل)</label>
+          <div className="relative">
+            <Facebook
+              size={15}
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sky-500"
+            />
+            <input
+              value={facebook}
+              onChange={(e) => setFacebook(e.target.value)}
+              className="input pl-3 pr-9"
+              dir="ltr"
+              placeholder="https://www.facebook.com/badeel"
+            />
+          </div>
+          <p className="hint">
+            اترك الرابط كما هو حتى إنشاء الصفحة الرسمية — الأيقونة تظهر دائماً في الموقع.
+          </p>
+        </div>
+
+        <div className="mt-3">
           <label className="label">الشعار النصي للمنصة</label>
           <input value={slogan} onChange={(e) => setSlogan(e.target.value)} className="input" />
         </div>
+
+        <p className="mt-3 rounded-xl bg-navy-50/70 p-3 text-[11.5px] leading-relaxed text-navy-500 dark:bg-navy-900 dark:text-navy-300">
+          الرقم المعروض حالياً للزوار:{" "}
+          <span className="font-extrabold text-navy-700 dark:text-navy-100" dir="ltr">
+            {displayPhone(settings.contactPhone, settings.whatsappCountryCode)}
+          </span>{" "}
+          — يُستخدم في زر الاتصال وزر واتساب في الترويسة والتذييل وفي صفحة «كيف يعمل بديل؟».
+        </p>
 
         <button type="submit" className="btn-amber mt-5 w-full justify-center">
           <Save size={16} /> حفظ الإعدادات
@@ -144,6 +187,8 @@ export default function SettingsPanel() {
             <Row label="مصدر البيانات" value="Mock Store (جاهز للاستبدال بـ API)" />
             <Row label="سعر الصرف النشط" value={`1 $ = ${settings.usdToSyp.toLocaleString("en-US")} ل.س`} />
             <Row label="مفتاح واتساب" value={`+${settings.whatsappCountryCode}`} />
+            <Row label="أمان اللوحة" value={settings.passwordChanged ? "كلمة مرور مخصّصة ✅" : "كلمة المرور الافتراضية ⚠️"} />
+            <Row label="مدة الجلسة" value={`${settings.sessionMinutes} دقيقة — قفل بعد ${settings.maxLoginAttempts} محاولات`} />
           </ul>
         </div>
 
@@ -152,9 +197,9 @@ export default function SettingsPanel() {
             <ShieldAlert size={16} /> منطقة الخطر
           </h3>
           <p className="mt-2 text-[12px] leading-relaxed text-navy-600 dark:text-navy-200">
-            إعادة التعيين تُرجع كل الإعلانات والأحياء والإعدادات إلى الحالة الافتراضية (19 إعلاناً
-            تجريبياً: 12 منشوراً و4 قيد المراجعة و3 مغلقة)، وتُحذف كل الإضافات والتعديلات التي
-            أجريتها من لوحة التحكم.
+            إعادة التعيين تُرجع كل الإعلانات والأحياء والإعدادات إلى الحالة الافتراضية (33 إعلاناً
+            تجريبياً تغطي التصنيفات الستّة: عقارات، مركبات، أثاث، أجهزة كهربائية، ملابس، وظائف)،
+            وتُحذف كل الإضافات والتعديلات التي أجريتها من لوحة التحكم.
           </p>
           <button
             type="button"
@@ -173,6 +218,21 @@ export default function SettingsPanel() {
           </p>
         </div>
       </div>
+      </div>
+
+      <SecurityPanel />
+    </div>
+  );
+}
+
+/* --------------------------- قسم الأمان منفصل --------------------------- */
+export function SecuritySection() {
+  return (
+    <div>
+      <h3 className="mb-3 flex items-center gap-2 text-[15px] font-extrabold text-navy-900 dark:text-white">
+        <ShieldCheck size={18} className="text-emeraldBrand-500" /> الأمان وحماية اللوحة
+      </h3>
+      <SecurityPanel />
     </div>
   );
 }

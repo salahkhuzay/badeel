@@ -3,51 +3,97 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Building2,
+  Banknote,
+  Briefcase,
+  CalendarDays,
   Car,
+  CheckCircle2,
   ChevronDown,
   Filter,
   Home,
   Layers,
   Loader2,
-  Map,
+  Map as MapIcon,
   MapPin,
+  Plug,
   RotateCcw,
   Search,
+  Shirt,
   SlidersHorizontal,
+  Sofa,
   Sparkles,
   Trees,
   X,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import type { DealType, DistrictKind, MainCategory, PropertyType, VehicleType } from "@/lib/types";
-import { CURRENCY_LABEL, DEAL_TYPES, MAIN_CATEGORIES, PROPERTY_TYPES, VEHICLE_TYPES } from "@/lib/taxonomy";
+import type {
+  DealType,
+  DistrictKind,
+  EmploymentType,
+  ItemCondition,
+  ListingKind,
+  MainCategory,
+  PlateRegion,
+  PropertyType,
+  VehicleType,
+} from "@/lib/types";
+import {
+  CONDITIONS,
+  DEAL_TYPES,
+  CURRENCY_LABEL,
+  EMPLOYMENT_TYPES,
+  JOB_KINDS,
+  MAIN_CATEGORIES,
+  PLATE_REGIONS,
+  PROPERTY_TYPES,
+  SUBTYPES,
+  VEHICLE_TYPES,
+  categoryName,
+  dealTypesFor,
+} from "@/lib/taxonomy";
+import {
+  ALL_BRANDS,
+  YEAR_RANGES,
+  brandMatches,
+  brandModels,
+  brandName,
+  modelName,
+} from "@/lib/brands";
 import { DISTRICT_KINDS, districtKindShort } from "@/lib/geo";
 import {
   EMPTY_FILTERS,
   Filters,
-  SORT_OPTIONS,
   applyFilters,
   groupByDistrict,
+  sortOptionsFor,
   type SortKey,
 } from "@/lib/filters";
-import { formatNumber } from "@/lib/currency";
+import { cn, formatNumber } from "@/lib/currency";
 import AdCard from "./AdCard";
+import BrandIcon from "./BrandIcon";
 import EmptyState from "./EmptyState";
 
 /* ==========================================================================
-   متصفّح الإعلانات الموحّد (/category/[slug] و /search)
-   - الفلترة حسب المنطقة (حي / قرية / منطقة) مبنية ديناميكياً من الإعلانات
-   - خيار "تجميع حسب المنطقة" لعرض النتائج مجمّعة تحت عنوان كل منطقة
-   - ترتيب أبجدي حسب المنطقة
+   متصفّح الإعلانات الموحّد — يدعم التصنيفات الستّة
+   لكل تصنيف فلاتره الخاصة: ماركة/موديل/سنة/نمرة للمركبات، أنواع فرعية وحالة
+   للأثاث والأجهزة والملابس، عرض/طلب ومجال ودوام للوظائف، وعقاري كالسابق.
    ========================================================================== */
+
+const CATEGORY_ICON: Record<MainCategory, React.ReactNode> = {
+  "real-estate": <Home size={13} />,
+  vehicles: <Car size={13} />,
+  furniture: <Sofa size={13} />,
+  appliances: <Plug size={13} />,
+  clothing: <Shirt size={13} />,
+  jobs: <Briefcase size={13} />,
+};
 
 export default function ListingsBrowser({
   categoryLock,
   embedded = false,
   pageSize = 12,
 }: {
-  categoryLock?: MainCategory | "all";
+  categoryLock?: MainCategory;
   embedded?: boolean;
   pageSize?: number;
 }) {
@@ -58,27 +104,37 @@ export default function ListingsBrowser({
     category: categoryLock ?? "all",
   }));
   const [visible, setVisible] = useState(pageSize);
-  const [grouped, setGrouped] = useState(false); // تجميع حسب المنطقة
+  const [grouped, setGrouped] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [brandQuery, setBrandQuery] = useState("");
 
-  /* قراءة معايير الرابط (بدون تعطيل التصدير الثابت) */
+  /* قراءة معايير الرابط */
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     setGrouped(p.get("group") === "district");
     if ([...p.keys()].length === 0) return;
     setFilters((f) => {
       const type = p.get("type");
-      const isVehicleParam = categoryLock === "vehicles";
       return {
         ...f,
         q: p.get("q") ?? f.q,
         category: categoryLock ?? ((p.get("category") as MainCategory) || f.category),
-        propertyType: !isVehicleParam && type ? (type as PropertyType) : f.propertyType,
-        vehicleType: isVehicleParam && type ? (type as VehicleType) : f.vehicleType,
+        propertyType: !categoryLock || categoryLock === "real-estate" ? ((type as PropertyType) || f.propertyType) : f.propertyType,
+        vehicleType:
+          categoryLock === "vehicles" || !categoryLock ? ((type as VehicleType) || f.vehicleType) : f.vehicleType,
         dealType: (p.get("deal") as DealType) || f.dealType,
         districtId: p.get("district") ?? f.districtId,
         districtKind: (p.get("kind") as DistrictKind) || f.districtKind,
+        brandId: p.get("brand") ?? f.brandId,
+        modelId: p.get("model") ?? f.modelId,
+        yearFrom: p.get("from") ? Number(p.get("from")) : f.yearFrom,
+        yearTo: p.get("to") ? Number(p.get("to")) : f.yearTo,
+        plateRegion: (p.get("plate") as PlateRegion) || f.plateRegion,
+        subtype: p.get("subtype") ?? f.subtype,
+        condition: (p.get("condition") as ItemCondition) || f.condition,
+        jobKind: (p.get("jobkind") as ListingKind) || f.jobKind,
+        employmentType: (p.get("employ") as EmploymentType) || f.employmentType,
         featuredOnly: p.get("featured") === "1" || f.featuredOnly,
         minPriceUsd: p.get("min") ? Number(p.get("min")) : f.minPriceUsd,
         maxPriceUsd: p.get("max") ? Number(p.get("max")) : f.maxPriceUsd,
@@ -90,7 +146,6 @@ export default function ListingsBrowser({
 
   const activeCategory = (categoryLock ?? filters.category) as MainCategory | "all";
 
-  /* دالة استخراج معلومات المنطقة من أي إعلان */
   const districtOf = useMemo(
     () => (ad: Parameters<typeof districtLabelOf>[0]) => {
       const name = districtLabelOf(ad);
@@ -100,10 +155,8 @@ export default function ListingsBrowser({
     [districtLabelOf]
   );
 
-  /* المناطق المتاحة — مشتقة من الإعلانات المعروضة + الأسطول الإداري */
   const facets = useMemo(() => {
     const list = districtFacets("public");
-    // إضافة أي منطقة يعرضها إعلان ولم تُسجَّل بعد (احتياط)
     const known = new Set(list.map((f) => `${f.cityId}::${f.id}`));
     publicAds.forEach((ad) => {
       const key = `${ad.cityId}::${ad.districtId}`;
@@ -145,6 +198,36 @@ export default function ListingsBrowser({
   const districtLabel = (id: string) =>
     facets.find((f) => f.id === id)?.name ?? (id === "all" ? "كل المناطق" : "منطقة");
 
+  /* عدّادات الماركات المتاحة (للمركبات) */
+  const brandCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    publicAds
+      .filter((a) => a.category === "vehicles")
+      .forEach((a) => {
+        const key = a.brandId ?? "other";
+        m.set(key, (m.get(key) ?? 0) + 1);
+      });
+    return m;
+  }, [publicAds]);
+
+  const brandList = useMemo(() => {
+    const q = brandQuery.trim();
+    const list = ALL_BRANDS.filter((b) => (brandCounts.get(b.id) ?? 0) > 0);
+    if (!q) return list;
+    return list.filter((b) => brandMatches(b, q));
+  }, [brandQuery, brandCounts]);
+
+  const modelsOfBrand = brandModels(filters.brandId === "all" ? "" : filters.brandId);
+
+  const subtypeList = activeCategory !== "all" ? SUBTYPES[activeCategory] : [];
+  const kindCounts = useMemo(() => {
+    const c: Record<string, number> = { all: results.length };
+    DISTRICT_KINDS.forEach((k) => {
+      c[k.id] = publicAds.filter((a) => (a.districtKind ?? "area") === k.id).length;
+    });
+    return c;
+  }, [publicAds, results.length]);
+
   const activeChips = useMemo(() => {
     const chips: { label: string; clear: () => void }[] = [];
     if (filters.q) chips.push({ label: `بحث: ${filters.q}`, clear: () => update({ q: "" }) });
@@ -157,6 +240,46 @@ export default function ListingsBrowser({
       chips.push({
         label: VEHICLE_TYPES.find((t) => t.id === filters.vehicleType)?.name ?? "نوع المركبة",
         clear: () => update({ vehicleType: "all" }),
+      });
+    if (filters.brandId !== "all")
+      chips.push({
+        label: `الماركة: ${brandName(filters.brandId)}`,
+        clear: () => update({ brandId: "all", modelId: "all" }),
+      });
+    if (filters.modelId !== "all")
+      chips.push({
+        label: `الموديل: ${modelName(filters.brandId === "all" ? "" : filters.brandId, filters.modelId)}`,
+        clear: () => update({ modelId: "all" }),
+      });
+    if (filters.yearFrom != null || filters.yearTo != null)
+      chips.push({
+        label: `سنة الصنع: ${filters.yearFrom ?? "…"} - ${filters.yearTo ?? "…"}`,
+        clear: () => update({ yearFrom: null, yearTo: null }),
+      });
+    if (filters.plateRegion !== "all")
+      chips.push({
+        label: `النمرة: ${PLATE_REGIONS.find((p) => p.id === filters.plateRegion)?.name}`,
+        clear: () => update({ plateRegion: "all" }),
+      });
+    if (filters.subtype !== "all")
+      chips.push({
+        label: subtypeList.find((s) => s.id === filters.subtype)?.name ?? "النوع",
+        clear: () => update({ subtype: "all" }),
+      });
+    if (filters.condition !== "all")
+      chips.push({
+        label: CONDITIONS.find((c) => c.id === filters.condition)?.name ?? "الحالة",
+        clear: () => update({ condition: "all" }),
+      });
+    if (filters.jobKind !== "all")
+      chips.push({
+        label: JOB_KINDS.find((k) => k.id === filters.jobKind)?.name ?? "عرض/طلب",
+        clear: () => update({ jobKind: "all" }),
+      });
+    if (filters.employmentType !== "all")
+      chips.push({
+        label: EMPLOYMENT_TYPES.find((e) => e.id === filters.employmentType)?.name ?? "نوع الدوام",
+        clear: () => update({ employmentType: "all" }),
       });
     if (filters.dealType !== "all")
       chips.push({
@@ -182,19 +305,10 @@ export default function ListingsBrowser({
       chips.push({ label: "المميّزة فقط", clear: () => update({ featuredOnly: false }) });
     return chips;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, facets]);
+  }, [filters, facets, subtypeList]);
 
-  /* عدّاد المناطق حسب النوع (لشرائح الفلترة) */
-  const kindCounts = useMemo(() => {
-    const c: Record<string, number> = { all: results.length };
-    DISTRICT_KINDS.forEach((k) => {
-      c[k.id] = publicAds.filter((a) => (a.districtKind ?? "area") === k.id).length;
-    });
-    return c;
-  }, [publicAds, results.length]);
-
-  const kindIcon = (kind: DistrictKind) =>
-    kind === "neighborhood" ? <Home size={14} /> : kind === "village" ? <Trees size={14} /> : <Map size={14} />;
+  const dealOptions = activeCategory !== "all" ? dealTypesFor(activeCategory) : [];
+  const isRentable = activeCategory === "real-estate" || activeCategory === "vehicles";
 
   return (
     <div className={embedded ? "" : "container-page py-6"}>
@@ -205,15 +319,13 @@ export default function ListingsBrowser({
           </Link>
           <span>/</span>
           <span className="font-semibold text-navy-600 dark:text-navy-200">
-            {activeCategory === "all"
-              ? "جميع الإعلانات"
-              : MAIN_CATEGORIES.find((c) => c.id === activeCategory)?.name}
+            {activeCategory === "all" ? "جميع الإعلانات" : categoryName(activeCategory)}
           </span>
         </nav>
       )}
 
       <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
-        {/* ============================ الفلاتر ============================ */}
+        {/* ============================== الفلاتر ============================== */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <button
             onClick={() => setPanelOpen((v) => !v)}
@@ -250,11 +362,10 @@ export default function ListingsBrowser({
                 <input
                   value={filters.q}
                   onChange={(e) => update({ q: e.target.value })}
-                  placeholder="شقة، أرض، كيا، اسم منطقة..."
+                  placeholder="شقة، كيا، غرفة نوم، معلم، اسم منطقة..."
                   className="input pr-9"
                 />
               </div>
-              <p className="hint">يشمل البحث أسماء المناطق كما كتبها المُعلنون.</p>
             </div>
 
             {/* التصنيف */}
@@ -262,25 +373,51 @@ export default function ListingsBrowser({
               <div className="mt-4">
                 <label className="label">التصنيف</label>
                 <div className="grid grid-cols-1 gap-1.5">
-                  {[{ id: "all", name: "كل التصنيفات" }, ...MAIN_CATEGORIES].map((c) => (
+                  <button
+                    onClick={() =>
+                      update({
+                        category: "all",
+                        propertyType: "all",
+                        vehicleType: "all",
+                        subtype: "all",
+                        condition: "all",
+                        jobKind: "all",
+                      })
+                    }
+                    className={cn("option-card py-2", filters.category === "all" && "option-card-active")}
+                  >
+                    <span className="text-[13px] font-bold text-navy-800 dark:text-navy-100">
+                      كل التصنيفات
+                    </span>
+                    <span className="ms-auto text-[11px] text-navy-400">{publicAds.length}</span>
+                  </button>
+                  {MAIN_CATEGORIES.map((c) => (
                     <button
                       key={c.id}
                       onClick={() =>
                         update({
-                          category: c.id as MainCategory | "all",
+                          category: c.id,
                           propertyType: "all",
                           vehicleType: "all",
+                          subtype: "all",
+                          condition: "all",
+                          jobKind: "all",
+                          dealType: "all",
+                          brandId: "all",
+                          modelId: "all",
                         })
                       }
-                      className={`option-card py-2 ${filters.category === c.id ? "option-card-active" : ""}`}
+                      className={cn(
+                        "option-card py-2",
+                        filters.category === c.id && "option-card-active"
+                      )}
                     >
-                      <span className="text-[13px] font-bold text-navy-800 dark:text-navy-100">
+                      <span className="flex items-center gap-1.5 text-[13px] font-bold text-navy-800 dark:text-navy-100">
+                        {CATEGORY_ICON[c.id]}
                         {c.name}
                       </span>
                       <span className="ms-auto text-[11px] text-navy-400">
-                        {c.id === "all"
-                          ? publicAds.length
-                          : publicAds.filter((a) => a.category === c.id).length}
+                        {publicAds.filter((a) => a.category === c.id).length}
                       </span>
                     </button>
                   ))}
@@ -288,33 +425,315 @@ export default function ListingsBrowser({
               </div>
             )}
 
-            {/* نوع العقار / المركبة */}
+            {/* ----------------------------- عقارات ----------------------------- */}
             {activeCategory === "real-estate" && (
+              <>
+                <div className="mt-4">
+                  <label className="label">نوع العقار</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    <FilterChip
+                      active={filters.propertyType === "all"}
+                      onClick={() => update({ propertyType: "all" })}
+                      label="الكل"
+                    />
+                    {PROPERTY_TYPES.map((p) => (
+                      <FilterChip
+                        key={p.id}
+                        active={filters.propertyType === p.id}
+                        onClick={() => update({ propertyType: p.id })}
+                        label={p.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ----------------------------- مركبات ----------------------------- */}
+            {activeCategory === "vehicles" && (
+              <>
+                {/* الماركة بالأيقونات */}
+                <div className="mt-4 rounded-2xl border border-navy-100 p-3 dark:border-navy-800">
+                  <h4 className="flex items-center gap-1.5 text-[12.5px] font-extrabold text-navy-900 dark:text-white">
+                    <Car size={14} className="text-amberBrand-500" /> الفرز حسب ماركة السيارة
+                  </h4>
+
+                  <div className="relative mt-2.5">
+                    <Search
+                      size={14}
+                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-navy-400"
+                    />
+                    <input
+                      value={brandQuery}
+                      onChange={(e) => setBrandQuery(e.target.value)}
+                      placeholder="ابحث عن ماركة..."
+                      className="input py-2 pr-9 text-[12.5px]"
+                    />
+                  </div>
+
+                  <div className="mt-2.5 grid grid-cols-3 gap-1.5">
+                    <button
+                      onClick={() => update({ brandId: "all", modelId: "all" })}
+                      className={cn(
+                        "col-span-3 rounded-lg px-2 py-1.5 text-[11.5px] font-bold transition",
+                        filters.brandId === "all"
+                          ? "bg-navy-900 text-white dark:bg-white dark:text-navy-900"
+                          : "border border-navy-200 text-navy-600 dark:border-navy-700 dark:text-navy-200"
+                      )}
+                    >
+                      كل الماركات ({brandCounts.size ? [...brandCounts.values()].reduce((a, b) => a + b, 0) : 0})
+                    </button>
+                    {brandList.map((b) => {
+                      const active = filters.brandId === b.id;
+                      return (
+                        <button
+                          key={b.id}
+                          onClick={() => update({ brandId: b.id, modelId: "all" })}
+                          title={`${b.name} — ${brandCounts.get(b.id) ?? 0} إعلان`}
+                          className={cn(
+                            "flex flex-col items-center gap-1 rounded-xl border-2 p-1.5 transition",
+                            active
+                              ? "border-amberBrand-500 bg-amberBrand-50 dark:border-amberBrand-500 dark:bg-amberBrand-500/10"
+                              : "border-navy-100 hover:border-amberBrand-300 dark:border-navy-800"
+                          )}
+                        >
+                          <BrandIcon brandId={b.id} size={30} />
+                          <span className="line-clamp-1 text-[10px] font-bold text-navy-600 dark:text-navy-200">
+                            {b.name}
+                          </span>
+                          <span className="text-[9.5px] font-bold text-amberBrand-600 dark:text-amberBrand-400">
+                            {brandCounts.get(b.id) ?? 0}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {brandList.length === 0 && (
+                    <p className="mt-2 text-[11px] text-navy-400">
+                      لا توجد إعلانات بهذه الماركة حالياً.
+                    </p>
+                  )}
+                </div>
+
+                {/* الموديل */}
+                {filters.brandId !== "all" && modelsOfBrand.length > 0 && (
+                  <div className="mt-4">
+                    <label className="label">موديل {brandName(filters.brandId)}</label>
+                    <select
+                      value={filters.modelId}
+                      onChange={(e) => update({ modelId: e.target.value })}
+                      className="select"
+                    >
+                      <option value="all">كل الموديلات</option>
+                      {modelsOfBrand.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* سنة الصنع */}
+                <div className="mt-4 rounded-2xl border border-navy-100 p-3 dark:border-navy-800">
+                  <h4 className="flex items-center gap-1.5 text-[12.5px] font-extrabold text-navy-900 dark:text-white">
+                    <CalendarDays size={14} className="text-amberBrand-500" /> الفرز حسب سنة الصنع
+                  </h4>
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {YEAR_RANGES.map((r) => {
+                      const active = filters.yearFrom === r.from && filters.yearTo === r.to;
+                      return (
+                        <button
+                          key={r.id}
+                          onClick={() =>
+                            update(
+                              active
+                                ? { yearFrom: null, yearTo: null }
+                                : { yearFrom: r.from, yearTo: r.to }
+                            )
+                          }
+                          className={cn(
+                            "rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold transition",
+                            active
+                              ? "bg-amberBrand-500 text-navy-900"
+                              : "border border-navy-200 text-navy-600 hover:border-amberBrand-400 dark:border-navy-700 dark:text-navy-200"
+                          )}
+                        >
+                          {r.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="من سنة"
+                      value={filters.yearFrom ?? ""}
+                      onChange={(e) =>
+                        update({ yearFrom: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                      className="input py-2 text-[12.5px]"
+                    />
+                    <span className="text-navy-300">—</span>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="إلى سنة"
+                      value={filters.yearTo ?? ""}
+                      onChange={(e) =>
+                        update({ yearTo: e.target.value === "" ? null : Number(e.target.value) })
+                      }
+                      className="input py-2 text-[12.5px]"
+                    />
+                  </div>
+                </div>
+
+                {/* نوع المركبة */}
+                <div className="mt-4">
+                  <label className="label">نوع المركبة</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    <FilterChip
+                      active={filters.vehicleType === "all"}
+                      onClick={() => update({ vehicleType: "all" })}
+                      label="الكل"
+                    />
+                    {VEHICLE_TYPES.map((v) => (
+                      <FilterChip
+                        key={v.id}
+                        active={filters.vehicleType === v.id}
+                        onClick={() => update({ vehicleType: v.id })}
+                        label={v.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* نمرة التسجيل */}
+                <div className="mt-4">
+                  <label className="label">نمرة التسجيل</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    <FilterChip
+                      active={filters.plateRegion === "all"}
+                      onClick={() => update({ plateRegion: "all" })}
+                      label="الكل"
+                    />
+                    {PLATE_REGIONS.map((p) => (
+                      <FilterChip
+                        key={p.id}
+                        active={filters.plateRegion === p.id}
+                        onClick={() => update({ plateRegion: p.id })}
+                        label={p.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* -------------------- أنواع فرعية: أثاث/أجهزة/ملابس/وظائف -------------------- */}
+            {subtypeList.length > 0 && (
               <div className="mt-4">
-                <label className="label">نوع العقار</label>
+                <label className="label">
+                  {activeCategory === "jobs" ? "مجال العمل" : "النوع"}
+                </label>
                 <div className="flex flex-wrap gap-1.5">
                   <FilterChip
-                    active={filters.propertyType === "all"}
-                    onClick={() => update({ propertyType: "all" })}
+                    active={filters.subtype === "all"}
+                    onClick={() => update({ subtype: "all" })}
                     label="الكل"
                   />
-                  {PROPERTY_TYPES.map((p) => (
+                  {subtypeList.map((s) => (
                     <FilterChip
-                      key={p.id}
-                      active={filters.propertyType === p.id}
-                      onClick={() => update({ propertyType: p.id })}
-                      label={p.name}
+                      key={s.id}
+                      active={filters.subtype === s.id}
+                      onClick={() => update({ subtype: s.id })}
+                      label={s.name}
                     />
                   ))}
                 </div>
-                <label className="label mt-4">نوع التعامل</label>
+              </div>
+            )}
+
+            {/* الحالة (أثاث/أجهزة/ملابس) */}
+            {(activeCategory === "furniture" ||
+              activeCategory === "appliances" ||
+              activeCategory === "clothing") && (
+              <div className="mt-4">
+                <label className="label">الحالة</label>
+                <div className="flex flex-wrap gap-1.5">
+                  <FilterChip
+                    active={filters.condition === "all"}
+                    onClick={() => update({ condition: "all" })}
+                    label="الكل"
+                  />
+                  {CONDITIONS.map((c) => (
+                    <FilterChip
+                      key={c.id}
+                      active={filters.condition === c.id}
+                      onClick={() => update({ condition: c.id })}
+                      label={c.name}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* وظائف: عرض/طلب + نوع الدوام */}
+            {activeCategory === "jobs" && (
+              <>
+                <div className="mt-4">
+                  <label className="label">عرض أم طلب؟</label>
+                  <div className="grid gap-1.5">
+                    {JOB_KINDS.map((k) => (
+                      <button
+                        key={k.id}
+                        onClick={() => update({ jobKind: filters.jobKind === k.id ? "all" : k.id })}
+                        className={cn(
+                          "option-card py-2",
+                          filters.jobKind === k.id && "option-card-active"
+                        )}
+                      >
+                        <span className="text-[12.5px] font-bold text-navy-800 dark:text-navy-100">
+                          {k.name}
+                        </span>
+                        <span className="ms-auto text-[10.5px] text-navy-400">{k.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="label">نوع الدوام</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    <FilterChip
+                      active={filters.employmentType === "all"}
+                      onClick={() => update({ employmentType: "all" })}
+                      label="الكل"
+                    />
+                    {EMPLOYMENT_TYPES.map((e) => (
+                      <FilterChip
+                        key={e.id}
+                        active={filters.employmentType === e.id}
+                        onClick={() => update({ employmentType: e.id })}
+                        label={e.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* نوع التعامل (بيع/إيجار) */}
+            {isRentable && (
+              <div className="mt-4">
+                <label className="label">بيع أم إيجار؟</label>
                 <div className="flex flex-wrap gap-1.5">
                   <FilterChip
                     active={filters.dealType === "all"}
                     onClick={() => update({ dealType: "all" })}
                     label="الكل"
                   />
-                  {DEAL_TYPES.map((d) => (
+                  {dealOptions.map((d) => (
                     <FilterChip
                       key={d.id}
                       active={filters.dealType === d.id}
@@ -326,34 +745,12 @@ export default function ListingsBrowser({
               </div>
             )}
 
-            {activeCategory === "vehicles" && (
-              <div className="mt-4">
-                <label className="label">نوع المركبة</label>
-                <div className="flex flex-wrap gap-1.5">
-                  <FilterChip
-                    active={filters.vehicleType === "all"}
-                    onClick={() => update({ vehicleType: "all" })}
-                    label="الكل"
-                  />
-                  {VEHICLE_TYPES.map((v) => (
-                    <FilterChip
-                      key={v.id}
-                      active={filters.vehicleType === v.id}
-                      onClick={() => update({ vehicleType: v.id })}
-                      label={v.name}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* --------------------- الجغرافيا (ديناميكية) --------------------- */}
+            {/* ------------------------ الجغرافيا (ديناميكية) ------------------------ */}
             <div className="mt-5 rounded-2xl border border-navy-100 p-3 dark:border-navy-800">
               <h4 className="flex items-center gap-1.5 text-[12.5px] font-extrabold text-navy-900 dark:text-white">
                 <MapPin size={14} className="text-emeraldBrand-500" /> الفرز حسب المنطقة
               </h4>
 
-              {/* نوع المنطقة */}
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <FilterChip
                   active={filters.districtKind === "all"}
@@ -370,7 +767,6 @@ export default function ListingsBrowser({
                 ))}
               </div>
 
-              {/* المنطقة المحددة */}
               <div className="mt-3">
                 <label className="label">المنطقة المحدّدة</label>
                 <select
@@ -385,15 +781,8 @@ export default function ListingsBrowser({
                     </option>
                   ))}
                 </select>
-                {facets.length === 0 && (
-                  <p className="hint">
-                    لا توجد مناطق مسجّلة بعد — تُنشأ المناطق تلقائياً عند إدخالها يدوياً في نموذج
-                    إضافة الإعلان.
-                  </p>
-                )}
               </div>
 
-              {/* أكثر المناطق نشاطاً */}
               {facets.length > 0 && (
                 <div className="mt-3">
                   <p className="mb-1.5 text-[11px] font-bold text-navy-400">الأكثر إعلانات</p>
@@ -404,13 +793,20 @@ export default function ListingsBrowser({
                         onClick={() =>
                           update({ districtId: filters.districtId === f.id ? "all" : f.id })
                         }
-                        className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition ${
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition",
                           filters.districtId === f.id
                             ? "bg-emeraldBrand-500 text-white"
                             : "border border-navy-200 text-navy-600 hover:border-emeraldBrand-400 dark:border-navy-700 dark:text-navy-200"
-                        }`}
+                        )}
                       >
-                        {kindIcon(f.kind)}
+                        {f.kind === "neighborhood" ? (
+                          <Home size={11} />
+                        ) : f.kind === "village" ? (
+                          <Trees size={11} />
+                        ) : (
+                          <MapIcon size={11} />
+                        )}
                         {f.name}
                         <span className="opacity-70">{f.count}</span>
                       </button>
@@ -419,7 +815,6 @@ export default function ListingsBrowser({
                 </div>
               )}
 
-              {/* تجميع النتائج */}
               <label className="mt-3 flex cursor-pointer items-center justify-between rounded-xl bg-navy-50/70 p-2.5 dark:bg-navy-800/50">
                 <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-navy-700 dark:text-navy-100">
                   <Layers size={13} className="text-amberBrand-500" /> تجميع النتائج حسب المنطقة
@@ -435,7 +830,10 @@ export default function ListingsBrowser({
 
             {/* نطاق السعر */}
             <div className="mt-4">
-              <label className="label">نطاق السعر ({CURRENCY_LABEL[currency].short})</label>
+              <label className="label">
+                {activeCategory === "jobs" ? "نطاق الأجر" : "نطاق السعر"} (
+                {CURRENCY_LABEL[currency].short})
+              </label>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
@@ -479,10 +877,8 @@ export default function ListingsBrowser({
                   }}
                 />
               </div>
-              <p className="hint">تُحوَّل الأسعار داخلياً إلى الدولار للفلترة، وتُعرض بعملتك المختارة.</p>
             </div>
 
-            {/* خيارات */}
             <label className="mt-4 flex cursor-pointer items-center justify-between rounded-xl border border-navy-100 p-3 dark:border-navy-800">
               <span className="inline-flex items-center gap-2 text-[13px] font-bold text-navy-700 dark:text-navy-100">
                 <Sparkles size={14} className="text-amberBrand-500" /> الإعلانات المميّزة فقط
@@ -501,7 +897,7 @@ export default function ListingsBrowser({
           </div>
         </aside>
 
-        {/* ============================ النتائج ============================ */}
+        {/* ============================== النتائج ============================== */}
         <section>
           <div className="card mb-4 flex flex-wrap items-center justify-between gap-3 p-3.5">
             <p className="text-[13px] font-bold text-navy-700 dark:text-navy-100">
@@ -509,7 +905,8 @@ export default function ListingsBrowser({
               <span className="mx-1.5 font-normal text-navy-400">
                 {activeCategory === "all"
                   ? "في جميع التصنيفات"
-                  : `في ${MAIN_CATEGORIES.find((c) => c.id === activeCategory)?.name}`}
+                  : `في ${categoryName(activeCategory)}`}
+                {filters.brandId !== "all" && ` — ${brandName(filters.brandId)}`}
                 {filters.districtId !== "all" && ` — منطقة ${districtLabel(filters.districtId)}`}
               </span>
             </p>
@@ -517,11 +914,12 @@ export default function ListingsBrowser({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setGrouped((v) => !v)}
-                className={`btn btn-sm ${
+                className={cn(
+                  "btn btn-sm",
                   grouped
                     ? "bg-navy-900 text-white dark:bg-white dark:text-navy-900"
                     : "border border-navy-200 text-navy-600 dark:border-navy-700 dark:text-navy-200"
-                }`}
+                )}
                 title="عرض النتائج مجمّعة تحت عنوان كل منطقة"
               >
                 <Layers size={14} /> تجميع حسب المنطقة
@@ -531,10 +929,10 @@ export default function ListingsBrowser({
                 <select
                   value={filters.sort}
                   onChange={(e) => update({ sort: e.target.value as SortKey })}
-                  className="select w-44 py-2 pl-8 text-[12.5px]"
+                  className="select w-48 py-2 pl-8 text-[12.5px]"
                   aria-label="ترتيب النتائج"
                 >
-                  {SORT_OPTIONS.map((s) => (
+                  {sortOptionsFor(activeCategory).map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
@@ -573,26 +971,31 @@ export default function ListingsBrowser({
             <EmptyState
               icon={<Search size={26} />}
               title="لا توجد نتائج مطابقة"
-              desc="جرّب توسيع نطاق السعر، أو اختيار منطقة أخرى، أو إزالة بعض الفلاتر. تذكّر أن المناطق تُبنى من إدخال المُعلنين، فإن لم تجد منطقتك فهي بانتظار أول إعلان فيها."
+              desc="جرّب توسيع نطاق السعر أو تغيير الماركة أو سنة الصنع، أو اختيار منطقة أخرى. وإن لم تجد ما تبحث عنه يمكنك إضافة إعلانك مجاناً."
               action={
                 <div className="mt-2 flex gap-2">
                   <button onClick={reset} className="btn-ghost">
                     <RotateCcw size={15} /> إعادة تعيين الفلاتر
                   </button>
                   <Link href="/post-ad" className="btn-amber">
-                    أضف إعلانك في منطقتك
+                    أضف إعلانك
                   </Link>
                 </div>
               }
             />
           ) : grouped ? (
-            /* ---------------- العرض المجمّع حسب المنطقة ---------------- */
             <div className="space-y-7">
               {groups.map((g) => (
                 <div key={`${g.info.kind}-${g.info.name}`}>
                   <div className="mb-3 flex flex-wrap items-center gap-2 border-b-2 border-amberBrand-200 pb-2 dark:border-amberBrand-500/30">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-navy-900 text-amberBrand-400 dark:bg-white dark:text-navy-900">
-                      {kindIcon(g.info.kind)}
+                      {g.info.kind === "neighborhood" ? (
+                        <Home size={14} />
+                      ) : g.info.kind === "village" ? (
+                        <Trees size={14} />
+                      ) : (
+                        <MapIcon size={14} />
+                      )}
                     </span>
                     <h3 className="text-[15px] font-extrabold text-navy-900 dark:text-white">
                       {g.info.name}
@@ -600,15 +1003,10 @@ export default function ListingsBrowser({
                     <span className="badge bg-navy-100 text-navy-600 dark:bg-navy-800 dark:text-navy-200">
                       {districtKindShort(g.info.kind)}
                     </span>
-                    <span className="text-[12px] font-bold text-navy-400">
-                      {g.ads.length} إعلان
-                    </span>
+                    <span className="text-[12px] font-bold text-navy-400">{g.ads.length} إعلان</span>
                     <button
                       onClick={() =>
-                        update({
-                          districtId: g.ads[0]?.districtId ?? "all",
-                          districtKind: g.info.kind,
-                        })
+                        update({ districtId: g.ads[0]?.districtId ?? "all", districtKind: g.info.kind })
                       }
                       className="ms-auto text-[11.5px] font-bold text-amberBrand-600 hover:underline dark:text-amberBrand-400"
                     >
@@ -671,15 +1069,15 @@ function FilterChip({
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg px-2.5 py-1.5 text-[12px] font-bold transition ${
+      className={cn(
+        "rounded-lg px-2.5 py-1.5 text-[12px] font-bold transition",
         active
           ? "bg-navy-900 text-white dark:bg-white dark:text-navy-900"
           : "border border-navy-200 text-navy-600 hover:border-amberBrand-400 hover:text-amberBrand-600 dark:border-navy-700 dark:text-navy-200"
-      }`}
+      )}
     >
       {label}
     </button>
   );
 }
 
-export const CategoryIcons = { Building2, Car, MapPin };
