@@ -4,11 +4,16 @@
    مُصمَّم ليعمل بكفاءة على اتصالات ضعيفة/متقطعة.
    ========================================================================== */
 
-const VERSION = "badeel-v1";
+const VERSION = "badeel-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const IMAGE_CACHE = `${VERSION}-images`;
 
 const PRECACHE = ["/", "/offline", "/manifest.webmanifest", "/favicon.svg"];
+
+/* استقبال طلب التنشيط الفوري من الصفحة (لتحديث النسخة القديمة فوراً) */
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -453,9 +453,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ====================== أكثر الأحياء نشاطاً + أنواع ====================== */}
-      <section className="container-page mt-14 grid gap-4 lg:grid-cols-2">
-        <div className="card p-5">
+      {/* ====================== أنواع العقارات والمركبات + أحدث الفرص ====================== */}
+      {/* ملاحظة: min-w-0 ضرورية — بدونها لا ينضغط عنصر الشبكة على الجوال فيتجاوز عرض الشاشة */}
+      <section className="container-page mt-14 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="card min-w-0 p-5">
           <h3 className="flex items-center gap-2 text-sm font-extrabold text-navy-900 dark:text-white">
             <Building2 size={16} className="text-emeraldBrand-500" /> أنواع العقارات
           </h3>
@@ -474,7 +475,7 @@ export default function HomePage() {
             })}
           </div>
           <div className="divider my-4" />
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <h3 className="flex items-center gap-2 text-sm font-extrabold text-navy-900 dark:text-white">
               <Car size={16} className="text-amberBrand-500" /> أنواع المركبات
             </h3>
@@ -501,7 +502,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="card p-5">
+        <div className="card min-w-0 p-5">
           <h3 className="flex items-center gap-2 text-sm font-extrabold text-navy-900 dark:text-white">
             <TrendingUp size={16} className="text-amberBrand-500" /> أحدث الفرص السكنية للبيع
           </h3>

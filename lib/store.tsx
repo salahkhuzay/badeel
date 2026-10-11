@@ -94,10 +94,12 @@ function normalize(saved: Partial<AppState>): Partial<AppState> {
   });
   /* دمج إعدادات الأمان الجديدة إن كانت النسخة المحفوظة أقدم */
   const settings = { ...SEED_SETTINGS, ...(saved.settings ?? {}) };
-  /* ترحيل: تصحيح رقم الدعم القديم المخزَّن عند من سبق أن فتح المنصة */
+  /* ترحيل: تصحيح رقم الدعم القديم المخزَّن عند من سبق أن فتح المنصة
+     (يشمل كل صيغ الكتابة: 0933… / +963933… / 00963933… / 963933…) */
   const LEGACY_PHONES = ["0933177597", "0933177595"];
-  if (!settings.contactPhone || LEGACY_PHONES.includes(settings.contactPhone))
-    settings.contactPhone = SEED_SETTINGS.contactPhone;
+  const digits = String(settings.contactPhone ?? "").replace(/\D/g, "");
+  const isLegacyPhone = LEGACY_PHONES.includes(settings.contactPhone ?? "") || /93317759[57]$/.test(digits);
+  if (!settings.contactPhone || isLegacyPhone) settings.contactPhone = SEED_SETTINGS.contactPhone;
   const auth = { ...initialAuth, ...(saved.auth ?? {}) };
   /* إن كان الإعداد القديم يحتوي authUser فقد أُلغيت هذه الحالة */
   return { ...saved, cities, ads, settings, auth };

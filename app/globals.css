@@ -28,6 +28,16 @@
   body {
     @apply bg-[#F8FAFC] text-navy-900 antialiased;
     font-feature-settings: "kern";
+    /* حماية عامة: لا تمرير أفقي للصفحة (كان يسبب إزاحة الصفحة على الجوال في RTL) */
+    overflow-x: clip;
+    max-width: 100%;
+  }
+
+  /* عناصر الشبكات والصفوف لا تتجاوز عرض الشاشة على الجوال */
+  main,
+  main section,
+  main .card {
+    min-width: 0;
   }
 
   .dark body {

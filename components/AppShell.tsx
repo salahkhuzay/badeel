@@ -6,14 +6,48 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { ToastProvider } from "./Toast";
 
-/** تسجيل Service Worker (PWA) — يعمل بصمت ودون كسر الواجهة داخل الإطارات المقيّدة */
+/* ==========================================================================
+   تسجيل Service Worker (PWA) + تحديث تلقائي للنسخة الجديدة
+   الهدف: ألّا يبقى المستخدم على نسخة قديمة مخزَّنة (كان يسبب ظهور بيانات قديمة
+   مثل رقم الدعم السابق بعد تحديث المنصة).
+   ========================================================================== */
 function RegisterSW() {
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-    if (location.protocol !== "https:" && location.hostname !== "localhost") return;
-    const t = setTimeout(() => {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
-    }, 2000);
+    if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1")
+      return;
+
+    const RELOAD_FLAG = "badeel.sw.reloaded";
+    let reloading = false;
+
+    /* عند تسلّم المتحكِّم الجديد (نسخة جديدة فعّالة) نُحدّث الصفحة مرة واحدة فقط */
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloading || sessionStorage.getItem(RELOAD_FLAG) === "1") return;
+      reloading = true;
+      sessionStorage.setItem(RELOAD_FLAG, "1");
+      location.reload();
+    });
+
+    const t = setTimeout(async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" });
+        /* فحص وجود نسخة جديدة فوراً + عند كل فتح */
+        reg.update().catch(() => {});
+        reg.addEventListener("updatefound", () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener("statechange", () => {
+            /* صار جاهزاً وهناك نسخة قديمة تعمل → نفّذ التنشيط (skipWaiting داخل sw.js) */
+            if (sw.state === "installed" && navigator.serviceWorker.controller) sw.postMessage?.({ type: "SKIP_WAITING" });
+          });
+        });
+        /* إن كان هناك نسخة «في الانتظار» الآن، فعّلها */
+        if (reg.waiting) reg.waiting.postMessage?.({ type: "SKIP_WAITING" });
+      } catch {
+        /* تجاهل أخطاء التسجيل (بيئات مقيّدة) */
+      }
+    }, 1200);
+
     return () => clearTimeout(t);
   }, []);
   return null;
