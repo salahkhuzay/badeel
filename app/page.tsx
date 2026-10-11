@@ -20,6 +20,8 @@ import {
   ShieldCheck,
   Sparkles,
   TrendingUp,
+  Zap,
+  Flame,
   Users,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -315,6 +317,26 @@ export default function HomePage() {
           subtitle="اختر النوع لتشاهد ماركاته الرسمية وكل طرازاتها"
           href="/car-types"
         />
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          <Link
+            href="/car-types?market=cn"
+            className="inline-flex items-center gap-1.5 rounded-full border-2 border-navy-200 bg-white px-3 py-1.5 text-[11.5px] font-extrabold text-navy-700 transition hover:border-amberBrand-400 dark:border-navy-700 dark:bg-navy-900 dark:text-navy-100"
+          >
+            🇨🇳 سيارات صينية
+          </Link>
+          <Link
+            href="/car-types?market=ev&fuel=ev"
+            className="inline-flex items-center gap-1.5 rounded-full border-2 border-emerald-300 bg-white px-3 py-1.5 text-[11.5px] font-extrabold text-emerald-700 transition hover:border-emerald-500 dark:border-emerald-700 dark:bg-navy-900 dark:text-emerald-400"
+          >
+            <Zap size={12} /> سيارات كهربائية
+          </Link>
+          <Link
+            href="/car-types?market=small"
+            className="inline-flex items-center gap-1.5 rounded-full border-2 border-rose-300 bg-white px-3 py-1.5 text-[11.5px] font-extrabold text-rose-600 transition hover:border-rose-500 dark:border-rose-800 dark:bg-navy-900 dark:text-rose-400"
+          >
+            <Flame size={12} /> الصينية الصغيرة الرائجة
+          </Link>
+        </div>
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
           {BODY_TYPES.filter((t) => t.id !== "other").map((t) => (
             <Link

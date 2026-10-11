@@ -71,7 +71,18 @@ export default function BrandSelector({
       ? allModels
       : allModels.filter((m) => bodyTypeOfModel(brandId, m) === bodyFilter);
   const isOther = brandId === "other" || brandId === "other-phone";
-  const visibleBrands = expanded || query.trim() ? filtered : filtered.slice(0, 8);
+
+  /* الماركات الأكثر طلباً (لها طرازات رائجة) — تُعرض كاختصارات فورية */
+  const popular = useMemo(
+    () =>
+      scoped
+        .filter((b) => b.models.some((m) => m.hot))
+        .sort((a, b) => b.models.filter((m) => m.hot).length - a.models.filter((m) => m.hot).length)
+        .slice(0, 7),
+    [scoped]
+  );
+
+  const visibleBrands = expanded || query.trim() ? filtered : filtered.slice(0, 12);
 
   return (
     <div data-error={Boolean(error)}>
@@ -90,6 +101,33 @@ export default function BrandSelector({
           className="input pr-9"
         />
       </div>
+
+      {/* اختصارات: الماركات الصينية/الشعبية الرائجة */}
+      {!query.trim() && !expanded && popular.length > 1 && (
+        <div className="mb-3 rounded-xl border-2 border-dashed border-amberBrand-300 p-2.5 dark:border-amberBrand-500/40">
+          <p className="mb-1.5 text-[11px] font-extrabold text-amberBrand-700 dark:text-amberBrand-400">
+            🔥 الأكثر طلباً (منها الصينية)
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {popular.map((b) => (
+              <button
+                type="button"
+                key={b.id}
+                onClick={() => onChange({ brandId: b.id, modelId: "" })}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-lg border-2 px-2.5 py-1 text-[11.5px] font-bold transition",
+                  brandId === b.id
+                    ? "border-amberBrand-500 bg-amberBrand-50 text-amberBrand-700 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+                    : "border-navy-200 bg-white text-navy-700 hover:border-amberBrand-400 dark:border-navy-700 dark:bg-navy-900 dark:text-navy-100"
+                )}
+              >
+                <BrandIcon brandId={b.id} size={20} plain />
+                {b.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
         {visibleBrands.map((b) => {
@@ -115,7 +153,7 @@ export default function BrandSelector({
         })}
       </div>
 
-      {!expanded && !query && filtered.length > 8 && (
+      {!expanded && !query && filtered.length > 12 && (
         <button
           type="button"
           onClick={() => setExpanded(true)}

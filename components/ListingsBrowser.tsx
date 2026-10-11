@@ -67,6 +67,7 @@ import AdCard from "./AdCard";
 import BrandIcon from "./BrandIcon";
 import VehicleBodyIcon from "./VehicleBodyIcon";
 import { BODY_TYPES, bodyTypeOfAd, type BodyTypeId } from "@/lib/vehicleBodies";
+import { FUEL_TYPES } from "@/lib/taxonomy";
 import EmptyState from "./EmptyState";
 
 /* ==========================================================================
@@ -126,6 +127,7 @@ export default function ListingsBrowser({
         plateRegion: (p.get("plate") as PlateRegion) || f.plateRegion,
         cityId: p.get("city") ?? f.cityId,
         bodyType: p.get("body") ?? f.bodyType,
+        fuelType: p.get("fuel") ?? f.fuelType,
         subtype: p.get("subtype") ?? f.subtype,
         condition: (p.get("condition") as ItemCondition) || f.condition,
         jobKind: (p.get("jobkind") as ListingKind) || f.jobKind,
@@ -223,6 +225,11 @@ export default function ListingsBrowser({
       chips.push({
         label: `النمرة: ${PLATE_REGIONS.find((p) => p.id === filters.plateRegion)?.name}`,
         clear: () => update({ plateRegion: "all" }),
+      });
+    if (filters.fuelType !== "all")
+      chips.push({
+        label: `الوقود: ${FUEL_TYPES.find((t) => t.id === filters.fuelType)?.name ?? ""}`,
+        clear: () => update({ fuelType: "all" }),
       });
     if (filters.bodyType !== "all")
       chips.push({
@@ -565,6 +572,29 @@ export default function ListingsBrowser({
                       />
                     ))}
                   </div>
+                </div>
+
+                {/* الوقود: بنزين / مازوت / كهرباء / هايبرد */}
+                <div className="mt-4">
+                  <label className="label">الوقود</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    <FilterChip
+                      active={filters.fuelType === "all"}
+                      onClick={() => update({ fuelType: "all" })}
+                      label="الكل"
+                    />
+                    {FUEL_TYPES.map((ft) => (
+                      <FilterChip
+                        key={ft.id}
+                        active={filters.fuelType === ft.id}
+                        onClick={() => update({ fuelType: ft.id })}
+                        label={ft.id === "electric" ? "⚡ كهرباء" : ft.id === "hybrid" ? "هايبرد" : ft.name}
+                      />
+                    ))}
+                  </div>
+                  <p className="hint">
+                    اختر «كهرباء» لعرض السيارات الكهربائية بالكامل، و«هايبرد» للمحركين.
+                  </p>
                 </div>
 
                 {/* نوع السيارة (الهيكل) — بأيقونات مرسومة لكل نوع */}

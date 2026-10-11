@@ -6,13 +6,20 @@
 
 import { LOGOS } from "./logos";
 import { CAR_EXTRA, MOTO_BRANDS, EQUIP_BRANDS } from "./brands-more";
+import { CN_BRANDS } from "./brands-cn";
 
-export { MOTO_BRANDS, EQUIP_BRANDS };
+export { MOTO_BRANDS, EQUIP_BRANDS, CN_BRANDS };
 
 export interface BrandModel {
   id: string;
   name: string; // بالعربية كما يكتبها الناس
   en?: string;
+  /** نوع الهيكل الصريح: sedan/suv/pickup/van/hatchback/coupe/motorcycle/scooter/tractor/machinery */
+  body?: string;
+  /** الوقود: ev كهربائية بالكامل · hybrid هايبرد أو مدى ممتد */
+  fuel?: "ev" | "hybrid";
+  /** طراز رائج/ساخن (يظهر في قسم «الأكثر رواجاً») */
+  hot?: boolean;
 }
 
 export interface Brand {
@@ -26,6 +33,8 @@ export interface Brand {
   logo?: string; // مفتاح الشعار الرسمي في lib/logos.ts
   logoColor?: string; // لون الشعار الرسمي (افتراضياً لون الماركة)
   alt?: string[]; // مرادفات البحث (كتابات شائعة)
+  /** وسوم: chinese (ماركات صينية) · electric (تصنع كهربائية بنسبة عالية) */
+  tags?: string[];
   models: BrandModel[];
 }
 
@@ -627,6 +636,9 @@ export const BRANDS: Brand[] = [
 
 /* ماركات إضافية شائعة في السوق السوري (فورد، شيفروليه، هوندا، سوزوكي، دايو) */
 for (const b of CAR_EXTRA) BRANDS.push(b);
+
+/* الماركات الصينية (شانجان، بي واي دي، جيلي، شيري، إم جي، هافال، جيتور… */
+for (const b of CN_BRANDS) BRANDS.push(b);
 
 /* ============================ ماركات الهواتف ============================ */
 

@@ -242,6 +242,126 @@ export const LOGOS: Record<string, LogoDef> = {
       "<path d=\"M14.6 20.6c-3.9 0-6.4-2.5-6.4-6.2 0-3.9 2.7-6.5 6.7-6.5 1.5 0 2.8.3 3.9 1l-1.5 2.7c-.7-.5-1.5-.7-2.4-.7-1.9 0-3.1 1.3-3.1 3.3 0 2.1 1.2 3.4 3.1 3.4.9 0 1.7-.2 2.4-.7l1.5 2.7c-1.1.7-2.4 1-4.2 1Z\"/><text x=\"12\" y=\"23.2\" text-anchor=\"middle\" font-size=\"3\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.1\" textLength=\"18.6\" lengthAdjust=\"spacingAndGlyphs\">JOHN DEERE</text>",
     color: "#367C2B",
   },
+  "changan": {
+    body:
+      "<circle cx=\"12\" cy=\"12\" r=\"10.3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/><path d=\"M6.5 8.4 12 17.6l5.5-9.2h-3.3L12 12.3 9.8 8.4Z\"/>",
+    color: "#003C71",
+  },
+  "byd": {
+    body:
+      "<ellipse cx=\"12\" cy=\"12\" rx=\"11.2\" ry=\"6.6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"12\" y=\"14.1\" text-anchor=\"middle\" font-size=\"5.6\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.16\">BYD</text>",
+    color: "#E60012",
+  },
+  "geely": {
+    body:
+      "<g><rect x=\"3\" y=\"5.4\" width=\"5.4\" height=\"5.4\" rx=\"1\"/><rect x=\"9.3\" y=\"5.4\" width=\"5.4\" height=\"5.4\" rx=\"1\"/><rect x=\"15.6\" y=\"5.4\" width=\"5.4\" height=\"5.4\" rx=\"1\"/><rect x=\"6.2\" y=\"12\" width=\"5.4\" height=\"5.4\" rx=\"1\"/><rect x=\"12.5\" y=\"12\" width=\"5.4\" height=\"5.4\" rx=\"1\"/></g><text x=\"12\" y=\"21.4\" text-anchor=\"middle\" font-size=\"3\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.14\" textLength=\"9\" lengthAdjust=\"spacingAndGlyphs\">GEELY</text>",
+    color: "#005CA9",
+  },
+  "chery": {
+    body:
+      "<ellipse cx=\"12\" cy=\"10.6\" rx=\"10.2\" ry=\"6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/><path d=\"M12 5.9l4 8.8h-2.7L12 11.4l-1.3 3.3H8Z\"/><text x=\"12\" y=\"21.6\" text-anchor=\"middle\" font-size=\"3.4\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.1\" textLength=\"10.2\" lengthAdjust=\"spacingAndGlyphs\">CHERY</text>",
+    color: "#E4032E",
+  },
+  "mg": {
+    body:
+      "<path d=\"M8.6 3.6h6.8l4.8 4.8v7.2l-4.8 4.8H8.6L3.8 15.6V8.4Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"12\" y=\"14.6\" text-anchor=\"middle\" font-size=\"5\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.1\">MG</text>",
+    color: "#C8102E",
+  },
+  "haval": {
+    body:
+      "<text x=\"12\" y=\"13.4\" text-anchor=\"middle\" font-size=\"5.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.06\" textLength=\"15.6\" lengthAdjust=\"spacingAndGlyphs\">HAVAL</text><rect x=\"3.4\" y=\"16.2\" width=\"17.2\" height=\"1.6\" rx=\"0.8\"/>",
+    color: "#C8102E",
+  },
+  "greatwall": {
+    body:
+      "<rect x=\"1.8\" y=\"5.6\" width=\"20.4\" height=\"12.8\" rx=\"2.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"12\" y=\"14.2\" text-anchor=\"middle\" font-size=\"5.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.14\">GWM</text>",
+    color: "#A6192E",
+  },
+  "jetour": {
+    body:
+      "<path d=\"M3.6 9.4 12 4.2l8.4 5.2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"12\" y=\"17.6\" text-anchor=\"middle\" font-size=\"4\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.06\" textLength=\"14.4\" lengthAdjust=\"spacingAndGlyphs\">JETOUR</text>",
+    color: "#123C87",
+  },
+  "exeed": {
+    body:
+      "<path d=\"M12 3.4 20 12l-8 8.6L4 12Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"12\" y=\"14.4\" text-anchor=\"middle\" font-size=\"4.4\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.04\" textLength=\"13.2\" lengthAdjust=\"spacingAndGlyphs\">EXEED</text>",
+    color: "#0F172A",
+  },
+  "tank": {
+    body:
+      "<path d=\"M12 2.8 20.4 6v6.4c0 4.3-3.4 7.6-8.4 9.8-5-2.2-8.4-5.5-8.4-9.8V6Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"12\" y=\"14.2\" text-anchor=\"middle\" font-size=\"4.4\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.06\" textLength=\"10.6\" lengthAdjust=\"spacingAndGlyphs\">TANK</text>",
+    color: "#111827",
+  },
+  "hongqi": {
+    body:
+      "<rect x=\"4.4\" y=\"3.2\" width=\"2.6\" height=\"14\" rx=\"1.3\"/><rect x=\"9.4\" y=\"6.6\" width=\"2.6\" height=\"10.6\" rx=\"1.3\" opacity=\"0.6\"/><text x=\"12\" y=\"21.6\" text-anchor=\"middle\" font-size=\"3.4\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.06\" textLength=\"12.2\" lengthAdjust=\"spacingAndGlyphs\">HONGQI</text>",
+    color: "#C8102E",
+  },
+  "dongfeng": {
+    body:
+      "<path d=\"M4.4 6.4c3.6 0 6.2 1.1 7.6 3.4 1.4-2.3 4-3.4 7.6-3.4-1.2 3.9-3.6 6.2-7.6 7.6-4-1.4-6.4-3.7-7.6-7.6Z\"/><text x=\"12\" y=\"21.4\" text-anchor=\"middle\" font-size=\"3.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.02\" textLength=\"15.4\" lengthAdjust=\"spacingAndGlyphs\">DONGFENG</text>",
+    color: "#0F4C81",
+  },
+  "bestune": {
+    body:
+      "<path d=\"M4 10.6 12 5l8 5.6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><rect x=\"6.6\" y=\"12.4\" width=\"10.8\" height=\"1.5\" rx=\"0.75\"/><text x=\"12\" y=\"20.6\" text-anchor=\"middle\" font-size=\"3.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.04\" textLength=\"13.4\" lengthAdjust=\"spacingAndGlyphs\">BESTUNE</text>",
+    color: "#0B5394",
+  },
+  "baic": {
+    body:
+      "<path d=\"M3.4 9.6 8.2 5h5l-4.8 4.6Zm0 4.8 4.8-4.6h5l-4.8 4.6Z\"/><path d=\"M13.2 14.4 18 9.8h2.6l-4.8 4.6Zm0-4.8L18 5h2.6l-4.8 4.6Z\" opacity=\"0.55\"/><text x=\"12\" y=\"21.6\" text-anchor=\"middle\" font-size=\"3.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.12\" textLength=\"7.7\" lengthAdjust=\"spacingAndGlyphs\">BAIC</text>",
+    color: "#0B4EA2",
+  },
+  "jac": {
+    body:
+      "<ellipse cx=\"12\" cy=\"12\" rx=\"11\" ry=\"6.4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/><text x=\"12\" y=\"14.2\" text-anchor=\"middle\" font-size=\"4.6\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.14\">JAC</text>",
+    color: "#1E40AF",
+  },
+  "nio": {
+    body:
+      "<path d=\"M12 3.2c-4.6 0-8.5 3-9.6 7.2C3.6 14.4 7.4 17 12 17s8.4-2.6 9.6-6.6C20.5 6.2 16.6 3.2 12 3.2Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/><path d=\"M12 6.2 7.6 13h8.8Z\"/><text x=\"12\" y=\"21.9\" text-anchor=\"middle\" font-size=\"3.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.16\">NIO</text>",
+    color: "#111827",
+  },
+  "xpeng": {
+    body:
+      "<path d=\"M4 5.6l4.6 4.4L4 14.4M20 5.6l-4.6 4.4 4.6 4.4M8.6 10h6.8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\"/><text x=\"12\" y=\"21.4\" text-anchor=\"middle\" font-size=\"3.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.08\" textLength=\"9.6\" lengthAdjust=\"spacingAndGlyphs\">XPENG</text>",
+    color: "#1D4ED8",
+  },
+  "liauto": {
+    body:
+      "<circle cx=\"16.6\" cy=\"7.8\" r=\"2.3\"/><path d=\"M5 18.4V8.6c0-3 1.9-4.9 4.9-4.9 1.5 0 2.8.5 3.7 1.5l-1.9 2.5c-.4-.5-.9-.7-1.6-.7-1.1 0-1.7.7-1.7 2v9.4Z\"/><text x=\"12\" y=\"21.9\" text-anchor=\"middle\" font-size=\"3.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.08\" textLength=\"13.4\" lengthAdjust=\"spacingAndGlyphs\">LI AUTO</text>",
+    color: "#059669",
+  },
+  "zeekr": {
+    body:
+      "<rect x=\"3.4\" y=\"5.6\" width=\"2.2\" height=\"12.8\" rx=\"1.1\"/><path d=\"M8.4 5.6h4.2l-4.2 12.8H4.2Zm6.4 0h6.8v3.2h-3.6l3.6 9.6h-4.4Z\" opacity=\"0.85\"/>",
+    color: "#0F172A",
+  },
+  "deepal": {
+    body:
+      "<path d=\"M4.4 18.8 12 5.2l7.6 13.6h-4.2L12 12.6l-3.4 6.2Z\"/><text x=\"12\" y=\"22\" text-anchor=\"middle\" font-size=\"3.4\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.06\" textLength=\"12.2\" lengthAdjust=\"spacingAndGlyphs\">DEEPAL</text>",
+    color: "#0B4EA2",
+  },
+  "wuling": {
+    body:
+      "<path d=\"M3.2 9.2 6.8 16h3.4l-1-3.4L12 6.6l2.8 6-1 3.4h3.4l3.6-6.8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"12\" y=\"21.6\" text-anchor=\"middle\" font-size=\"3.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.08\" textLength=\"11.5\" lengthAdjust=\"spacingAndGlyphs\">WULING</text>",
+    color: "#C8102E",
+  },
+  "omoda": {
+    body:
+      "<circle cx=\"12\" cy=\"7.6\" r=\"4.6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"12\" y=\"18.4\" text-anchor=\"middle\" font-size=\"4.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.06\" textLength=\"12.6\" lengthAdjust=\"spacingAndGlyphs\">OMODA</text>",
+    color: "#0E7490",
+  },
+  "jaecoo": {
+    body:
+      "<rect x=\"2\" y=\"5.4\" width=\"20\" height=\"13.2\" rx=\"3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M7.4 15.4 12 8.6l4.6 6.8Z\"/><text x=\"12\" y=\"16.4\" text-anchor=\"middle\" font-size=\"2.6\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.05\" textLength=\"9.4\" lengthAdjust=\"spacingAndGlyphs\">JAECOO</text>",
+    color: "#166534",
+  },
+  "lynkco": {
+    body:
+      "<path d=\"M3.4 5.4h6.2l2.4 13.2H5.8Z\"/><path d=\"M14.4 5.4h6.2l-2.4 13.2h-6.2Z\" opacity=\"0.6\"/>",
+    color: "#0F172A",
+  },
 };
 
 /** هل تتوفر أيقونة رسمية لهذه الماركة؟ */

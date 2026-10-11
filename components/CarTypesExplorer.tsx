@@ -6,18 +6,24 @@ import {
   ArrowLeft,
   Car,
   ChevronLeft,
+  Flame,
   Layers,
   Search,
   Sparkles,
   Warehouse,
+  Zap,
 } from "lucide-react";
 import BrandIcon from "./BrandIcon";
 import VehicleBodyIcon from "./VehicleBodyIcon";
 import {
   BODY_TYPES,
+  VEHICLE_MARKETS,
   bodyTypeCounts,
   catalogForBodyType,
+  filterCatalogByMarket,
+  marketStats,
   type BodyTypeId,
+  type VehicleMarket,
 } from "@/lib/vehicleBodies";
 import { cn } from "@/lib/currency";
 
@@ -30,8 +36,10 @@ import { cn } from "@/lib/currency";
 
 export default function CarTypesExplorer({ initialType }: { initialType?: BodyTypeId }) {
   const [typeId, setTypeId] = useState<BodyTypeId>(initialType ?? "sedan");
+  const [market, setMarket] = useState<VehicleMarket>("all");
   const [brandFilter, setBrandFilter] = useState("");
   const [openBrand, setOpenBrand] = useState<string | null>(null);
+  const [onlyEv, setOnlyEv] = useState(false);
 
   /* دعم الرابط: /car-types?type=suv */
   useEffect(() => {
@@ -40,10 +48,28 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
     if (t && BODY_TYPES.some((x) => x.id === t)) setTypeId(t);
     const b = p.get("brand");
     if (b) setOpenBrand(b);
+    const m = p.get("market") as VehicleMarket | null;
+    if (m && VEHICLE_MARKETS.some((x) => x.id === m)) setMarket(m);
+    if (p.get("fuel") === "ev") setOnlyEv(true);
   }, []);
 
+  const syncUrl = (patch: { type?: BodyTypeId; market?: VehicleMarket }) => {
+    const url = new URL(window.location.href);
+    if (patch.type) url.searchParams.set("type", patch.type);
+    if (patch.market) url.searchParams.set("market", patch.market);
+    window.history.replaceState(null, "", url.toString());
+  };
+
   const counts = useMemo(() => bodyTypeCounts(), []);
-  const catalog = useMemo(() => catalogForBodyType(typeId), [typeId]);
+  const stats = useMemo(() => marketStats(), []);
+  const fullCatalog = useMemo(() => catalogForBodyType(typeId), [typeId]);
+  const catalog = useMemo(() => {
+    const base = filterCatalogByMarket(fullCatalog, market);
+    if (!onlyEv) return base;
+    return base
+      .map(({ brand, models }) => ({ brand, models: models.filter((m) => m.fuel === "ev") }))
+      .filter((x) => x.models.length > 0);
+  }, [fullCatalog, market, onlyEv]);
   const activeType = BODY_TYPES.find((t) => t.id === typeId)!;
 
   const brandsShown = useMemo(() => {
@@ -56,6 +82,10 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
   }, [catalog, brandFilter]);
 
   const totalModels = catalog.reduce((s, c) => s + c.models.length, 0);
+  const evModels = catalog.reduce(
+    (s, c) => s + c.models.filter((m) => m.fuel === "ev" || m.fuel === "hybrid").length,
+    0
+  );
 
   return (
     <div className="container-page py-8">
@@ -86,9 +116,7 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
                 setTypeId(t.id);
                 setOpenBrand(null);
                 setBrandFilter("");
-                const url = new URL(window.location.href);
-                url.searchParams.set("type", t.id);
-                window.history.replaceState(null, "", url.toString());
+                syncUrl({ type: t.id });
               }}
               className={cn(
                 "flex items-center gap-3 rounded-2xl border-2 p-3 text-right transition",
@@ -133,6 +161,11 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
           <div className="flex items-center gap-2 text-[11.5px]">
             <span className="badge bg-white/10 text-white">{catalog.length} ماركة</span>
             <span className="badge bg-amberBrand-500/20 text-amberBrand-400">{totalModels} طراز</span>
+            {evModels > 0 && (
+              <span className="badge bg-emerald-500/20 text-emerald-300">
+                <Zap size={11} /> {evModels} كهربائية/هايبرد
+              </span>
+            )}
             <Link
               href={`/category/vehicles?body=${typeId}`}
               className="btn-amber btn-sm"
@@ -140,6 +173,65 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
               <Sparkles size={13} /> إعلانات هذا النوع
             </Link>
           </div>
+        </div>
+
+        {/* مجموعات السوق: صينية · كهربائية · صغيرة رائجة */}
+        <div className="border-b border-navy-100 bg-navy-50/70 p-3 dark:border-navy-800 dark:bg-navy-800/40">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {VEHICLE_MARKETS.map((mk) => {
+              const active = market === mk.id;
+              const st = stats[mk.id];
+              return (
+                <button
+                  key={mk.id}
+                  title={mk.hint}
+                  onClick={() => {
+                    setMarket(mk.id);
+                    setOnlyEv(false);
+                    setOpenBrand(null);
+                    syncUrl({ market: mk.id });
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-[11.5px] font-extrabold transition",
+                    active
+                      ? "border-amberBrand-500 bg-amberBrand-500 text-white"
+                      : "border-navy-200 bg-white text-navy-700 hover:border-amberBrand-400 dark:border-navy-700 dark:bg-navy-900 dark:text-navy-100"
+                  )}
+                >
+                  {mk.id === "cn" && <span aria-hidden>🇨🇳</span>}
+                  {mk.id === "ev" && <Zap size={12} className={active ? "text-white" : "text-emerald-500"} />}
+                  {mk.id === "small" && <Flame size={12} className={active ? "text-white" : "text-rose-500"} />}
+                  {mk.name}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 text-[10px] font-bold",
+                      active ? "bg-white/25" : "bg-navy-100 dark:bg-navy-800"
+                    )}
+                  >
+                    {st.models}
+                  </span>
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setOnlyEv((v) => !v)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-[11.5px] font-extrabold transition",
+                onlyEv
+                  ? "border-emerald-500 bg-emerald-500 text-white"
+                  : "border-navy-200 bg-white text-navy-700 hover:border-emerald-400 dark:border-navy-700 dark:bg-navy-900 dark:text-navy-100"
+              )}
+            >
+              <Zap size={12} /> كهربائية فقط
+            </button>
+          </div>
+          <p className="mt-2 text-[11px] font-semibold text-navy-500 dark:text-navy-300">
+            {market === "cn" &&
+              "الماركات الصينية: شانجان · بي واي دي · جيلي · شيري · إم جي · هافال · جيتور · جريت وول · تانك · إكسيد · دونغ فينغ · فاو · بايك · جاك…"}
+            {market === "ev" && "كل الطرازات المعروضة تعمل بالكهرباء بالكامل أو هايبرد/مدى ممتد فقط."}
+            {market === "small" && "أشهر السيارات الصينية الصغيرة والاقتصادية المطلوبة في السوق."}
+            {market === "all" && `المجموع: ${stats.all.brands} ماركة و${stats.all.models} طرازاً — منها ${stats.cn.models} طرازاً صينياً و${stats.ev.models} كهربائياً/هايبرد.`}
+          </p>
         </div>
 
         {/* بحث الماركات */}
@@ -163,7 +255,7 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
           <div className="bg-white p-8 text-center dark:bg-navy-900">
             <Warehouse size={22} className="mx-auto text-navy-300" />
             <p className="mt-2 text-[13px] font-bold text-navy-700 dark:text-navy-100">
-              لا توجد ماركات مطابقة في هذا النوع
+              لا توجد ماركات مطابقة في هذا النوع{market === "cn" ? " من الماركات الصينية" : ""}
             </p>
             <p className="mt-1 text-[12px] text-navy-400">
               جرّب نوعاً آخر أو امسح كلمة البحث.
@@ -214,14 +306,24 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
                           <Link
                             key={m.id}
                             href={`/category/vehicles?brand=${brand.id}&model=${m.id}`}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-navy-200 bg-white px-2.5 py-1.5 text-[11.5px] font-semibold text-navy-700 transition hover:border-amberBrand-400 hover:text-amberBrand-600 dark:border-navy-700 dark:bg-navy-900 dark:text-navy-100"
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-lg border bg-white px-2.5 py-1.5 text-[11.5px] font-semibold text-navy-700 transition hover:border-amberBrand-400 hover:text-amberBrand-600 dark:bg-navy-900 dark:text-navy-100",
+                              m.fuel === "ev"
+                                ? "border-emerald-300 dark:border-emerald-700"
+                                : m.fuel === "hybrid"
+                                  ? "border-teal-300 dark:border-teal-700"
+                                  : "border-navy-200 dark:border-navy-700"
+                            )}
                           >
+                            {m.fuel === "ev" && <Zap size={11} className="text-emerald-500" />}
+                            {m.hot && <Flame size={11} className="text-rose-500" />}
                             {m.name}
                             {m.en && (
                               <span className="text-[9.5px] text-navy-400" dir="ltr">
                                 {m.en}
                               </span>
                             )}
+                            {m.fuel === "hybrid" && <span className="text-[9px] text-teal-600">هايبرد</span>}
                           </Link>
                         ))}
                       </div>

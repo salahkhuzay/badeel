@@ -151,10 +151,14 @@ const ALLOWED: Record<"car" | "moto" | "equip", BodyTypeId[]> = {
 
 /** تصنيف طراز واحد: يعيد معرّف نوع الهيكل */
 export function bodyTypeOfModel(brandId: string | undefined, model: BrandModel): BodyTypeId {
-  const override = OVERRIDES[`${brandId ?? ""}:${model.id}`];
-  if (override) return override;
   const family = (brandId && FAMILY[brandId]) || "car";
   const allowed = ALLOWED[family === "moto" ? "moto" : family === "equip" ? "equip" : "car"];
+  /* ① نوع الهيكل الصريح في البيانات (إن وُجد وكان مسموحاً لعائلة الماركة) */
+  const explicit = model.body as BodyTypeId | undefined;
+  if (explicit && allowed.includes(explicit)) return explicit;
+  /* ② تجاوزات صريحة للحالات المتشابهة */
+  const override = OVERRIDES[`${brandId ?? ""}:${model.id}`];
+  if (override) return override;
   const haystack = [model.name, model.en ?? "", model.id].join(" ").toLowerCase();
   for (const rule of RULES) {
     if (!allowed.includes(rule.id)) continue;
@@ -227,4 +231,54 @@ export function bodyTypeOfAd(ad: {
     return BRAND_DEFAULT[brand.id] ?? "other";
   }
   return "other";
+}
+
+/* ==================== مجموعات السوق: صيني · كهربائي · الأكثر رواجاً ==================== */
+
+export type VehicleMarket = "all" | "cn" | "ev" | "small";
+
+export const VEHICLE_MARKETS: { id: VehicleMarket; name: string; hint: string }[] = [
+  { id: "all", name: "كل الماركات", hint: "السيارات والدراجات والآليات بكل الأنواع" },
+  { id: "cn", name: "سيارات صينية", hint: "شانجان، بي واي دي، جيلي، شيري، إم جي، هافال، جيتور…" },
+  { id: "ev", name: "كهربائية وهايبرد", hint: "سيارات تعمل بالكهرباء بالكامل أو هايبرد/مدى ممتد" },
+  { id: "small", name: "الصينية الصغيرة الرائجة", hint: "الطرازات الصغيرة والاقتصادية الأكثر طلباً في السوق" },
+];
+
+export const isChineseBrand = (brand: Brand) => (brand.tags ?? []).includes("chinese");
+export const isElectrified = (m: BrandModel) => m.fuel === "ev" || m.fuel === "hybrid";
+export const isHotModel = (m: BrandModel) => Boolean(m.hot);
+
+/** تصفية كتالوج نوع معيّن بحسب مجموعة السوق */
+export function filterCatalogByMarket(catalog: BodyTypeBrand[], market: VehicleMarket): BodyTypeBrand[] {
+  if (market === "all") return catalog;
+  if (market === "cn") return catalog.filter(({ brand }) => isChineseBrand(brand));
+  if (market === "ev")
+    return catalog
+      .map(({ brand, models }) => ({ brand, models: models.filter(isElectrified) }))
+      .filter((x) => x.models.length > 0);
+  return catalog
+    .filter(({ brand }) => isChineseBrand(brand))
+    .map(({ brand, models }) => ({ brand, models: models.filter(isHotModel) }))
+    .filter((x) => x.models.length > 0);
+}
+
+/** إحصاء الماركات والطرازات في كل مجموعة سوق */
+export function marketStats() {
+  const all = ALL_VEHICLE_BRANDS;
+  const cn = all.filter(isChineseBrand);
+  const evBrands = all.filter((b) => b.models.some(isElectrified));
+  const hot = cn.filter((b) => b.models.some(isHotModel));
+  const count = (list: Brand[], f?: (m: BrandModel) => boolean) =>
+    list.reduce((s, b) => s + b.models.filter((m) => (f ? f(m) : true)).length, 0);
+  return {
+    all: { brands: all.length, models: count(all) },
+    cn: { brands: cn.length, models: count(cn) },
+    ev: { brands: evBrands.length, models: count(evBrands, isElectrified) },
+    small: { brands: hot.length, models: count(hot, isHotModel) },
+  } as Record<VehicleMarket, { brands: number; models: number }>;
+}
+
+/** الطرازات الكهربائية داخل نوع معيّن (للشارات والأعداد) */
+export function electrifiedCountIn(typeId: BodyTypeId): number {
+  return catalogForBodyType(typeId).reduce((s, x) => s + x.models.filter(isElectrified).length, 0);
 }

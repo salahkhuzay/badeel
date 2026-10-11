@@ -25,6 +25,7 @@ export interface Filters {
   cityId: string | "all";
   /* المركبات */
   bodyType: string | "all"; // نوع الهيكل: sedan, suv, pickup...
+  fuelType: string | "all"; // الوقود: petrol, diesel, electric, hybrid
   brandId: string | "all";
   modelId: string | "all";
   yearFrom: number | null;
@@ -72,6 +73,7 @@ export const EMPTY_FILTERS: Filters = {
   dealType: "all",
   cityId: "all",
   bodyType: "all",
+  fuelType: "all",
   brandId: "all",
   modelId: "all",
   yearFrom: null,
@@ -127,6 +129,7 @@ export function applyFilters(ads: Ad[], f: Filters) {
     if (f.propertyType !== "all" && ad.propertyType !== f.propertyType) return false;
     if (f.vehicleType !== "all" && ad.vehicleType !== f.vehicleType) return false;
     if (f.bodyType !== "all" && bodyTypeOfAd(ad) !== f.bodyType) return false;
+    if (f.fuelType !== "all" && ad.fuelType !== f.fuelType) return false;
     if (f.dealType !== "all" && ad.dealType !== f.dealType) return false;
     if (f.cityId !== "all" && ad.cityId !== f.cityId) return false;
     if (f.brandId !== "all" && ad.brandId !== f.brandId) return false;
