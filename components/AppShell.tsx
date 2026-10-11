@@ -5,50 +5,34 @@ import { usePathname } from "next/navigation";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { ToastProvider } from "./Toast";
+import ContactBar from "./ContactBar";
+import { purgeAndReload, registerSW, APP_VERSION } from "@/lib/pwa";
 
 /* ==========================================================================
-   تسجيل Service Worker (PWA) + تحديث تلقائي للنسخة الجديدة
-   الهدف: ألّا يبقى المستخدم على نسخة قديمة مخزَّنة (كان يسبب ظهور بيانات قديمة
-   مثل رقم الدعم السابق بعد تحديث المنصة).
+   الهيكل العام + تسجيل Service Worker مع تحديث تلقائي
+   - يمنع بقاء المستخدم على نسخة قديمة (كاش/عامل خدمة) كان يعرض بيانات قديمة.
+   - دعم رابط التحديث اليدوي: أي رابط ينتهي بـ #update → حذف الكاش وإعادة تحميل.
    ========================================================================== */
-function RegisterSW() {
+function PwaUpdater() {
   useEffect(() => {
-    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-    if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1")
+    const needsPurge = () =>
+      location.hash === "#update" || location.search.includes("refresh=1");
+
+    /* وسم التحديث اليدوي: في الرابط أو عند إضافته لاحقاً */
+    if (needsPurge()) {
+      purgeAndReload();
       return;
+    }
+    const onHash = () => {
+      if (needsPurge()) purgeAndReload();
+    };
+    window.addEventListener("hashchange", onHash);
 
-    const RELOAD_FLAG = "badeel.sw.reloaded";
-    let reloading = false;
-
-    /* عند تسلّم المتحكِّم الجديد (نسخة جديدة فعّالة) نُحدّث الصفحة مرة واحدة فقط */
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (reloading || sessionStorage.getItem(RELOAD_FLAG) === "1") return;
-      reloading = true;
-      sessionStorage.setItem(RELOAD_FLAG, "1");
-      location.reload();
-    });
-
-    const t = setTimeout(async () => {
-      try {
-        const reg = await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" });
-        /* فحص وجود نسخة جديدة فوراً + عند كل فتح */
-        reg.update().catch(() => {});
-        reg.addEventListener("updatefound", () => {
-          const sw = reg.installing;
-          if (!sw) return;
-          sw.addEventListener("statechange", () => {
-            /* صار جاهزاً وهناك نسخة قديمة تعمل → نفّذ التنشيط (skipWaiting داخل sw.js) */
-            if (sw.state === "installed" && navigator.serviceWorker.controller) sw.postMessage?.({ type: "SKIP_WAITING" });
-          });
-        });
-        /* إن كان هناك نسخة «في الانتظار» الآن، فعّلها */
-        if (reg.waiting) reg.waiting.postMessage?.({ type: "SKIP_WAITING" });
-      } catch {
-        /* تجاهل أخطاء التسجيل (بيئات مقيّدة) */
-      }
-    }, 1200);
-
-    return () => clearTimeout(t);
+    const t = setTimeout(() => registerSW(), 800);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      clearTimeout(t);
+    };
   }, []);
   return null;
 }
@@ -65,7 +49,7 @@ function ScrollTop() {
   return (
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="fixed bottom-4 left-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-navy-900 text-white shadow-pop transition hover:bg-navy-800 dark:bg-white dark:text-navy-900 no-print"
+      className="fixed bottom-20 left-4 z-40 sm:bottom-4 flex h-11 w-11 items-center justify-center rounded-full bg-navy-900 text-white shadow-pop transition hover:bg-navy-800 dark:bg-white dark:text-navy-900 no-print"
       aria-label="العودة للأعلى"
     >
       ↑
@@ -79,13 +63,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastProvider>
-      <div className="flex min-h-screen flex-col">
+      {/* وسم الإصدار ليتحقق المستخدم من أنه على آخر نسخة (يُقرأ من HTML مباشرة) */}
+      <div className="flex min-h-screen flex-col" data-app-version={APP_VERSION}>
         <Navbar />
         <main className="flex-1">{children}</main>
         {!hideFooter && <Footer />}
+        {/* مساحة سفلية حتى لا يغطي شريط التواصل آخر المحتوى على الجوال */}
+        {!hideFooter && <div className="h-[68px] sm:hidden" aria-hidden="true" />}
+        <ContactBar />
         <ScrollTop />
       </div>
-      <RegisterSW />
+      <PwaUpdater />
     </ToastProvider>
   );
 }

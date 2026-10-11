@@ -12,6 +12,7 @@ import {
   MessageCircle,
   Phone,
   Plug,
+  RefreshCw,
   Shirt,
   Smartphone,
   Sofa,
@@ -25,6 +26,7 @@ import Logo from "./Logo";
 import CurrencySwitch from "./CurrencySwitch";
 import ThemeToggle from "./ThemeToggle";
 import { useStore } from "@/lib/store";
+import { APP_VERSION, purgeAndReload } from "@/lib/pwa";
 import { cn, displayPhone, supportWhatsapp, telLink } from "@/lib/currency";
 
 const NAV = [
@@ -66,6 +68,17 @@ export default function Navbar() {
             <span className="mx-1 hidden md:inline">
               · إعلاناتك تُنشر بعد المراجعة لضمان الجودة
             </span>
+          </span>
+
+          {/* الإصدار + زر تحديث فوري (للتخلص من أي نسخة مخزَّنة قديمة) */}
+          <span className="flex items-center gap-1">
+            <button
+              onClick={() => purgeAndReload()}
+              className="hidden items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] text-navy-300 transition hover:bg-white/10 hover:text-amberBrand-400 sm:inline-flex"
+              title="تحديث الموقع إلى آخر نسخة (يحذف الكاش القديم)"
+            >
+              <RefreshCw size={11} /> نسخة {APP_VERSION}
+            </button>
           </span>
 
           {/* التواصل والدعم: اتصال + واتساب + فيسبوك */}
@@ -204,6 +217,14 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
+            {/* زر تحديث الموقع (يحذف الكاش القديم) */}
+            <button
+              onClick={() => purgeAndReload()}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-amberBrand-400/60 bg-amberBrand-50/50 py-2.5 text-[12px] font-bold text-amberBrand-700 transition hover:bg-amberBrand-50 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+            >
+              <RefreshCw size={14} /> تحديث الموقع (نسخة {APP_VERSION})
+            </button>
+
             {/* التواصل والدعم في قائمة الجوال */}
             <div className="grid grid-cols-3 gap-2 pt-1">
               <a

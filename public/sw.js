@@ -1,86 +1,92 @@
 /* ==========================================================================
-   Service Worker — بديل (PWA)
-   استراتيجية: Network-first للصفحات، Cache-first للأصول الثابتة والصور.
-   مُصمَّم ليعمل بكفاءة على اتصالات ضعيفة/متقطعة.
+   Service Worker — بديل (PWA)  ·  الإصدار v3
+   سياسة صارمة ضد النسخ القديمة:
+   - لا نخزّن صفحات HTML ولا ملفات JS/CSS إطلاقاً → المتصفح يجلبها من الشبكة دائماً.
+   - نُخزّن الصور فقط (cache-first) + صفحة «لا يوجد اتصال».
+   - عند التثبيت: skipWaiting فوراً، وعند التنشيط: حذف كل الكاشات السابقة.
    ========================================================================== */
 
-const VERSION = "badeel-v2";
-const STATIC_CACHE = `${VERSION}-static`;
+const VERSION = "badeel-v3";
+const CORE_CACHE = `${VERSION}-core`;
 const IMAGE_CACHE = `${VERSION}-images`;
 
-const PRECACHE = ["/", "/offline", "/manifest.webmanifest", "/favicon.svg"];
-
-/* استقبال طلب التنشيط الفوري من الصفحة (لتحديث النسخة القديمة فوراً) */
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
-});
+const CORE_FILES = ["/offline", "/favicon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting())
+    (async () => {
+      const cache = await caches.open(CORE_CACHE);
+      await Promise.all(CORE_FILES.map((u) => cache.add(u).catch(() => {})));
+      await self.skipWaiting();
+    })()
   );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k)))
-      )
-      .then(() => self.clients.claim())
+    (async () => {
+      /* حذف كل الكاشات — بما فيها كاشات النسخ القديمة (badeel-v1/v2...) */
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((k) => k !== CORE_CACHE && k !== IMAGE_CACHE).map((k) => caches.delete(k)));
+      await self.clients.claim();
+    })()
   );
+});
+
+self.addEventListener("message", (event) => {
+  const data = event.data || {};
+  if (data.type === "SKIP_WAITING") self.skipWaiting();
+  if (data.type === "PURGE") {
+    event.waitUntil(
+      (async () => {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+        if (event.source && event.source.postMessage) event.source.postMessage({ type: "PURGED" });
+      })()
+    );
+  }
 });
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
+
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // الصور: Cache-first
+  /* الصور: cache-first (آمنة لأن أسماءها ثابتة داخل /images) */
   if (request.destination === "image") {
     event.respondWith(
-      caches.open(IMAGE_CACHE).then(async (cache) => {
+      (async () => {
+        const cache = await caches.open(IMAGE_CACHE);
         const hit = await cache.match(request);
         if (hit) return hit;
         try {
           const res = await fetch(request);
-          if (res.ok) cache.put(request, res.clone());
+          if (res && res.ok) cache.put(request, res.clone());
           return res;
         } catch {
           return hit || Response.error();
         }
-      })
+      })()
     );
     return;
   }
 
-  // تنقلات الصفحات: Network-first مع صفحة offline
+  /* تنقلات الصفحات: من الشبكة دائماً وبلا كاش وسيط؛ وعند الانقطاع → صفحة offline */
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(STATIC_CACHE).then((c) => c.put(request, copy));
-          return res;
-        })
-        .catch(async () => (await caches.match(request)) || caches.match("/offline"))
+      (async () => {
+        try {
+          return await fetch(request, { cache: "no-store" });
+        } catch {
+          const cache = await caches.open(CORE_CACHE);
+          return (await cache.match("/offline")) || Response.error();
+        }
+      })()
     );
     return;
   }
 
-  // بقية الأصول: Stale-while-revalidate
-  event.respondWith(
-    caches.open(STATIC_CACHE).then(async (cache) => {
-      const hit = await cache.match(request);
-      const network = fetch(request)
-        .then((res) => {
-          if (res.ok) cache.put(request, res.clone());
-          return res;
-        })
-        .catch(() => hit);
-      return hit || network;
-    })
-  );
+  /* بقية الأصول (JS/CSS/HTML/JSON): تمرّ للشبكة كما هي — لا تخزين إطلاقاً */
 });

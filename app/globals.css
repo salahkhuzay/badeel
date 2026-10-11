@@ -33,6 +33,13 @@
     max-width: 100%;
   }
 
+  /* احتياط لمتصفحات لا تدعم overflow: clip (Safari أقدم من 16) */
+  @supports not (overflow: clip) {
+    body {
+      overflow-x: hidden;
+    }
+  }
+
   /* عناصر الشبكات والصفوف لا تتجاوز عرض الشاشة على الجوال */
   main,
   main section,

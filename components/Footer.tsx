@@ -11,12 +11,14 @@ import {
   MessageCircle,
   Phone,
   Plug,
+  RefreshCw,
   Shirt,
   Smartphone,
   Sofa,
 } from "lucide-react";
 import Logo from "./Logo";
 import { useStore } from "@/lib/store";
+import { APP_RELEASE, purgeAndReload } from "@/lib/pwa";
 import { displayPhone, supportWhatsapp, telLink } from "@/lib/currency";
 import { mainCategoryLinks } from "@/lib/taxonomy";
 import SyriaFlag from "./SyriaFlag";
@@ -160,7 +162,19 @@ export default function Footer() {
 
       <div className="border-t border-navy-100 py-5 dark:border-navy-800">
         <div className="container-page flex flex-col items-center justify-between gap-3 text-center text-xs text-navy-400 sm:flex-row sm:text-right dark:text-navy-400">
-          <p>© {new Date().getFullYear()} بديل — Badeel. جميع الحقوق محفوظة.</p>
+          <div className="flex flex-col items-center gap-1 sm:items-start">
+            <p>© {new Date().getFullYear()} بديل — Badeel. جميع الحقوق محفوظة.</p>
+            <p className="flex items-center gap-2 text-[10.5px] text-navy-400">
+              <span>الإصدار {APP_RELEASE}</span>
+              <button
+                onClick={() => purgeAndReload()}
+                className="inline-flex items-center gap-1 rounded-md border border-navy-200 px-1.5 py-0.5 font-bold text-navy-500 transition hover:border-amberBrand-400 hover:text-amberBrand-600 dark:border-navy-700 dark:text-navy-300"
+                title="إذا ظهرت لك نسخة قديمة: اضغط هنا لحذف الكاش وتحديث الموقع"
+              >
+                <RefreshCw size={10} /> تحديث
+              </button>
+            </p>
+          </div>
           <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 sm:justify-end">
             <Link href="/category/real-estate" className="inline-flex items-center gap-1.5 hover:text-amberBrand-600">
               <Building2 size={13} /> عقارات
