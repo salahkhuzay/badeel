@@ -106,7 +106,7 @@ export default function BrandSelector({
       {!query.trim() && !expanded && popular.length > 1 && (
         <div className="mb-3 rounded-xl border-2 border-dashed border-amberBrand-300 p-2.5 dark:border-amberBrand-500/40">
           <p className="mb-1.5 text-[11px] font-extrabold text-amberBrand-700 dark:text-amberBrand-400">
-            🔥 الأكثر طلباً (منها الصينية)
+            🔥 الأكثر طلباً
           </p>
           <div className="flex flex-wrap gap-1.5">
             {popular.map((b) => (

@@ -362,6 +362,26 @@ export const LOGOS: Record<string, LogoDef> = {
       "<path d=\"M3.4 5.4h6.2l2.4 13.2H5.8Z\"/><path d=\"M14.4 5.4h6.2l-2.4 13.2h-6.2Z\" opacity=\"0.6\"/>",
     color: "#0F172A",
   },
+  "chana": {
+    body:
+      "<rect x=\"2\" y=\"6.2\" width=\"20\" height=\"11.6\" rx=\"2.2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"12\" y=\"13.9\" text-anchor=\"middle\" font-size=\"3.9\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.08\" textLength=\"11.7\" lengthAdjust=\"spacingAndGlyphs\">CHANA</text>",
+    color: "#1E40AF",
+  },
+  "hafei": {
+    body:
+      "<path d=\"M4.2 12c2.4-3 5-4.5 7.8-4.5s5.4 1.5 7.8 4.5c-2.4 3-5 4.5-7.8 4.5S6.6 15 4.2 12Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><text x=\"12\" y=\"20.6\" text-anchor=\"middle\" font-size=\"3.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.08\" textLength=\"9.6\" lengthAdjust=\"spacingAndGlyphs\">HAFEI</text>",
+    color: "#0B5394",
+  },
+  "foton": {
+    body:
+      "<path d=\"M12 3.2 20.8 12 12 20.8 3.2 12Z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M12 8.4 15.6 12 12 15.6 8.4 12Z\" opacity=\"0.7\"/><text x=\"12\" y=\"22.2\" text-anchor=\"middle\" font-size=\"2.9\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.1\" textLength=\"8.7\" lengthAdjust=\"spacingAndGlyphs\">FOTON</text>",
+    color: "#C8102E",
+  },
+  "dfsk": {
+    body:
+      "<ellipse cx=\"12\" cy=\"11.4\" rx=\"10.6\" ry=\"5.8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\"/><text x=\"12\" y=\"13.4\" text-anchor=\"middle\" font-size=\"4.2\" font-weight=\"800\" font-family=\"Arial,Helvetica,sans-serif\" fill=\"currentColor\" letter-spacing=\"0.1\" textLength=\"10.1\" lengthAdjust=\"spacingAndGlyphs\">DFSK</text>",
+    color: "#0F4C81",
+  },
 };
 
 /** هل تتوفر أيقونة رسمية لهذه الماركة؟ */

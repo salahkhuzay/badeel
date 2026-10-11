@@ -96,8 +96,9 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
             <Car size={22} className="text-amberBrand-500" /> أنواع السيارات
           </h1>
           <p className="mt-1.5 max-w-2xl text-[12.5px] leading-relaxed text-navy-500 dark:text-navy-300">
-            اختر نوع السيارة (بالأيقونة) ← تظهر <b>ماركات هذا النوع بشعاراتها الرسمية</b> ← اضغط أي
-            ماركة لترى <b>كل طرازاتها</b> في هذا النوع، ومعها سوق الإعلانات المفلتر.
+            اختر نوع السيارة (بالأيقونة) ← تظهر <b>ماركات هذا النوع بشعاراتها الرسمية</b> (كل الماركات
+            مدمجة في قائمة واحدة: صينية وأوروبية ويابانية وكورية) ← اضغط أي ماركة لترى <b>كل طرازاتها</b>،
+            ومعها سوق الإعلانات المفلتر. القسم المستقل الوحيد هو <b>الكهربائية والهايبرد</b>.
           </p>
         </div>
         <Link href="/category/vehicles" className="btn-ghost btn-sm">
@@ -198,9 +199,7 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
                       : "border-navy-200 bg-white text-navy-700 hover:border-amberBrand-400 dark:border-navy-700 dark:bg-navy-900 dark:text-navy-100"
                   )}
                 >
-                  {mk.id === "cn" && <span aria-hidden>🇨🇳</span>}
                   {mk.id === "ev" && <Zap size={12} className={active ? "text-white" : "text-emerald-500"} />}
-                  {mk.id === "small" && <Flame size={12} className={active ? "text-white" : "text-rose-500"} />}
                   {mk.name}
                   <span
                     className={cn(
@@ -226,11 +225,9 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
             </button>
           </div>
           <p className="mt-2 text-[11px] font-semibold text-navy-500 dark:text-navy-300">
-            {market === "cn" &&
-              "الماركات الصينية: شانجان · بي واي دي · جيلي · شيري · إم جي · هافال · جيتور · جريت وول · تانك · إكسيد · دونغ فينغ · فاو · بايك · جاك…"}
             {market === "ev" && "كل الطرازات المعروضة تعمل بالكهرباء بالكامل أو هايبرد/مدى ممتد فقط."}
-            {market === "small" && "أشهر السيارات الصينية الصغيرة والاقتصادية المطلوبة في السوق."}
-            {market === "all" && `المجموع: ${stats.all.brands} ماركة و${stats.all.models} طرازاً — منها ${stats.cn.models} طرازاً صينياً و${stats.ev.models} كهربائياً/هايبرد.`}
+            {market === "all" &&
+              `المجموع: ${stats.all.brands} ماركة و${stats.all.models} طرازاً — بينها ${stats.ev.models} طرازاً كهربائياً/هايبرد (قسم مستقل).`}
           </p>
         </div>
 
@@ -255,7 +252,7 @@ export default function CarTypesExplorer({ initialType }: { initialType?: BodyTy
           <div className="bg-white p-8 text-center dark:bg-navy-900">
             <Warehouse size={22} className="mx-auto text-navy-300" />
             <p className="mt-2 text-[13px] font-bold text-navy-700 dark:text-navy-100">
-              لا توجد ماركات مطابقة في هذا النوع{market === "cn" ? " من الماركات الصينية" : ""}
+              لا توجد ماركات مطابقة في هذا النوع
             </p>
             <p className="mt-1 text-[12px] text-navy-400">
               جرّب نوعاً آخر أو امسح كلمة البحث.

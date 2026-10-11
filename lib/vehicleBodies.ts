@@ -17,6 +17,7 @@ export type BodyTypeId =
   | "van"
   | "bus"
   | "truck"
+  | "lighttruck"
   | "motorcycle"
   | "scooter"
   | "tractor"
@@ -40,7 +41,8 @@ export const BODY_TYPES: BodyTypeDef[] = [
   { id: "pickup", name: "بيك أب", en: "Pickup", hint: "صندوق مفتوح — هايلوكس، L200، نافارا، رينجر...", group: "passenger" },
   { id: "van", name: "فان وعائلية", en: "Van / MPV", hint: "عائلية أو نقل خفيف — ستاركس، H1، كارنفال، فيتو...", group: "passenger" },
   { id: "bus", name: "باص ونقل جماعي", en: "Bus", hint: "كوستر، كاونتي، H100 باص، ميكروباص...", group: "truck" },
-  { id: "truck", name: "شاحنة", en: "Truck", hint: "شاحنات نقل — HD65، كانتر، بوكسر، أكتورس...", group: "truck" },
+  { id: "truck", name: "شاحنة", en: "Truck", hint: "شاحنات نقل — كانتر، بوكسر، أكتورس...", group: "truck" },
+  { id: "lighttruck", name: "شاحنة صغيرة (نقل خفيف)", en: "Light Truck", hint: "الشاحنات الصغيرة الرائجة في منبج — بونغو، بورتر، سوبر كاري، تشانا ستار، شانجان ستار، هفي، فورلاند، سوكار…", group: "truck" },
   { id: "motorcycle", name: "دراجة نارية", en: "Motorcycle", hint: "دراجات — CG125، YBR، RKS، هواجوي...", group: "motorcycle" },
   { id: "scooter", name: "سكوتر ودراجة كهربائية", en: "Scooter", hint: "سكوتر ودباب ودراجات كهربائية", group: "motorcycle" },
   { id: "tractor", name: "جرار زراعي", en: "Tractor", hint: "جرارات — ماسي فيرغسون، نيو هولاند، جون ديري...", group: "machinery" },
@@ -72,8 +74,17 @@ const RULES: { id: BodyTypeId; keys: string[] }[] = [
     keys: ["باص", "ميكروباص", "كوستر", "coaster", "county", "bus", "h100"],
   },
   {
+    id: "lighttruck",
+    keys: [
+      "شاحنة صغيرة", "شاحنه صغيره", "نقل خفيف", "ستار شاحنة", "بونغو", "bongo", "k2500",
+      "بورتر", "porter", "hd65", "hd72", "سوبر كاري", "super carry", "فورلاند", "forland",
+      "أومارك", "aumark", "أولين", "سوكار k01", "سوكار k02", "سوكار c31", "سوكار c32", "تشانا ستار", "كوايو", "kuayue",
+      "ميني تراك", "شاحنة هفي", "light truck",
+    ],
+  },
+  {
     id: "truck",
-    keys: ["شاحنة", "شاحنه", "نقل ثقيل", "نقل خفيف", "قلاب", "truck", "hd65", "hd72", "mighty", "مايتي", "k2500", "bongo", "بونغو", "canter", "كانتر", "fuso", "فوسو", "boxer", "بوكسر", "actros", "أكتورس", "sprinter شاحنة"],
+    keys: ["شاحنة", "شاحنه", "نقل ثقيل", "قلاب", "truck", "mighty", "مايتي", "canter", "كانتر", "fuso", "فوسو", "boxer", "بوكسر", "actros", "أكتورس"],
   },
   {
     id: "pickup",
@@ -144,7 +155,7 @@ const FAMILY: Record<string, "moto" | "equip"> = {
 };
 
 const ALLOWED: Record<"car" | "moto" | "equip", BodyTypeId[]> = {
-  car: ["sedan", "hatchback", "suv", "coupe", "pickup", "van", "bus", "truck", "other"],
+  car: ["sedan", "hatchback", "suv", "coupe", "pickup", "van", "bus", "truck", "lighttruck", "other"],
   moto: ["motorcycle", "scooter", "other"],
   equip: ["tractor", "machinery", "other"],
 };
@@ -235,46 +246,35 @@ export function bodyTypeOfAd(ad: {
 
 /* ==================== مجموعات السوق: صيني · كهربائي · الأكثر رواجاً ==================== */
 
-export type VehicleMarket = "all" | "cn" | "ev" | "small";
+export type VehicleMarket = "all" | "ev";
 
+/** مجموعتا العرض: كل الماركات مدمجة · والكهربائية/الهايبرد وحدها قسم مستقل */
 export const VEHICLE_MARKETS: { id: VehicleMarket; name: string; hint: string }[] = [
-  { id: "all", name: "كل الماركات", hint: "السيارات والدراجات والآليات بكل الأنواع" },
-  { id: "cn", name: "سيارات صينية", hint: "شانجان، بي واي دي، جيلي، شيري، إم جي، هافال، جيتور…" },
+  { id: "all", name: "كل الماركات", hint: "الصينية والأوروبية واليابانية والكورية مدمجة في قائمة واحدة" },
   { id: "ev", name: "كهربائية وهايبرد", hint: "سيارات تعمل بالكهرباء بالكامل أو هايبرد/مدى ممتد" },
-  { id: "small", name: "الصينية الصغيرة الرائجة", hint: "الطرازات الصغيرة والاقتصادية الأكثر طلباً في السوق" },
 ];
 
 export const isChineseBrand = (brand: Brand) => (brand.tags ?? []).includes("chinese");
 export const isElectrified = (m: BrandModel) => m.fuel === "ev" || m.fuel === "hybrid";
 export const isHotModel = (m: BrandModel) => Boolean(m.hot);
 
-/** تصفية كتالوج نوع معيّن بحسب مجموعة السوق */
+/** تصفية كتالوج نوع معيّن بحسب مجموعة العرض */
 export function filterCatalogByMarket(catalog: BodyTypeBrand[], market: VehicleMarket): BodyTypeBrand[] {
   if (market === "all") return catalog;
-  if (market === "cn") return catalog.filter(({ brand }) => isChineseBrand(brand));
-  if (market === "ev")
-    return catalog
-      .map(({ brand, models }) => ({ brand, models: models.filter(isElectrified) }))
-      .filter((x) => x.models.length > 0);
   return catalog
-    .filter(({ brand }) => isChineseBrand(brand))
-    .map(({ brand, models }) => ({ brand, models: models.filter(isHotModel) }))
+    .map(({ brand, models }) => ({ brand, models: models.filter(isElectrified) }))
     .filter((x) => x.models.length > 0);
 }
 
-/** إحصاء الماركات والطرازات في كل مجموعة سوق */
+/** إحصاء الماركات والطرازات في كل مجموعة */
 export function marketStats() {
   const all = ALL_VEHICLE_BRANDS;
-  const cn = all.filter(isChineseBrand);
   const evBrands = all.filter((b) => b.models.some(isElectrified));
-  const hot = cn.filter((b) => b.models.some(isHotModel));
   const count = (list: Brand[], f?: (m: BrandModel) => boolean) =>
     list.reduce((s, b) => s + b.models.filter((m) => (f ? f(m) : true)).length, 0);
   return {
     all: { brands: all.length, models: count(all) },
-    cn: { brands: cn.length, models: count(cn) },
     ev: { brands: evBrands.length, models: count(evBrands, isElectrified) },
-    small: { brands: hot.length, models: count(hot, isHotModel) },
   } as Record<VehicleMarket, { brands: number; models: number }>;
 }
 

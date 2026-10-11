@@ -8,7 +8,7 @@ import React from "react";
 
 export type BodyIconKey =
   | "sedan" | "hatchback" | "suv" | "coupe" | "pickup" | "van"
-  | "bus" | "truck" | "motorcycle" | "scooter" | "tractor" | "machinery" | "other";
+  | "bus" | "truck" | "lighttruck" | "motorcycle" | "scooter" | "tractor" | "machinery" | "other";
 
 const S = ({ children }: { children: React.ReactNode }) => (
   <>
@@ -107,6 +107,17 @@ const icons: Record<BodyIconKey, React.ReactNode> = {
       <Wheel cx={10.6} cy={19.4} r={3.3} />
       <Wheel cx={22.4} cy={19.4} r={3.3} />
       <Wheel cx={38} cy={19.4} r={3.3} />
+    </S>
+  ),
+  /* شاحنة صغيرة (نقل خفيف): مقصورة صغيرة + صندوق منخفض */
+  lighttruck: (
+    <S>
+      <path d="M2.6 15.6v-2.4c0-1.4 1-2.5 2.4-2.7l1.6-3c.8-1.4 2-2.1 3.7-2.1h3.1c1.3 0 2.2.6 2.7 1.7l1 2h.5c1.5 0 2.5 1 2.5 2.5v3.4c0 .8-.6 1.4-1.4 1.4H4c-.8 0-1.4-.6-1.4-1.4Z" />
+      <path d="M8.6 8.2h3.6c.9 0 1.4.3 1.7 1l1 2H6.9Z" className="body-icon-glass" />
+      <rect x="23.4" y="11.2" width="22" height="5.6" rx="1.1" className="body-icon-cargo" />
+      <Wheel cx={9} cy={19.2} r={2.8} />
+      <Wheel cx={22.4} cy={19.2} r={2.8} />
+      <Wheel cx={38} cy={19.2} r={2.8} />
     </S>
   ),
   /* دراجة نارية */
