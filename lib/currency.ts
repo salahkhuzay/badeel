@@ -14,7 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   contactPhone: "0933177597", // هاتف التواصل والدعم (اتصال + واتساب) — بلا كود: يُضبط أيضاً من اللوحة ← الإعدادات. عند تغييره هنا أضف القديم إلى SUPERSEDED_CONTACT_PHONES في lib/contact.ts
   contactPhone2: "", // رقم ثانٍ اختياري — اتركه فارغاً فيختفي، واملأه من اللوحة فيظهر في الموقع كله
   contactPhoneSource: "default", // يتغيّر إلى "custom" تلقائياً إن ضبط المسؤول رقماً بنفسه
-  facebookUrl: "https://www.facebook.com/", // يُستبدل بصفحة بديل الرسمية لاحقاً
+  facebookUrl: "https://www.facebook.com/share/1cmT94zzJk/", // الصفحة الرسمية لبديل على فيسبوك — قابلة للتعديل من اللوحة
   /* ---- الأمان ---- */
   adminUsername: ADMIN_USERNAME,
   adminSalt: DEFAULT_ADMIN_SALT,

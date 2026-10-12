@@ -172,11 +172,12 @@ export default function SettingsPanel() {
               onChange={(e) => setFacebook(e.target.value)}
               className="input pl-3 pr-9"
               dir="ltr"
-              placeholder="https://www.facebook.com/badeel"
+              placeholder="https://www.facebook.com/share/..."
             />
           </div>
           <p className="hint">
-            اترك الرابط كما هو حتى إنشاء الصفحة الرسمية — الأيقونة تظهر دائماً في الموقع.
+            الرابط الرسمي الحالي لصفحة بديل. يمكنك تغييره أو تحديثه متى شئت — والأيقونة تظهر
+            دائماً في الموقع.
           </p>
         </div>
 

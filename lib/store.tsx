@@ -110,6 +110,11 @@ function normalize(saved: Partial<AppState>): Partial<AppState> {
         ? "default"
         : "custom";
   }
+  /* ترحيل رابط فيسبوك: العنصر النائب القديم (أو الفراغ) → الصفحة الرسمية.
+     أي رابط ضبطه المسؤول بنفسه من اللوحة لا يُمسّ أبداً. */
+  const fbNow = String(settings.facebookUrl ?? "").trim();
+  const PLACEHOLDER_FB = ["", "https://www.facebook.com", "https://www.facebook.com/"];
+  if (PLACEHOLDER_FB.includes(fbNow)) settings.facebookUrl = SEED_SETTINGS.facebookUrl;
   const auth = { ...initialAuth, ...(saved.auth ?? {}) };
   /* إن كان الإعداد القديم يحتوي authUser فقد أُلغيت هذه الحالة */
   return { ...saved, cities, ads, settings, auth };
