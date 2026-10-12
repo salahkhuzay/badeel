@@ -10,6 +10,8 @@ import type { Brand } from "./brands";
 
 /* ============================ ① ماركات سيارات إضافية ============================ */
 
+import { EQUIP_EXTRA, MOTO_EXTRA } from "./brands-equip-moto";
+
 export const CAR_EXTRA: Brand[] = [
   {
     id: "ford",
@@ -142,7 +144,8 @@ export const MOTO_BRANDS: Brand[] = [
     logo: "honda",
     alt: ["هوندا", "Honda"],
     models: [
-      { id: "cg125", name: "CG 125", en: "CG125" },
+      { id: "cg125", name: "CG 125 (النسخة الأشهر)", en: "CG125", hot: true },
+      { id: "cg150", name: "CG 150", en: "CG150", hot: true },
       { id: "cd70", name: "CD 70", en: "CD70" },
       { id: "cbf150", name: "CBF 150", en: "CBF150" },
       { id: "cb190", name: "CB 190", en: "CB190" },
@@ -266,6 +269,7 @@ export const MOTO_BRANDS: Brand[] = [
       { id: "rks-atv", name: "دباب رمل RKS", en: "ATV" },
     ],
   },
+  ...MOTO_EXTRA,
   {
     id: "other-moto",
     name: "ماركة أخرى (دراجات)",
@@ -417,6 +421,7 @@ export const EQUIP_BRANDS: Brand[] = [
       { id: "jd6403", name: "جرار 6403", en: "6403" },
     ],
   },
+  ...EQUIP_EXTRA,
   {
     id: "other-equip",
     name: "ماركة أخرى (آليات)",

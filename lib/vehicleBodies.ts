@@ -20,6 +20,7 @@ export type BodyTypeId =
   | "lighttruck"
   | "motorcycle"
   | "scooter"
+  | "ebike"
   | "tractor"
   | "machinery"
   | "other";
@@ -45,8 +46,9 @@ export const BODY_TYPES: BodyTypeDef[] = [
   { id: "lighttruck", name: "شاحنة صغيرة (نقل خفيف)", en: "Light Truck", hint: "الشاحنات الصغيرة الرائجة في منبج — بونغو، بورتر، سوبر كاري، تشانا ستار، شانجان ستار، هفي، فورلاند، ايسوزو NPR، ديلي ايفيكو…", group: "truck" },
   { id: "motorcycle", name: "دراجة نارية", en: "Motorcycle", hint: "دراجات — CG125، YBR، RKS، هواجوي...", group: "motorcycle" },
   { id: "scooter", name: "سكوتر ودراجة كهربائية", en: "Scooter", hint: "سكوتر ودباب ودراجات كهربائية", group: "motorcycle" },
-  { id: "tractor", name: "جرار زراعي", en: "Tractor", hint: "جرارات — ماسي فيرغسون، نيو هولاند، جون ديري...", group: "machinery" },
-  { id: "machinery", name: "آليات ثقيلة", en: "Heavy Machinery", hint: "حفارات، لودرات، باكو — كاتربيلر، كوماتسو، JCB...", group: "machinery" },
+  { id: "ebike", name: "دراجات كهربائية", en: "Electric Bike", hint: "دراجات كهربائية بالبطارية — ياديا، تايلغ، وسكوترات الشحن الكهربائية...", group: "motorcycle" },
+  { id: "tractor", name: "جرار زراعي", en: "Tractor", hint: "جرارات — ماسي فيرغسون، نيو هولاند، زايتور، فيات، فرات، ماهيندرا...", group: "machinery" },
+  { id: "machinery", name: "آليات ثقيلة", en: "Heavy Machinery", hint: "حفارات، لودرات، باكو — كاتربيلر، كوماتسو، JCB، هيونداي، فوتون لوفول...", group: "machinery" },
   { id: "other", name: "أخرى", en: "Other", hint: "ما لا يدخل في الأنواع السابقة", group: "other" },
 ];
 
@@ -58,12 +60,16 @@ export const bodyTypeName = (id?: string) => bodyTypeById(id)?.name ?? "";
 /** كل مصفوفة = كلمات مفتاحية (عربية + لاتينية) — الأسبق في الترتيب يفوز */
 const RULES: { id: BodyTypeId; keys: string[] }[] = [
   {
+    id: "ebike",
+    keys: ["دراجة كهربائية", "دراجه كهربائيه", "دراجة كهرباء", "سكوتر كهربائي", "دباب كهربائي", "بطارية", "ebike", "electric bike", "yadea", "tailg", "ياديا", "تايلغ"],
+  },
+  {
     id: "scooter",
     keys: ["سكوتر", "سكوترا", "دباب رمل", "atv", "scooter", "nmax", "xmax", "access", "ua125", "sh "],
   },
   {
     id: "tractor",
-    keys: ["جرار", "tractor", "محراث", "mf ", "massey", "td5", "tt55", "tt75", "td80", "td90", "td95", "t7060", "5050", "5065", "5075", "5100", "6125", "3036", "6403", "425", "440"],
+    keys: ["جرار", "tractor", "محراث", "mf ", "massey", "td5", "tt55", "tt75", "td80", "td90", "td95", "t7060", "5050", "5065", "5075", "5100", "6125", "3036", "6403", "425", "440", "زايتور", "zetor", "فرات", "ماهيندرا", "mahindra", "لوفول", "lovol", "265 di", "275 di", "575 di", "70-56", "80-90"],
   },
   {
     id: "machinery",
@@ -149,19 +155,28 @@ const BRAND_DEFAULT: Record<string, BodyTypeId> = {
   "moto-rks": "motorcycle",
   cat: "machinery", komatsu: "machinery", jcb: "machinery", bobcat: "machinery",
   massey: "tractor", newholland: "tractor", johndeere: "tractor",
+  "moto-jialing": "motorcycle", "moto-loncin": "motorcycle", "moto-bart": "motorcycle",
+  "moto-aitani": "motorcycle", "moto-aqqad": "motorcycle", "moto-delta": "motorcycle",
+  "moto-yadea": "ebike", "moto-tailg": "ebike",
+  "hp-hyundai": "machinery", "hp-lovol": "tractor", zetor: "tractor", miger: "machinery",
+  furat: "tractor", "hp-fiat": "tractor", mahindra: "tractor",
 };
 
 /** عائلة الماركة: تحدد قواعد التصنيف المسموحة (يمنع تسرّب الدراجات إلى أنواع السيارات) */
 const FAMILY: Record<string, "moto" | "equip"> = {
   "moto-honda": "moto", "moto-yamaha": "moto", "moto-suzuki": "moto", "moto-kawasaki": "moto",
   "moto-dayang": "moto", "moto-haojue": "moto", "moto-rks": "moto", "other-moto": "moto",
+  "moto-jialing": "moto", "moto-loncin": "moto", "moto-bart": "moto", "moto-aitani": "moto",
+  "moto-aqqad": "moto", "moto-delta": "moto", "moto-yadea": "moto", "moto-tailg": "moto",
   cat: "equip", komatsu: "equip", jcb: "equip", bobcat: "equip",
   massey: "equip", newholland: "equip", johndeere: "equip", "other-equip": "equip",
+  "hp-hyundai": "equip", "hp-lovol": "equip", zetor: "equip", miger: "equip",
+  furat: "equip", "hp-fiat": "equip", mahindra: "equip",
 };
 
 const ALLOWED: Record<"car" | "moto" | "equip", BodyTypeId[]> = {
   car: ["sedan", "hatchback", "suv", "coupe", "pickup", "van", "bus", "truck", "lighttruck", "other"],
-  moto: ["motorcycle", "scooter", "other"],
+  moto: ["motorcycle", "scooter", "ebike", "other"],
   equip: ["tractor", "machinery", "other"],
 };
 

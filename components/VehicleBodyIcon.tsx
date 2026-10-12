@@ -8,7 +8,7 @@ import React from "react";
 
 export type BodyIconKey =
   | "sedan" | "hatchback" | "suv" | "coupe" | "pickup" | "van"
-  | "bus" | "truck" | "lighttruck" | "motorcycle" | "scooter" | "tractor" | "machinery" | "other";
+  | "bus" | "truck" | "lighttruck" | "motorcycle" | "scooter" | "ebike" | "tractor" | "machinery" | "other";
 
 const S = ({ children }: { children: React.ReactNode }) => (
   <>
@@ -141,6 +141,19 @@ const icons: Record<BodyIconKey, React.ReactNode> = {
       <path d="M25.4 8.2h6.2c1.2 0 2 .8 2 2v2.2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <path d="M33.6 5.4l2.6 2.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       <path d="M15.6 12.4h5.4l1.2 2.6" />
+    </S>
+  ),
+  /* دراجة كهربائية: إطار دراجة + بطارية + برق الكهرباء */
+  ebike: (
+    <S>
+      <circle cx="11" cy="18.4" r="3.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="37" cy="18.4" r="3.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M11 18.4l6.4-9.2h7.2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      <path d="M24.6 9.2l6.6 9.2" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      <path d="M17.4 18.4h19.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="21.4" y="12.4" width="7.6" height="4.2" rx="1.1" fill="currentColor" opacity="0.85" />
+      <path d="M30.6 13.6l2-2.4h3.2" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+      <path d="M38.6 6.2l-2.6 4.2h2.6l-2.4 4" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </S>
   ),
   /* جرار زراعي: عجلة خلفية كبيرة */
