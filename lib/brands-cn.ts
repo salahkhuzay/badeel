@@ -43,7 +43,6 @@ export const CN_BRANDS: Brand[] = [
       { id: "star-5", name: "ستار 5 (بيك أب)", en: "Star 5", body: "pickup" },
       { id: "star-truck", name: "ستار (شاحنة صغيرة)", en: "Star Truck", body: "lighttruck", hot: true },
       { id: "cx70", name: "CX70 (سبع مقاعد)", en: "CX70", body: "suv" },
-      { id: "deepal-s7-cn", name: "ديبال S7 (هايبرد)", en: "Deepal S7", body: "suv", fuel: "hybrid" },
     ],
   },
 
@@ -250,95 +249,10 @@ export const CN_BRANDS: Brand[] = [
     ],
   },
 
-  /* ============================ إكسيد ============================ */
-  {
-    id: "exeed",
-    name: "إكسيد",
-    en: "Exeed",
-    monogram: "EX",
-    color: "#0F172A",
-    origin: "الصين",
-    logo: "exeed",
-    tags: ["chinese"],
-    alt: ["إكسيد", "اكسيد", "Exeed"],
-    models: [
-      { id: "lx", name: "LX", en: "LX", body: "suv" },
-      { id: "tx", name: "TX", en: "TX", body: "suv" },
-      { id: "txl", name: "TXL", en: "TXL", body: "suv", hot: true },
-      { id: "vx", name: "VX", en: "VX", body: "suv" },
-      { id: "yaoguang", name: "ياوغوانغ", en: "Yaoguang", body: "suv" },
-      { id: "es", name: "إي إس (هايبرد)", en: "ES", body: "sedan", fuel: "hybrid" },
-    ],
-  },
-
-  /* ============================ تانك ============================ */
-  {
-    id: "tank",
-    name: "تانك",
-    en: "Tank",
-    monogram: "TK",
-    color: "#111827",
-    origin: "الصين",
-    logo: "tank",
-    tags: ["chinese"],
-    alt: ["تانك", "Tank"],
-    models: [
-      { id: "tank-300", name: "تانك 300", en: "Tank 300", body: "suv", hot: true },
-      { id: "tank-400", name: "تانك 400", en: "Tank 400", body: "suv" },
-      { id: "tank-500", name: "تانك 500", en: "Tank 500", body: "suv" },
-      { id: "tank-700", name: "تانك 700", en: "Tank 700", body: "suv" },
-      { id: "tank-800", name: "تانك 800", en: "Tank 800", body: "suv" },
-    ],
-  },
-
-  /* ============================ هونشي ============================ */
-  {
-    id: "hongqi",
-    name: "هونشي",
-    en: "Hongqi",
-    monogram: "HQ",
-    color: "#C8102E",
-    origin: "الصين",
-    logo: "hongqi",
-    tags: ["chinese"],
-    alt: ["هونشي", "هونجتشي", "Hongqi"],
-    models: [
-      { id: "h5", name: "إتش 5", en: "H5", body: "sedan" },
-      { id: "h5-hev", name: "إتش 5 هايبرد", en: "H5 HEV", body: "sedan", fuel: "hybrid" },
-      { id: "h7", name: "إتش 7", en: "H7", body: "sedan" },
-      { id: "h9-sedan", name: "إتش 9", en: "H9", body: "sedan" },
-      { id: "l5", name: "إل 5 (فخمة)", en: "L5", body: "sedan" },
-      { id: "hs5", name: "إتش إس 5", en: "HS5", body: "suv" },
-      { id: "hs7", name: "إتش إس 7", en: "HS7", body: "suv" },
-      { id: "ehs9", name: "إي-إتش إس 9 كهربائية", en: "E-HS9 EV", body: "suv", fuel: "ev" },
-      { id: "eqm5", name: "إي-كيو إم 5 كهربائية", en: "E-QM5 EV", body: "sedan", fuel: "ev" },
-    ],
-  },
-
-  /* ============================ دونغ فينغ ============================ */
-  {
-    id: "dongfeng",
-    name: "دونغ فينغ",
-    en: "Dongfeng",
-    monogram: "DF",
-    color: "#0F4C81",
-    origin: "الصين",
-    logo: "dongfeng",
-    tags: ["chinese"],
-    alt: ["دونغ فينغ", "دونج فينج", "Dongfeng", "DFM"],
-    models: [
-      { id: "ax7", name: "AX7", en: "AX7", body: "suv" },
-      { id: "t5-evo", name: "تي 5 إيفو", en: "T5 EVO", body: "suv" },
-      { id: "s30", name: "إس 30", en: "S30", body: "sedan" },
-      { id: "h30", name: "إتش 30", en: "H30", body: "hatchback" },
-      { id: "rich-6", name: "ريتش 6 (بيك أب)", en: "Rich 6", body: "pickup" },
-      { id: "rich-7", name: "ريتش 7 (بيك أب)", en: "Rich 7", body: "pickup" },
-      { id: "nano-01", name: "نانو 01 كهربائية", en: "Nano 01 EV", body: "hatchback", fuel: "ev", hot: true },
-      { id: "nano-box", name: "نانو بوكس كهربائية", en: "Nano Box EV", body: "hatchback", fuel: "ev", hot: true },
-      { id: "e70", name: "إي 70 كهربائية", en: "E70 EV", body: "sedan", fuel: "ev" },
-    ],
-  },
-
+  
+  
+  
+  
   /* ============================ فاو بيستيون ============================ */
   {
     id: "bestune",
@@ -363,30 +277,7 @@ export const CN_BRANDS: Brand[] = [
     ],
   },
 
-  /* ============================ بايك ============================ */
-  {
-    id: "baic",
-    name: "بايك",
-    en: "BAIC",
-    monogram: "BAIC",
-    color: "#0B4EA2",
-    origin: "الصين",
-    logo: "baic",
-    tags: ["chinese"],
-    alt: ["بايك", "بيك", "BAIC"],
-    models: [
-      { id: "x25", name: "إكس 25", en: "X25", body: "suv" },
-      { id: "x35", name: "إكس 35", en: "X35", body: "suv" },
-      { id: "x55", name: "إكس 55", en: "X55", body: "suv" },
-      { id: "x7", name: "إكس 7 (سبع مقاعد)", en: "X7", body: "suv" },
-      { id: "bj40", name: "BJ40 (دفع رباعي)", en: "BJ40", body: "suv", hot: true },
-      { id: "bj80", name: "BJ80", en: "BJ80", body: "suv" },
-      { id: "eu5", name: "EU5 كهربائية", en: "EU5 EV", body: "sedan", fuel: "ev" },
-      { id: "ec5", name: "EC5 كهربائية", en: "EC5 EV", body: "suv", fuel: "ev" },
-      { id: "senova-d20", name: "سينوفا D20", en: "Senova D20", body: "sedan" },
-    ],
-  },
-
+  
   /* ============================ جاك ============================ */
   {
     id: "jac",
@@ -411,107 +302,11 @@ export const CN_BRANDS: Brand[] = [
     ],
   },
 
-  /* ============================ نيو (كهربائية) ============================ */
-  {
-    id: "nio",
-    name: "نيو",
-    en: "NIO",
-    monogram: "NIO",
-    color: "#111827",
-    origin: "الصين",
-    logo: "nio",
-    tags: ["chinese", "electric"],
-    alt: ["نيو", "NIO"],
-    models: [
-      { id: "es6", name: "ES6 كهربائية", en: "ES6 EV", body: "suv", fuel: "ev" },
-      { id: "es7", name: "ES7 كهربائية", en: "ES7 EV", body: "suv", fuel: "ev" },
-      { id: "es8", name: "ES8 كهربائية", en: "ES8 EV", body: "suv", fuel: "ev" },
-      { id: "ec6", name: "EC6 كهربائية", en: "EC6 EV", body: "coupe", fuel: "ev" },
-      { id: "ec7", name: "EC7 كهربائية", en: "EC7 EV", body: "coupe", fuel: "ev" },
-      { id: "et5", name: "ET5 كهربائية", en: "ET5 EV", body: "sedan", fuel: "ev" },
-      { id: "et7", name: "ET7 كهربائية", en: "ET7 EV", body: "sedan", fuel: "ev" },
-    ],
-  },
-
-  /* ============================ إكس بينغ (كهربائية) ============================ */
-  {
-    id: "xpeng",
-    name: "إكس بينغ",
-    en: "XPeng",
-    monogram: "XP",
-    color: "#1D4ED8",
-    origin: "الصين",
-    logo: "xpeng",
-    tags: ["chinese", "electric"],
-    alt: ["إكس بينغ", "اكس بينج", "XPeng", "Xpeng"],
-    models: [
-      { id: "p5", name: "P5 كهربائية", en: "P5 EV", body: "sedan", fuel: "ev" },
-      { id: "p7", name: "P7 كهربائية", en: "P7 EV", body: "sedan", fuel: "ev" },
-      { id: "g3", name: "G3 كهربائية", en: "G3 EV", body: "suv", fuel: "ev" },
-      { id: "g6", name: "G6 كهربائية", en: "G6 EV", body: "suv", fuel: "ev" },
-      { id: "g9", name: "G9 كهربائية", en: "G9 EV", body: "suv", fuel: "ev" },
-      { id: "x9", name: "X9 كهربائية (عائلية)", en: "X9 EV", body: "van", fuel: "ev" },
-    ],
-  },
-
-  /* ============================ لي أوتو (مدى ممتد) ============================ */
-  {
-    id: "liauto",
-    name: "لي أوتو",
-    en: "Li Auto",
-    monogram: "Li",
-    color: "#059669",
-    origin: "الصين",
-    logo: "liauto",
-    tags: ["chinese", "electric"],
-    alt: ["لي أوتو", "لي اوتو", "Li Auto", "Lixiang"],
-    models: [
-      { id: "l7", name: "L7 (هايبرد مدى ممتد)", en: "L7 EREV", body: "suv", fuel: "hybrid" },
-      { id: "l8", name: "L8 (هايبرد مدى ممتد)", en: "L8 EREV", body: "suv", fuel: "hybrid" },
-      { id: "l9", name: "L9 (هايبرد مدى ممتد)", en: "L9 EREV", body: "suv", fuel: "hybrid" },
-      { id: "one", name: "ONE (هايبرد مدى ممتد)", en: "ONE EREV", body: "suv", fuel: "hybrid" },
-      { id: "mega", name: "ميغا كهربائية (عائلية)", en: "MEGA EV", body: "van", fuel: "ev" },
-    ],
-  },
-
-  /* ============================ زيكر (كهربائية) ============================ */
-  {
-    id: "zeekr",
-    name: "زيكر",
-    en: "Zeekr",
-    monogram: "ZK",
-    color: "#0F172A",
-    origin: "الصين",
-    logo: "zeekr",
-    tags: ["chinese", "electric"],
-    alt: ["زيكر", "Zeekr"],
-    models: [
-      { id: "001", name: "001 كهربائية", en: "001 EV", body: "hatchback", fuel: "ev" },
-      { id: "007", name: "007 كهربائية", en: "007 EV", body: "sedan", fuel: "ev" },
-      { id: "009", name: "009 كهربائية (فان)", en: "009 EV", body: "van", fuel: "ev" },
-      { id: "x", name: "X كهربائية", en: "X EV", body: "suv", fuel: "ev" },
-    ],
-  },
-
-  /* ============================ ديپال ============================ */
-  {
-    id: "deepal",
-    name: "ديپال",
-    en: "Deepal",
-    monogram: "DP",
-    color: "#0B4EA2",
-    origin: "الصين",
-    logo: "deepal",
-    tags: ["chinese", "electric"],
-    alt: ["ديپال", "ديبال", "Deepal"],
-    models: [
-      { id: "s7", name: "S7 كهربائية/هايبرد", en: "S7", body: "suv", fuel: "ev" },
-      { id: "sl03", name: "SL03 كهربائية/هايبرد", en: "SL03", body: "sedan", fuel: "ev" },
-      { id: "s05", name: "S05 كهربائية", en: "S05", body: "suv", fuel: "ev" },
-      { id: "g318", name: "G318 هايبرد", en: "G318", body: "suv", fuel: "hybrid" },
-    ],
-  },
-
+  
+  
+  
+  
+  
   /* ============================ وولينغ (كهربائية صغيرة) ============================ */
   {
     id: "wuling",
@@ -533,63 +328,9 @@ export const CN_BRANDS: Brand[] = [
     ],
   },
 
-  /* ============================ أومودا ============================ */
-  {
-    id: "omoda",
-    name: "أومودا",
-    en: "OMODA",
-    monogram: "OM",
-    color: "#0E7490",
-    origin: "الصين",
-    logo: "omoda",
-    tags: ["chinese"],
-    alt: ["أومودا", "اومودا", "OMODA"],
-    models: [
-      { id: "omoda-5", name: "أومودا 5", en: "OMODA 5", body: "suv", hot: true },
-      { id: "c5", name: "سي 5", en: "C5", body: "suv", hot: true },
-      { id: "c5-ev", name: "سي 5 كهربائية", en: "C5 EV", body: "suv", fuel: "ev" },
-    ],
-  },
-
-  /* ============================ جاكو ============================ */
-  {
-    id: "jaecoo",
-    name: "جاكو",
-    en: "JAECOO",
-    monogram: "JC",
-    color: "#166534",
-    origin: "الصين",
-    logo: "jaecoo",
-    tags: ["chinese"],
-    alt: ["جاكو", "Jaecoo"],
-    models: [
-      { id: "j6", name: "J6", en: "J6", body: "suv" },
-      { id: "j7", name: "J7", en: "J7", body: "suv", hot: true },
-      { id: "j8", name: "J8 (سبع مقاعد)", en: "J8", body: "suv" },
-    ],
-  },
-
-  /* ============================ لنك آند كو ============================ */
-  {
-    id: "lynkco",
-    name: "لنك آند كو",
-    en: "Lynk & Co",
-    monogram: "LY",
-    color: "#0F172A",
-    origin: "الصين",
-    logo: "lynkco",
-    tags: ["chinese", "electric"],
-    alt: ["لنك", "لينك اند كو", "Lynk", "Lynk & Co"],
-    models: [
-      { id: "01", name: "01 هايبرد", en: "01 PHEV", body: "suv", fuel: "hybrid" },
-      { id: "02", name: "02", en: "02", body: "suv" },
-      { id: "03", name: "03", en: "03", body: "sedan" },
-      { id: "05", name: "05", en: "05", body: "suv" },
-      { id: "06", name: "06", en: "06", body: "suv" },
-      { id: "09", name: "09 (عائلية هايبرد)", en: "09 PHEV", body: "van", fuel: "hybrid" },
-    ],
-  },
-
+  
+  
+  
   /* ==================== شاحنات صغيرة رائجة في منبج والمحيط ==================== */
   {
     id: "chana",
@@ -647,27 +388,4 @@ export const CN_BRANDS: Brand[] = [
       { id: "tunland", name: "تونلاند (بيك أب)", en: "Tunland", body: "pickup", hot: true },
       { id: "aumark", name: "أومارك (شاحنة)", en: "Aumark", body: "truck" },
     ],
-  },
-  {
-    id: "dfsk",
-    name: "سوكار (دي إف إس كي)",
-    en: "DFSK",
-    monogram: "DFSK",
-    color: "#0F4C81",
-    origin: "الصين",
-    logo: "dfsk",
-    tags: ["chinese"],
-    alt: ["سوكار", "دي اف اس كي", "DFSK", "سوكر"],
-    models: [
-      { id: "k01", name: "سوكار K01 (شاحنة صغيرة)", en: "K01", body: "lighttruck", hot: true },
-      { id: "k02", name: "سوكار K02 (شاحنة صغيرة)", en: "K02", body: "lighttruck" },
-      { id: "c31", name: "سوكار C31 (شاحنة صغيرة)", en: "C31", body: "lighttruck" },
-      { id: "c32", name: "سوكار C32 (شاحنة صغيرة)", en: "C32", body: "lighttruck" },
-      { id: "k05", name: "سوكار K05 (فان)", en: "K05", body: "van", hot: true },
-      { id: "k07", name: "سوكار K07 (فان)", en: "K07", body: "van" },
-      { id: "glory-330", name: "غلوري 330 (فان)", en: "Glory 330", body: "van" },
-      { id: "glory-580", name: "غلوري 580", en: "Glory 580", body: "suv" },
-      { id: "ix5", name: "سوكار ix5", en: "ix5", body: "suv" },
-    ],
-  },
-];
+  },];

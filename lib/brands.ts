@@ -7,6 +7,7 @@
 import { LOGOS } from "./logos";
 import { CAR_EXTRA, MOTO_BRANDS, EQUIP_BRANDS } from "./brands-more";
 import { CN_BRANDS } from "./brands-cn";
+import { INTL_CAR_BRANDS } from "./brands-intl";
 
 export { MOTO_BRANDS, EQUIP_BRANDS, CN_BRANDS };
 
@@ -81,6 +82,7 @@ export const BRANDS: Brand[] = [
       { id: "hd65", name: "شاحنة HD65", en: "HD65" },
       { id: "hd72", name: "شاحنة HD72", en: "HD72" },
       { id: "mighty", name: "شاحنة مايتي", en: "Mighty" },
+      { id: "equus", name: "إيكوس", en: "Equus", body: "sedan", hot: true },
     ],
   },
   {
@@ -636,6 +638,7 @@ export const BRANDS: Brand[] = [
 
 /* ماركات إضافية شائعة في السوق السوري (فورد، شيفروليه، هوندا، سوزوكي، دايو) */
 for (const b of CAR_EXTRA) BRANDS.push(b);
+for (const b of INTL_CAR_BRANDS) BRANDS.push(b);
 
 /* الماركات الصينية (شانجان، بي واي دي، جيلي، شيري، إم جي، هافال، جيتور… */
 for (const b of CN_BRANDS) BRANDS.push(b);
