@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Banknote,
@@ -9,6 +9,7 @@ import {
   Building,
   Building2,
   CalendarDays,
+  Camera,
   Car,
   CarFront,
   CheckCircle2,
@@ -17,6 +18,8 @@ import {
   Fuel,
   Home,
   Image as ImageIcon,
+  ImagePlus,
+  Images,
   Info,
   LandPlot,
   Layers,
@@ -50,6 +53,12 @@ import BrandSelector from "@/components/BrandSelector";
 import VehicleBodyIcon from "@/components/VehicleBodyIcon";
 import { BODY_TYPES, type BodyTypeId } from "@/lib/vehicleBodies";
 import { cn, formatMoney, nextRef, uid } from "@/lib/currency";
+import {
+  compressPhotoBatch,
+  MAX_AD_PHOTOS,
+  photosSizeMb,
+  isRealPhoto,
+} from "@/lib/photo";
 import {
   CONDITIONS,
   DEAL_TYPES,
@@ -233,10 +242,75 @@ export default function PostAdPage() {
   const [done, setDone] = useState<Ad | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewRef, setPreviewRef] = useState("BD-###");
+  /* رفع الصور من الجوال */
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [busyPhotos, setBusyPhotos] = useState<{ done: number; total: number } | null>(null);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => ({ ...e, [key]: "" }));
+  };
+
+  /* ---------------------- صور الإعلان: حقيقية + رسوم جاهزة ---------------------- */
+  /** الصور الحقيقية المرفوعة من الجهاز (الغلاف هو الأولى) */
+  const photos = form.images.filter(isRealPhoto);
+  /** رسوم بديل الجاهزة (art:…) — تبقى دائماً بعد الصور الحقيقية */
+  const artPicks = form.images.filter((s) => s.startsWith("art:"));
+  /** ترتيب ثابت: الصور الحقيقية أولاً ثم الرسوم */
+  const setPhotos = (nextPhotos: string[], nextArt = artPicks) =>
+    set("images", [...nextPhotos, ...nextArt]);
+  const setArtPicks = (nextArt: string[]) => set("images", [...photos, ...nextArt]);
+  const toggleArt = (src: string) =>
+    setArtPicks(artPicks.includes(src) ? artPicks.filter((s) => s !== src) : [...artPicks, src]);
+  const makeCover = (src: string) => setPhotos([src, ...photos.filter((p) => p !== src)]);
+
+  /** استقبال الملفات من الكاميرا أو المعرض: ضغط داخل الجوال ثم إضافة */
+  const onPickPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const files = Array.from(input.files ?? []);
+    input.value = ""; // يسمح بإعادة اختيار الصورة نفسها لاحقاً
+    if (!files.length) return;
+
+    const room = MAX_AD_PHOTOS - photos.length;
+    if (room <= 0) {
+      toast({
+        type: "error",
+        title: "الحد الأقصى للصور",
+        desc: `يمكن إضافة ${MAX_AD_PHOTOS} صور في الإعلان الواحد — احذف صورة ثم أعد المحاولة.`,
+      });
+      return;
+    }
+    const take = files.slice(0, room);
+    setBusyPhotos({ done: 0, total: take.length });
+    try {
+      const { photos: made, errors: failed } = await compressPhotoBatch(take, (d, t) =>
+        setBusyPhotos({ done: d, total: t })
+      );
+      if (made.length) setPhotos([...photos, ...made]);
+      if (failed.length) {
+        toast({
+          type: "error",
+          title: made.length ? "بعض الصور لم تُضف" : "لم تُضف الصور",
+          desc: failed[0],
+        });
+      } else if (made.length) {
+        toast({
+          type: "success",
+          title: made.length === 1 ? "تمت إضافة الصورة" : `تمت إضافة ${made.length} صور`,
+          desc: "ضُغطت داخل جوالك — الصورة الأولى هي غلاف الإعلان.",
+        });
+      }
+      if (files.length > take.length) {
+        toast({
+          type: "info",
+          title: "الحد الأقصى للصور",
+          desc: `أُضيفت أول ${take.length} صور فقط (الحد ${MAX_AD_PHOTOS} في الإعلان الواحد).`,
+        });
+      }
+    } finally {
+      setBusyPhotos(null);
+    }
   };
 
   const activeCities = cities.filter((c) => c.active);
@@ -1263,40 +1337,141 @@ export default function PostAdPage() {
           <Section
             step="6"
             title="صور الإعلان"
-            desc="اختياري — اختر صوراً من مكتبة بديل النموذجية (رفع الصور من الجهاز متاح في النسخة الكاملة)"
+            desc={`أضف صوراً حقيقية من جوالك — تُضغط تلقائياً. الصورة الأولى هي الغلاف (اختياري، حتى ${MAX_AD_PHOTOS} صور)`}
           >
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {SAMPLE_ART.map(({ key, label }) => {
-                const src = `art:${key}`;
-                const selected = form.images.includes(src);
-                return (
-                  <button
-                    type="button"
-                    key={key}
-                    onClick={() =>
-                      set("images", selected ? form.images.filter((s) => s !== src) : [...form.images, src])
-                    }
-                    className={cn(
-                      "relative aspect-[4/3] overflow-hidden rounded-xl border-2 transition",
-                      selected ? "border-amberBrand-500" : "border-transparent opacity-80 hover:opacity-100"
-                    )}
-                  >
-                    <AdArtwork
-                      ad={{ ...previewData, images: [src] }}
-                      className="h-full w-full"
-                    />
-                    <span className="absolute bottom-1 right-1 rounded bg-white/85 px-1.5 text-[10px] font-bold text-navy-700 dark:bg-navy-900/85 dark:text-navy-100">
-                      {label}
-                    </span>
-                    {selected && (
-                      <span className="absolute inset-0 flex items-center justify-center bg-navy-950/40">
-                        <CheckCircle2 size={22} className="text-white" />
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+            {/* ① أزرار الرفع: الكاميرا أو معرض الصور */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={busyPhotos !== null}
+                className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-amberBrand-400 bg-amberBrand-50/60 py-3 text-[13px] font-extrabold text-amberBrand-700 transition hover:bg-amberBrand-50 disabled:opacity-50 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+              >
+                <Camera size={17} /> التقط صورة
+              </button>
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                disabled={busyPhotos !== null}
+                className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-navy-300 py-3 text-[13px] font-extrabold text-navy-700 transition hover:bg-navy-50 disabled:opacity-50 dark:border-navy-600 dark:text-navy-100 dark:hover:bg-navy-800/60"
+              >
+                <Images size={17} /> من معرض الصور
+              </button>
             </div>
+
+            {/* حقول الملفات — مخفية، تُفتح بالأزرار أعلاه */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={onPickPhotos}
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={onPickPhotos}
+            />
+
+            {/* ② شريط التقدّم أثناء الضغط */}
+            {busyPhotos && (
+              <div className="mt-3 rounded-xl bg-navy-50 p-3 dark:bg-navy-800/60">
+                <p className="flex items-center gap-2 text-[12.5px] font-bold text-navy-700 dark:text-navy-100">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amberBrand-500 border-t-transparent" />
+                  جاري تجهيز الصور… {busyPhotos.done} من {busyPhotos.total}
+                </p>
+                <p className="mt-1 text-[11px] text-navy-400">
+                  تُضغط الصور داخل جوالك — لا تُرسل إلى أي مكان.
+                </p>
+              </div>
+            )}
+
+            {/* ③ الصور المرفوعة من الجهاز */}
+            {photos.length > 0 && (
+              <div className="mt-3">
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {photos.map((src, i) => (
+                    <div
+                      key={`${src.slice(0, 32)}-${i}`}
+                      className="relative aspect-[4/3] overflow-hidden rounded-xl border-2 border-navy-200 dark:border-navy-700"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={`صورة ${i + 1}`} className="h-full w-full object-cover" />
+                      {i === 0 && (
+                        <span className="absolute right-1 top-1 rounded-md bg-amberBrand-500 px-1.5 py-0.5 text-[9.5px] font-extrabold text-navy-900 shadow">
+                          الغلاف
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        title="حذف الصورة"
+                        onClick={() => setPhotos(photos.filter((_, idx) => idx !== i))}
+                        className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600/90 text-white shadow transition hover:bg-rose-700"
+                      >
+                        <X size={13} />
+                      </button>
+                      {i > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => makeCover(src)}
+                          className="absolute inset-x-1 bottom-1 rounded-md bg-navy-950/70 py-1 text-[9.5px] font-bold text-white backdrop-blur-sm transition hover:bg-navy-950/85"
+                        >
+                          اجعليها الغلاف
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="hint mt-2 inline-flex items-center gap-1.5">
+                  <ImagePlus size={13} /> {photos.length} صورة من جوالك · الحجم ≈{" "}
+                  {photosSizeMb(photos).toFixed(1)} م.ب مُضغوطة
+                </p>
+              </div>
+            )}
+
+            {/* ④ مكتبة رسوم بديل — تبقى متاحة كخيار إضافي */}
+            <div className="mt-4 border-t border-navy-100 pt-3 dark:border-navy-800">
+              <p className="mb-2 text-[12px] font-bold text-navy-500 dark:text-navy-300">
+                أو اختر من رسوم بديل الجاهزة (لِمن لا يملك صورة):
+              </p>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {SAMPLE_ART.map(({ key, label }) => {
+                  const src = `art:${key}`;
+                  const selected = artPicks.includes(src);
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      onClick={() => toggleArt(src)}
+                      className={cn(
+                        "relative aspect-[4/3] overflow-hidden rounded-xl border-2 transition",
+                        selected
+                          ? "border-amberBrand-500"
+                          : "border-transparent opacity-80 hover:opacity-100"
+                      )}
+                    >
+                      <AdArtwork
+                        ad={{ ...previewData, images: [src] }}
+                        className="h-full w-full"
+                      />
+                      <span className="absolute bottom-1 right-1 rounded bg-white/85 px-1.5 text-[10px] font-bold text-navy-700 dark:bg-navy-900/85 dark:text-navy-100">
+                        {label}
+                      </span>
+                      {selected && (
+                        <span className="absolute inset-0 flex items-center justify-center bg-navy-950/40">
+                          <CheckCircle2 size={22} className="text-white" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="mt-3 flex items-center justify-between">
               <p className="hint inline-flex items-center gap-1.5">
                 <ImageIcon size={13} /> {form.images.length} صورة مختارة

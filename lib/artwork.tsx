@@ -47,12 +47,14 @@ function hashKey(s: string): number {
   return Math.abs(h);
 }
 
-/** هل في الإعلان صورة حقيقية مرفوعة؟ (روابط خارجية أو مجلد رفع المستخدم) */
+/** هل في الإعلان صورة حقيقية مرفوعة؟ (رفع من الجهاز data: · روابط خارجية · مجلد رفع) */
 export function hasUploadedPhoto(ad: Ad): boolean {
   const src = ad.images?.[0];
   if (!src) return false;
   if (src.startsWith("art:")) return false;
-  return /^https?:\/\//i.test(src) || src.startsWith("/uploads/");
+  return (
+    src.startsWith("data:image/") || /^https?:\/\//i.test(src) || src.startsWith("/uploads/")
+  );
 }
 
 /* ------------------------------ عناصر مشتركة ------------------------------ */

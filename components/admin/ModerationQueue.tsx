@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/Toast";
-import { displayPhone, formatDate, timeAgo } from "@/lib/currency";
+import { displayPhone, formatDate, normalizePhone, timeAgo } from "@/lib/currency";
 import {
   bodyConditionName,
   categoryName,
@@ -105,7 +105,7 @@ export default function ModerationQueue() {
             <article key={ad.id} className="card overflow-hidden">
               <div className="flex gap-3 p-4">
                 <div className="h-24 w-28 shrink-0 overflow-hidden rounded-xl bg-navy-100 dark:bg-navy-800">
-                  {ad.images?.[0] ? (
+                  {ad.images?.[0] && !String(ad.images[0]).startsWith("art:") ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={ad.images[0]} alt="" className="h-full w-full object-cover" />
                   ) : (
@@ -184,7 +184,13 @@ export default function ModerationQueue() {
                   <ExternalLink size={14} /> معاينة
                 </a>
                 <a
-                  href={`https://wa.me/${ad.sellerWhatsapp.replace(/^0/, "963")}`}
+                  /* مهم: normalizePhone تتحمّل القيمة الفارغة/غير المعرّفة، وعند غياب
+                     رقم واتساب نرجع إلى رقم هاتف المُعلن — كان النداء المباشر
+                     ad.sellerWhatsapp.replace(…) يُنهَر اللوحة كلها إذا خلا إعلان من الرقم. */
+                  href={`https://wa.me/${normalizePhone(
+                    ad.sellerWhatsapp || ad.sellerPhone || "",
+                    settings.whatsappCountryCode
+                  )}`}
                   target="_blank"
                   rel="noreferrer"
                   className="btn-ghost btn-sm ms-auto"

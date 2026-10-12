@@ -49,7 +49,15 @@ export async function registerSW() {
   if (!swSupported()) return;
   let reloading = false;
 
+  /* مهم: هل كان هناك عامل يتحكم بالصفحة قبل هذه الزيارة؟
+     - لا  ⇒ هذا أول تسجيل للعامل، وسيطرة العامل الأولى تُطلق controllerchange
+             **ولا يجوز** إعادة تحميل الصفحة حينها: المستخدم قد يكون في منتصف
+             ملء إعلان (أو رفع صور) فتضيع كل بياناته.
+     - نعم ⇒ وصلت نسخة جديدة فعلياً، وعندها فقط نُحدّث الصفحة. */
+  const hadController = Boolean(navigator.serviceWorker.controller);
+
   navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) return; // أول سيطرة — بلا إعادة تحميل
     if (reloading) return;
     try {
       if (sessionStorage.getItem(RELOAD_FLAG) === "1") return;

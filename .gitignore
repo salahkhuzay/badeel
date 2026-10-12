@@ -44,3 +44,6 @@ next-env.d.ts
 /*.bundle
 /tmp
 /coverage
+
+# ملفات الاختبار المولَّدة (ينشئها qa/make-test-photos.mjs عند الحاجة)
+qa/fixtures/
