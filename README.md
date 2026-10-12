@@ -312,9 +312,9 @@ git clone badeel.bundle badeel
 2. اذهب إلى <https://vercel.com/new> → ستجد مستودع **badeel** في القائمة → اضغط **Import**.
 3. لا تغيّر أي إعداد (Vercel يتعرّف على Next.js تلقائياً) → اضغط **Deploy**.
 4. **مهم:** قبل الضغط على Deploy، غيّر **Project Name** إلى اسم فريد تحجزه لك، مثل
-   `badeel-sy` أو `badeel-manbij` — لأن الاسم `badeel` محجوز لجهة أخرى
+   **`badeel-online`** (الاسم المعتمد) — لأن الاسم `badeel` محجوز لجهة أخرى
    (`badeel.vercel.app` يعود لشركة «بدائل المستقبل للطاقة المتجددة»).
-   بعد ~60 ثانية تحصل على رابطك: `https://badeel-sy.vercel.app` مثلاً — وهذا **رابط الموقع**.
+   بعد ~60 ثانية تحصل على رابطك: **`https://badeel-online.vercel.app`** — وهذا **رابط الموقع الرسمي**.
    لا حاجة لحجز نطاق: المشروع يكتشف رابطه تلقائياً من Vercel.
 
 بدائل مكافئة: **Netlify** (netlify.com/new) · **Cloudflare Pages** · أي خادم Node.js
@@ -326,7 +326,7 @@ git clone badeel.bundle badeel
 
 | الاسم | القيمة |
 |---|---|
-| `NEXT_PUBLIC_SITE_URL` | **اختياري**: دومينك الخاص فقط (مثل `https://badeel-sy.com`). على Vercel **لا تحتاجه** — الرابط يُكتشف تلقائياً من اسم مشروعك. |
+| `NEXT_PUBLIC_SITE_URL` | **اختياري**: دومينك الخاص فقط (مثل `https://badeelonline.com`). على Vercel **لا تحتاجه** — الرابط يُكتشف تلقائياً من اسم مشروعك (`badeel-online`). |
 | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | رمز التحقق من Search Console (الخطوة ③) |
 
 **كيف يُحدَّد الرابط؟** بترتيب الأولوية (راجع `lib/site.ts`): `NEXT_PUBLIC_SITE_URL` ←
@@ -660,3 +660,22 @@ Netlify أو Cloudflare Pages لأنها تدعم Next.js كاملاً بلا ت
 | دراجات كهربائية | — | **7** (نوع جديد) |
 
 **التحقق:** فحص برمجي — كل الطرازات الـ66 الجديدة بنوع هيكلها الصحيح (صفر مخالفة). وفحص متصفح على التبويبات الخمسة: «دراجات كهربائية» يظهر بماركته، والجرارات والآليات والدراجات كلها ظاهرة بأسمائها، **صفر أخطاء JS**، وصفر إزاحة أفقية.
+
+---
+
+## 10.14 — اعتماد الاسم الرسمي «Badeel Online» (2026-10-12)
+
+**القرار:** الاسم المعتمد للمشروع على الإنترنت هو **Badeel Online** → الاسم اللاتيني للمشروع على Vercel: **`badeel-online`**، والرابط الرسمي:
+
+> ### 🔗 https://badeel-online.vercel.app
+
+| البند | القيمة |
+|---|---|
+| الاسم المعتمد | **Badeel Online** |
+| اسم مشروع Vercel | `badeel-online` |
+| الرابط الرسمي | `https://badeel-online.vercel.app` |
+| حالة الاسم | **متاح ومتحقَّق** — الرد قبل النشر صفحة «غير موجود» القياسية من Vercel (107 بايت)، أي لا مشروع آخر يملكه |
+| المستودع | `https://github.com/salahkhuzay/badeel` |
+| ملاحظة | الاسم `badeel` وحده محجوز لجهة أخرى؛ ولهذا الاعتماد على `badeel-online` — وهو الاسم الذي يُميّز الموقع في خرائط Google و`sitemap.xml` |
+
+**ما لا يحتاج أي تعديل:** الكود يكتشف الرابط من بيئة Vercel تلقائياً (`VERCEL_PROJECT_PRODUCTION_URL`)، فيخرج `sitemap.xml` و`robots.txt` ووسوم canonical كلها على `https://badeel-online.vercel.app` فور النشر بلا أي متغيّر.
