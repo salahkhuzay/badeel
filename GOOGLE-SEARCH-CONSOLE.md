@@ -62,6 +62,17 @@ https://badeel-online.vercel.app
 
 > **مهم:** لا تحذف الملف بعد التحقق — Google يعيد فحصه دورياً. وأنا أضعه في المشروع فيبقى دائماً.
 
+**✅ تمّت هذه الخطوة:** الملف المستلَم `googlec6252b70b80fe874.html` موجود الآن في `public/` بالاسم الدقيق نفسه، وبُني المشروع واختبُر محلياً:
+
+```
+GET /googlec6252b70b80fe874.html  →  200  |  text/html  |  53B
+المحتوى: google-site-verification: googlec6252b70b80fe874.html
+بعنوان Googlebot  →  200
+```
+
+الرابط الذي سيتحقق منه Google بعد النشر:
+`https://badeel-online.vercel.app/googlec6252b70b80fe874.html`
+
 ### بديل: وسم HTML (يحتاج تعديلاً في الكود)
 
 أرسل لي سطر `<meta name="google-site-verification" content="...">` وأضيفه في `app/layout.tsx` ونعيد النشر. يعمل بنفس الفعالية لكنه يعدّل الكود.
@@ -120,9 +131,9 @@ Google قد يستغرق أياماً. لتسريع ظهور أهم الصفحا
 
 ## ملخّص ما هو مطلوب منك الآن
 
-- [ ] إنشاء خاصية **URL prefix** في Search Console
-- [ ] تحميل **ملف التحقق HTML** وإرساله لي
-- [ ] الضغط على **Verify** بعد أن أرفعه
+- [x] ~~تحميل ملف التحقق HTML~~ ✅ **تم** — `googlec6252b70b80fe874.html` مضمَّن في المشروع
+- [ ] **دفع** الالتزام إلى GitHub (يحتاج توكن جديد) ← Vercel ينشر تلقائياً
+- [ ] الضغط على **Verify** في Search Console
 - [ ] إرسال `sitemap.xml`
 - [ ] **Request Indexing** لأهم 5 صفحات
 
