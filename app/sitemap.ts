@@ -3,11 +3,11 @@ import type { MetadataRoute } from "next";
 /* ==========================================================================
    خريطة الموقع (sitemap.xml) — تُقرأ تلقائياً من محركات البحث
    حدّد رابط النشر النهائي عبر متغيّر البيئة NEXT_PUBLIC_SITE_URL
-   مثال على Vercel: NEXT_PUBLIC_SITE_URL=https://badeel.vercel.app
+   الرابط يُكتشف تلقائياً (راجع lib/site.ts): نطاقك الخاص NEXT_PUBLIC_SITE_URL،
+   أو دومين مشروعك على Vercel تلقائياً — بلا أي عنوان ثابت يخصّ جهة أخرى.
    ========================================================================== */
 
-const BASE =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://badeel.vercel.app";
+import { SITE_URL as BASE } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

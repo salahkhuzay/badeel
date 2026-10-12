@@ -311,7 +311,11 @@ git clone badeel.bundle badeel
 1. افتح <https://vercel.com/signup> واختر **Continue with GitHub** (نفس حساب `salahkhuzay`).
 2. اذهب إلى <https://vercel.com/new> → ستجد مستودع **badeel** في القائمة → اضغط **Import**.
 3. لا تغيّر أي إعداد (Vercel يتعرّف على Next.js تلقائياً) → اضغط **Deploy**.
-4. بعد ~60 ثانية تحصل على رابط عام دائم، مثل: `https://badeel.vercel.app` — هذا هو **رابط الموقع**.
+4. **مهم:** قبل الضغط على Deploy، غيّر **Project Name** إلى اسم فريد تحجزه لك، مثل
+   `badeel-sy` أو `badeel-manbij` — لأن الاسم `badeel` محجوز لجهة أخرى
+   (`badeel.vercel.app` يعود لشركة «بدائل المستقبل للطاقة المتجددة»).
+   بعد ~60 ثانية تحصل على رابطك: `https://badeel-sy.vercel.app` مثلاً — وهذا **رابط الموقع**.
+   لا حاجة لحجز نطاق: المشروع يكتشف رابطه تلقائياً من Vercel.
 
 بدائل مكافئة: **Netlify** (netlify.com/new) · **Cloudflare Pages** · أي خادم Node.js
 (`npm ci && npm run build && npm start`).
@@ -322,15 +326,17 @@ git clone badeel.bundle badeel
 
 | الاسم | القيمة |
 |---|---|
-| `NEXT_PUBLIC_SITE_URL` | `https://badeel.vercel.app` (أو دومينك الخاص) |
+| `NEXT_PUBLIC_SITE_URL` | **اختياري**: دومينك الخاص فقط (مثل `https://badeel-sy.com`). على Vercel **لا تحتاجه** — الرابط يُكتشف تلقائياً من اسم مشروعك. |
 | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | رمز التحقق من Search Console (الخطوة ③) |
 
-ثم `Deployments → Redeploy` ليُطبَّق الرابط في `sitemap.xml` و`robots.txt` ووسوم `canonical`.
+**كيف يُحدَّد الرابط؟** بترتيب الأولوية (راجع `lib/site.ts`): `NEXT_PUBLIC_SITE_URL` ←
+`VERCEL_PROJECT_PRODUCTION_URL` (تلقائي) ← `VERCEL_URL` ← `localhost` للتشغيل المحلي.
+لا يوجد أي عنوان ثابت في الكود، فلا يمكن أن تشير خرائط الموقع لموقع جهة أخرى.
 
 ### ③ الظهور في نتائج Google (Search Console)
 
 1. افتح <https://search.google.com/search-console> → **Add property**.
-2. اختر **URL prefix** واكتب رابط موقعك الكامل، مثل `https://badeel.vercel.app/`.
+2. اختر **URL prefix** واكتب رابط موقعك الكامل (رابط Vercel الخاص بمشروعك، أو نطاقك).
 3. طريقة التحقق الأسهل: **HTML tag** → انسخ قيمة `content` فقط (سلسلة الرمز) وضعها في
    المتغيّر `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` في Vercel ثم Redeploy، وارجع واضغط **Verify**.
    (أو استخدم التحقق عبر DNS بـ TXT إن كان لديك دومين خاص.)
@@ -505,4 +511,31 @@ Netlify أو Cloudflare Pages لأنها تدعم Next.js كاملاً بلا ت
 | **`.env.example`** | أُزيل النطاق غير المملوك `https://badeel.sy` واستُبدل بتعليق عام يوجّه لضبط النطاق الحقيقي بعد النشر. |
 | **قنوات التواصل** | تبقى كما هي: **0993177597** (اتصال مباشر) + **واتساب — رد سريع** + فيسبوك، في التذييل وشريط الجوال وصفحة «كيف يعمل بديل». |
 | **التحقق** | فحص شامل لكل ملفات المشروع: **صفر** `mailto` أو عنوان بريد. وفحص 5 صفحات مباشرة: 0 مواضع بريد، والهاتف والواتساب ظاهران. |
-| **تنبيه قائم** | الرابط الافتراضي في `app/sitemap.ts` ما زال `https://badeel.vercel.app` وهو **مملوك لشركة أخرى** («بدائل المستقبل للطاقة المتجددة») → يجب ضبط `NEXT_PUBLIC_SITE_URL` قبل النشر. |
+| **تنبيه قائم** | ~~الرابط الافتراضي `badeel.vercel.app`~~ → **حُلّ في §10.10**: لم يبقَ أي عنوان ثابت، والرابط يُكتشف تلقائياً من بيئة النشر. |
+
+---
+
+## 10.10 — كشف رابط الموقع تلقائياً بدل العنوان الثابت (2026-10-12)
+
+**المشكلة:** كان `app/sitemap.ts` و`app/robots.ts` و`app/layout.tsx` تستخدم عنواناً افتراضياً ثابتاً
+`https://badeel.vercel.app` — وهو **مملوك لجهة أخرى** («بدائل المستقبل للطاقة المتجددة»)، أي أن
+خرائط الموقع ووسوم canonical كانت قد تشير إلى موقع طرف ثالث إن لم يُضبط المتغيّر.
+
+**الحل — ملف جديد `lib/site.ts`** يحلّ الرابط بترتيب أولوية، بلا أي عنوان ثابت في الكود:
+
+| # | المصدر | متى يُستخدم |
+|---|---|---|
+| ① | `NEXT_PUBLIC_SITE_URL` | إن كان لديك نطاق خاص |
+| ② | `VERCEL_PROJECT_PRODUCTION_URL` | تلقائياً على Vercel (دومين مشروعك) |
+| ③ | `VERCEL_URL` | تلقائياً لروابط المعاينة على Vercel |
+| ④ | `http://localhost:3000` | للتشغيل المحلي فقط |
+
+ويُستخدم `SITE_URL` الآن في: `app/sitemap.ts` · `app/robots.ts` · `metadataBase` في `app/layout.tsx`.
+كما يُطلق الملف **تنبيهاً في سجل البناء** إن بُني للإنتاج بلا رابط مضبوط.
+
+**التحقق العملي:** ببناءٍ مع `VERCEL_PROJECT_PRODUCTION_URL=badeel-sy.vercel.app` صار المولَّد:
+`sitemap.xml` → كل الروابط `https://badeel-sy.vercel.app/...` و`robots.txt` → `Host: https://badeel-sy.vercel.app`
+(لا أثر للعنوان القديم). واختُبرت الحالات الخمس: نطاق خاص ببروتوكول وبلا بروتوكول، ومحاكاة Vercel، والرابط المحلي.
+
+**النتيجة:** لا تحتاج حجز نطاق إجبارياً — يكفي اختيار **اسم مشروع فريد** على Vercel، ويُكتشف الرابط
+تلقائياً. وإن حجزت نطاقاً لاحقاً فاضبط `NEXT_PUBLIC_SITE_URL` فقط.

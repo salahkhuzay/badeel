@@ -5,8 +5,7 @@ import type { MetadataRoute } from "next";
    ويمنع أرشفة صفحات الإدارة والصفحات غير المفيدة للبحث.
    ========================================================================== */
 
-const BASE =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://badeel.vercel.app";
+import { SITE_URL as BASE } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {
