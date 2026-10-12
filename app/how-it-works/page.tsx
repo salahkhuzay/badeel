@@ -377,8 +377,8 @@ export default function HowItWorksPage() {
 
       <p className="container-page mt-6 text-center text-[11.5px] text-navy-400">
         <CheckCircle2 size={12} className="mx-1 inline text-emeraldBrand-500" />
-        كل ما تقرأه هنا مُطبَّق فعلياً في هذه النسخة التجريبية: جرّب إضافة إعلان ثم وافِق عليه من لوحة
-        التحكم.
+        كل ما تقرأه هنا مُطبَّق فعلياً في الموقع: جرّب إضافة إعلان (بصورك من جوالك) ثم وافِق عليه
+        من لوحة التحكم.
         <Trash2 size={0} className="hidden" />
       </p>
     </div>

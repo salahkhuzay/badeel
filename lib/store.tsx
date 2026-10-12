@@ -17,7 +17,7 @@ import type {
   ModerationAction,
   Settings,
 } from "./types";
-import { SEED_ADS, SEED_CITIES, SEED_SETTINGS } from "./seed";
+import { SEED_ADS, SEED_CITIES, SEED_SETTINGS, isDemoAdRef } from "./seed";
 import { convert, safeStorage, uid } from "./currency";
 import { contactDigits, migrateContactPhone } from "./contact";
 import { ADMIN_USERNAME, hashPassword, safeEqual } from "./auth";
@@ -84,7 +84,11 @@ const plusMinutes = (m: number) => new Date(Date.now() + m * 60000).toISOString(
 
 function normalize(saved: Partial<AppState>): Partial<AppState> {
   const cities = saved.cities ?? initialState.cities;
-  const ads = (saved.ads ?? initialState.ads).map((ad) => {
+  /* تنظيف الإعلانات التجريبية من ذاكرة الزائر: حُذفت هذه الإعلانات من الموقع
+     (2026-10-12)، لكن من سبق له زيارة الموقع ما زال يحملها في متصفحه.
+     القائمة صريحة (DEMO_AD_REFS) وكل إعلان حقيقي يبدأ من BD-8001،
+     لذلك يستحيل أن يُحذف إعلان حقيقي هنا. */
+  const ads = (saved.ads ?? initialState.ads).filter((ad) => !isDemoAdRef(ad?.ref)).map((ad) => {
     /* ترحيل: إزالة حقول المنطقة القديمة من الإعلانات المحفوظة سابقاً */
     const { districtId, districtLabel, districtKind, ...rest } = ad as Ad & {
       districtId?: string;

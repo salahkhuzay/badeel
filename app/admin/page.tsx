@@ -146,9 +146,13 @@ export default function AdminPage() {
           </Link>
           <button
             onClick={() => {
-              if (confirm("إعادة تعيين البيانات التجريبية بالكامل؟")) {
+              if (
+                confirm(
+                  "تحذير: سيُحذف كل إعلان في المنصة (بما فيها الإعلانات الحقيقية) وتعود الإعدادات إلى حالتها الأولى. لا يمكن التراجع — هل تريد المتابعة؟"
+                )
+              ) {
                 resetDemoSafe();
-                toast({ type: "info", title: "تمت إعادة تعيين البيانات" });
+                toast({ type: "info", title: "تمت إعادة تعيين بيانات المنصة" });
               }
             }}
             className="btn-ghost btn-sm"

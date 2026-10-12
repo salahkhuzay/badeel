@@ -158,12 +158,21 @@ export function uid(prefix = "id") {
     .slice(-4)}`;
 }
 
+/**
+ * أرضية أرقام الإعلانات الحقيقية.
+ * الإعلانات التجريبية (المحذوفة) كانت تستخدم الأرقام 1001–7006، فلو بدأنا من
+ * 1001 بعد حذفها لحمل أول إعلان حقيقي رقم إعلان تجريبي — والتباسٌ كهذا قد يجعل
+ * تنظيف الذاكرة يحذف إعلاناً حقيقياً. لذلك تبدأ الأرقام الحقيقية من 8001.
+ */
+export const REF_FLOOR = 8000;
+
 export function nextRef(existing: Ad[]) {
   const nums = existing
     .map((a) => parseInt((a.ref || "").replace(/\D/g, ""), 10))
     .filter((n) => !Number.isNaN(n));
-  const max = nums.length ? Math.max(...nums) : 1000;
-  return `BD-${max + 1}`;
+  const max = nums.length ? Math.max(...nums) : REF_FLOOR;
+  /* لا ننزل أبداً تحت الأرضية، حتى لو كانت القائمة تحوي أرقاماً تجريبية قديمة */
+  return `BD-${Math.max(max, REF_FLOOR) + 1}`;
 }
 
 /** تخزين آمن: يعمل حتى لو كانت التخزين المحلي محجوباً (iframe sandbox) */

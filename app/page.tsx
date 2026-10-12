@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import AdCard from "@/components/AdCard";
+import EmptyState from "@/components/EmptyState";
 import Price from "@/components/Price";
 import { compactMoney } from "@/lib/currency";
 import { MAIN_CATEGORIES, PROPERTY_TYPES, VEHICLE_TYPES, dealTypeName } from "@/lib/taxonomy";
@@ -378,7 +379,9 @@ export default function HomePage() {
               أحدث الإعلانات المعتمدة
             </h2>
             <p className="mt-1 text-[12.5px] text-navy-500 dark:text-navy-300">
-              إعلانات راجعها فريق بديل ونشرها — {activeAds.length} إعلاناً نشطاً
+              {activeAds.length
+                ? `إعلانات راجعها فريق بديل ونشرها — ${activeAds.length} إعلاناً نشطاً`
+                : "إعلانات حقيقية من أهالي منبج — تُراجع وتُنشر أولاً بأول"}
             </p>
           </div>
           <div className="flex max-w-full gap-0.5 overflow-x-auto rounded-xl bg-navy-100/80 p-1 dark:bg-navy-800">
@@ -406,17 +409,37 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="grid-ads">
-          {listings.map((ad) => (
-            <AdCard key={ad.id} ad={ad} />
-          ))}
-        </div>
+        {listings.length ? (
+          <div className="grid-ads">
+            {listings.map((ad) => (
+              <AdCard key={ad.id} ad={ad} />
+            ))}
+          </div>
+        ) : (
+          /* لا إعلانات بعد — دعوة صريحة للنشر بدل شبكة فارغة */
+          <EmptyState
+            icon={<PlusCircle size={26} />}
+            title={
+              tab === "all"
+                ? "لا إعلانات منشورة بعد"
+                : `لا إعلانات في هذا التصنيف بعد`
+            }
+            desc="بديل منصة جديدة لأهالي منبج — كن أول من ينشر إعلاناً هنا، والإعلان مجاني ويُراجع خلال ساعات."
+            action={
+              <Link href="/post-ad" className="btn-amber px-6">
+                <PlusCircle size={16} /> أضف إعلانك مجاناً
+              </Link>
+            }
+          />
+        )}
 
-        <div className="mt-6 flex justify-center">
-          <Link href="/search" className="btn-ghost px-6">
-            عرض جميع الإعلانات <ArrowLeft size={16} />
-          </Link>
-        </div>
+        {listings.length > 0 && (
+          <div className="mt-6 flex justify-center">
+            <Link href="/search" className="btn-ghost px-6">
+              عرض جميع الإعلانات <ArrowLeft size={16} />
+            </Link>
+          </div>
+        )}
       </section>
 
       {/* ==================== المدن المتوفرة (بدون أحياء) ==================== */}

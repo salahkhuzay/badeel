@@ -18,7 +18,7 @@ import { displayPhone, formatMoney } from "@/lib/currency";
 import { contactNumbers } from "@/lib/contact";
 import SecurityPanel from "./SecurityPanel";
 
-/** إعدادات المنصة: سعر الصرف، بيانات التواصل، وإعادة تعيين البيانات التجريبية */
+/** إعدادات المنصة: سعر الصرف، بيانات التواصل، وإعادة تعيين بيانات المنصة */
 export default function SettingsPanel() {
   const { settings, updateSettings, resetDemo, ads } = useStore();
   const toast = useToast();
@@ -223,24 +223,28 @@ export default function SettingsPanel() {
             <ShieldAlert size={16} /> منطقة الخطر
           </h3>
           <p className="mt-2 text-[12px] leading-relaxed text-navy-600 dark:text-navy-200">
-            إعادة التعيين تُرجع كل الإعلانات والأحياء والإعدادات إلى الحالة الافتراضية (33 إعلاناً
-            تجريبياً تغطي التصنيفات الستّة: عقارات، مركبات، أثاث، أجهزة كهربائية، ملابس، وظائف)،
-            وتُحذف كل الإضافات والتعديلات التي أجريتها من لوحة التحكم.
+            إعادة التعيين <b>تحذف كل الإعلانات الموجودة</b> (بما فيها الإعلانات الحقيقية التي
+            نشرها المستخدمون) وتُرجع الإعدادات والمدن إلى حالتها الأولى. لا تُستعاد الإعلانات
+            التجريبية — فقد حُذفت من الموقع نهائياً.
           </p>
           <button
             type="button"
             onClick={() => {
-              if (confirm("تأكيد إعادة تعيين كل بيانات المنصة إلى الحالة الافتراضية؟")) {
+              if (
+                confirm(
+                  "تحذير: سيُحذف كل إعلان في المنصة (بما فيها الإعلانات الحقيقية) وتعود الإعدادات إلى حالتها الأولى. لا يمكن التراجع — هل تريد المتابعة؟"
+                )
+              ) {
                 resetDemo();
-                toast({ type: "info", title: "تمت إعادة تعيين البيانات التجريبية" });
+                toast({ type: "info", title: "تمت إعادة تعيين بيانات المنصة" });
               }
             }}
             className="btn-danger mt-4 w-full justify-center"
           >
-            <Trash2 size={15} /> إعادة تعيين البيانات التجريبية
+            <Trash2 size={15} /> إعادة تعيين بيانات المنصة
           </button>
           <p className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-navy-400">
-            <RefreshCw size={11} /> لا يؤثر على المنشورات الحقيقية لاحقاً (سيُحمى بصلاحيات خادم).
+            <RefreshCw size={11} /> عدد الإعلانات الحالية: {ads.length} — ستُحذف كلها.
           </p>
         </div>
       </div>
