@@ -33,6 +33,7 @@ import {
 import type { Ad } from "@/lib/types";
 import { categoryIcon } from "@/components/CategoryIcon";
 import { adSpecs } from "@/components/AdSpecs";
+import AdArtwork from "@/lib/artwork";
 
 /** طابور المراجعة: كل إعلان جديد يبدأ بحالة "قيد المراجعة" ولا يُنشر إلا بعد الموافقة */
 export default function ModerationQueue() {
@@ -108,9 +109,7 @@ export default function ModerationQueue() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={ad.images[0]} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-navy-400">
-                      {categoryIcon(ad.category, 26)}
-                    </div>
+                    <AdArtwork ad={ad} className="h-full w-full" showSky={false} />
                   )}
                 </div>
 

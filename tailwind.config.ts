@@ -55,13 +55,15 @@ const config: Config = {
         },
       },
       fontFamily: {
+        /* خطوط النظام العربية — بلا اعتماد على أي خط خارجي */
         sans: [
-          "Noto Kufi Arabic",
-          "Cairo",
-          "Segoe UI",
-          "Tahoma",
           "system-ui",
           "-apple-system",
+          "Segoe UI",
+          "Tahoma",
+          "Noto Kufi Arabic",
+          "Cairo",
+          "Arial",
           "sans-serif",
         ],
       },

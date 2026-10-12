@@ -36,6 +36,7 @@ import { BRANDS } from "@/lib/brands";
 import BrandIcon from "@/components/BrandIcon";
 import CategoryTile, { categoryIcon } from "@/components/CategoryIcon";
 import type { MainCategory } from "@/lib/types";
+import AdArtwork from "@/lib/artwork";
 
 export default function HomePage() {
   const router = useRouter();
@@ -570,12 +571,7 @@ export default function HomePage() {
                     className="group flex items-center gap-3 py-3 transition hover:bg-navy-50/60 dark:hover:bg-navy-800/40"
                   >
                     <span className="flex h-12 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-navy-100 dark:bg-navy-800">
-                      {ad.images?.[0] ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={ad.images[0]} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <Building2 size={18} className="text-navy-400" />
-                      )}
+                      <AdArtwork ad={ad} className="h-full w-full" showSky={false} />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[13px] font-bold text-navy-800 group-hover:text-amberBrand-600 dark:text-navy-50">

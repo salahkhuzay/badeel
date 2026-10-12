@@ -54,6 +54,7 @@ import {
   propertyTypeName,
   vehicleTypeName,
 } from "@/lib/taxonomy";
+import AdArtwork from "@/lib/artwork";
 
 export default function AdDetailPage() {
   const params = useParams<{ ref: string }>();
@@ -141,7 +142,7 @@ export default function AdDetailPage() {
           {/* المعرض */}
           <div className="card overflow-hidden">
             <div className="relative aspect-[16/10] bg-navy-100 dark:bg-navy-800">
-              {ad.images?.length ? (
+              {ad.images?.length && !String(ad.images[imgIndex]).startsWith("art:") ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={ad.images[imgIndex]}
@@ -149,10 +150,10 @@ export default function AdDetailPage() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full flex-col items-center justify-center gap-2 text-navy-400">
-                  {categoryIcon(ad.category, 54, "text-navy-400")}
-                  <p className="text-xs font-semibold">لم يُرفق المُعلن صوراً لهذا الإعلان</p>
-                </div>
+                <AdArtwork
+                  ad={ad.images?.length ? { ...ad, images: [ad.images[imgIndex]] } : ad}
+                  className="h-full w-full"
+                />
               )}
 
               <div className="absolute right-3 top-3 flex gap-2">
@@ -180,8 +181,12 @@ export default function AdDetailPage() {
                       i === imgIndex ? "border-amberBrand-500" : "border-transparent opacity-70"
                     }`}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" className="h-full w-full object-cover" />
+                    {src.startsWith("art:") ? (
+                      <AdArtwork ad={{ ...ad, images: [src] }} className="h-full w-full" showSky={false} />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={src} alt="" className="h-full w-full object-cover" />
+                    )}
                   </button>
                 ))}
               </div>

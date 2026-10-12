@@ -180,6 +180,11 @@ const icons: Record<BodyIconKey, React.ReactNode> = {
   ),
 };
 
+/** أشكال الأيقونة بلا حاوٍ — لإعادة استخدامها داخل الرسوم الكبيرة */
+export function BodyIconShapes({ type }: { type: BodyIconKey }) {
+  return <>{icons[type] ?? icons.other}</>;
+}
+
 export default function VehicleBodyIcon({
   type,
   size = 48,

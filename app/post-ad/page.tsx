@@ -84,6 +84,7 @@ import type {
   PropertyType,
   VehicleType,
 } from "@/lib/types";
+import AdArtwork from "@/lib/artwork";
 
 /* أيقونات */
 const CATEGORY_ICON: Record<MainCategory, React.ReactNode> = {
@@ -122,15 +123,24 @@ const VEHICLE_ICONS: Record<VehicleType, React.ReactNode> = {
   machinery: <Tractor size={20} />,
 };
 
-const SAMPLE_IMAGES = [
-  "/images/apt-1.jpg",
-  "/images/house-1.jpg",
-  "/images/land-1.jpg",
-  "/images/shop-1.jpg",
-  "/images/car-1.jpg",
-  "/images/truck-1.jpg",
-  "/images/moto-1.jpg",
-  "/images/tractor-1.jpg",
+/* مكتبة رسوم مدمجة (SVG مرسوم داخل الصفحة — بلا ملفات ولا طلبات شبكة) */
+const SAMPLE_ART: { key: string; label: string }[] = [
+  { key: "house", label: "منزل" },
+  { key: "apartment", label: "شقة" },
+  { key: "land", label: "أرض" },
+  { key: "shop", label: "محل" },
+  { key: "sedan", label: "سيارة" },
+  { key: "suv", label: "رباعية" },
+  { key: "pickup", label: "بيك أب" },
+  { key: "truck", label: "شاحنة" },
+  { key: "lighttruck", label: "شاحنة صغيرة" },
+  { key: "motorcycle", label: "دراجة" },
+  { key: "tractor", label: "جرار" },
+  { key: "phone", label: "هاتف" },
+  { key: "sofa", label: "أثاث" },
+  { key: "fridge", label: "جهاز" },
+  { key: "shirt", label: "ملابس" },
+  { key: "briefcase", label: "وظيفة" },
 ];
 
 interface FormState {
@@ -1256,12 +1266,13 @@ export default function PostAdPage() {
             desc="اختياري — اختر صوراً من مكتبة بديل النموذجية (رفع الصور من الجهاز متاح في النسخة الكاملة)"
           >
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {SAMPLE_IMAGES.map((src) => {
+              {SAMPLE_ART.map(({ key, label }) => {
+                const src = `art:${key}`;
                 const selected = form.images.includes(src);
                 return (
                   <button
                     type="button"
-                    key={src}
+                    key={key}
                     onClick={() =>
                       set("images", selected ? form.images.filter((s) => s !== src) : [...form.images, src])
                     }
@@ -1270,8 +1281,13 @@ export default function PostAdPage() {
                       selected ? "border-amberBrand-500" : "border-transparent opacity-80 hover:opacity-100"
                     )}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" className="h-full w-full object-cover" />
+                    <AdArtwork
+                      ad={{ ...previewData, images: [src] }}
+                      className="h-full w-full"
+                    />
+                    <span className="absolute bottom-1 right-1 rounded bg-white/85 px-1.5 text-[10px] font-bold text-navy-700 dark:bg-navy-900/85 dark:text-navy-100">
+                      {label}
+                    </span>
                     {selected && (
                       <span className="absolute inset-0 flex items-center justify-center bg-navy-950/40">
                         <CheckCircle2 size={22} className="text-white" />

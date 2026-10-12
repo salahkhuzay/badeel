@@ -21,6 +21,7 @@ import { InlinePrice } from "@/components/Price";
 import { formatDate, timeAgo } from "@/lib/currency";
 import { STATUS_META, categoryName, categoryShort, plateRegionName } from "@/lib/taxonomy";
 import type { Ad, AdStatus } from "@/lib/types";
+import AdArtwork from "@/lib/artwork";
 
 const FILTERS: { id: AdStatus | "all"; name: string }[] = [
   { id: "all", name: "الكل" },
@@ -121,10 +122,7 @@ export default function AdsTable() {
                 <td>
                   <div className="flex items-center gap-2.5">
                     <span className="h-10 w-12 shrink-0 overflow-hidden rounded-lg bg-navy-100 dark:bg-navy-800">
-                      {ad.images?.[0] ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={ad.images[0]} alt="" className="h-full w-full object-cover" />
-                      ) : null}
+                      <AdArtwork ad={ad} className="h-full w-full" showSky={false} />
                     </span>
                     <span className="min-w-0">
                       <Link

@@ -23,6 +23,8 @@ import { useStore } from "@/lib/store";
 import { compactMoney, timeAgo } from "@/lib/currency";
 import { categoryName } from "@/lib/taxonomy";
 import { themeOf } from "@/lib/theme";
+import AdArtwork from "@/lib/artwork";
+import { hasUploadedPhoto } from "@/lib/artwork";
 import { adChips, dealBadge } from "./AdSpecs";
 import Price from "./Price";
 import StatusBadge from "./StatusBadge";
@@ -43,7 +45,7 @@ export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: bool
   const wa = `https://wa.me/${normalize(ad.sellerWhatsapp, settings.whatsappCountryCode)}?text=${waText}`;
   const tel = `tel:+${normalize(ad.sellerPhone, settings.whatsappCountryCode)}`;
 
-  const img = ad.images?.[0];
+  const img = hasUploadedPhoto(ad) ? ad.images?.[0] : undefined;
   const deal = dealBadge(ad);
   const theme = themeOf(ad.category);
 
@@ -60,12 +62,10 @@ export default function AdCard({ ad, compact = false }: { ad: Ad; compact?: bool
             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-navy-800 to-navy-900 text-navy-500">
-            {CATEGORY_FALLBACK_ICON[ad.category]}
-            <span className="absolute bottom-3 text-[11px] font-semibold text-navy-300">
-              لا توجد صور — تواصل مع المُعلن
-            </span>
-          </div>
+          <AdArtwork
+            ad={ad}
+            className="h-full w-full transition duration-500 group-hover:scale-[1.04]"
+          />
         )}
 
         {/* شريط علوي */}

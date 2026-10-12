@@ -38,6 +38,7 @@ import {
 } from "@/lib/taxonomy";
 import StatusBadge from "./StatusBadge";
 import Price from "./Price";
+import AdArtwork from "@/lib/artwork";
 
 /* ==========================================================================
    شاشة المعاينة الكاملة — تعرض الإعلان بنفس شكل صفحة النشر النهائية
@@ -178,16 +179,18 @@ export default function AdPreviewModal({
               {/* المعرض */}
               <div className="card overflow-hidden">
                 <div className="relative aspect-[16/10] bg-navy-100 dark:bg-navy-800">
-                  {ad.images?.length ? (
+                  {ad.images?.length && !String(ad.images[imgIndex]).startsWith("art:") ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={ad.images[imgIndex]} alt={ad.title} className="h-full w-full object-cover" />
                   ) : (
-                    <div className="flex h-full flex-col items-center justify-center gap-2 text-navy-400">
-                      {isRealEstate ? <Building2 size={54} /> : <Car size={54} />}
-                      <p className="text-xs font-semibold">
-                        لم تختر أي صورة — يمكنك إضافة صور من مكتبة بديل قبل الإرسال
-                      </p>
-                    </div>
+                    <AdArtwork
+                      ad={
+                        ad.images?.length
+                          ? { ...ad, images: [ad.images[imgIndex]] }
+                          : ad
+                      }
+                      className="h-full w-full"
+                    />
                   )}
                   <div className="absolute right-3 top-3 flex gap-2">
                     <span className="badge bg-white/95 text-navy-700 dark:bg-navy-900/95 dark:text-navy-100">
@@ -207,8 +210,12 @@ export default function AdPreviewModal({
                           i === imgIndex ? "border-amberBrand-500" : "border-transparent opacity-70 hover:opacity-100"
                         }`}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={src} alt="" className="h-full w-full object-cover" />
+                        {src.startsWith("art:") ? (
+                          <AdArtwork ad={{ ...ad, images: [src] }} className="h-full w-full" showSky={false} />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={src} alt="" className="h-full w-full object-cover" />
+                        )}
                       </button>
                     ))}
                   </div>

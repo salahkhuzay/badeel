@@ -1,5 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Noto+Kufi+Arabic:wght@400;500;600;700;800&display=swap");
-
+/* الخطوط: خطوط النظام العربية أولاً — بلا أي طلب خارجي (تظهر دائماً وبلا انتظار) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

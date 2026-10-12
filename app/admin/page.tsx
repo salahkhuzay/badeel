@@ -182,7 +182,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[240px_1fr]">
+      {/* minmax(0,1fr) يمنع أي إزاحة أفقية على الجوال مهما اتسع محتوى الأعمدة */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[240px_1fr]">
         {/* القائمة الجانبية */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <nav className="card flex gap-1 overflow-x-auto p-2 lg:flex-col lg:overflow-visible">
