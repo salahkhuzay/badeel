@@ -94,11 +94,15 @@ function normalize(saved: Partial<AppState>): Partial<AppState> {
   });
   /* دمج إعدادات الأمان الجديدة إن كانت النسخة المحفوظة أقدم */
   const settings = { ...SEED_SETTINGS, ...(saved.settings ?? {}) };
-  /* ترحيل: تصحيح رقم الدعم القديم المخزَّن عند من سبق أن فتح المنصة
-     (يشمل كل صيغ الكتابة: 0933… / +963933… / 00963933… / 963933…) */
-  const LEGACY_PHONES = ["0933177597", "0933177595"];
+  /* ترحيل: تصحيح رقم الدعم المخزَّن في متصفح من سبق أن فتح المنصة
+     (الرقم الصحيح: 0933177597 — ونُصحّح أي صيغة قديمة محفوظة عنده:
+     0993… / +963993… / 00963993… / 963993… وبأي شكل كتابة) */
+  const LEGACY_PHONES = ["0993177597", "0993177595"];
   const digits = String(settings.contactPhone ?? "").replace(/\D/g, "");
-  const isLegacyPhone = LEGACY_PHONES.includes(settings.contactPhone ?? "") || /93317759[57]$/.test(digits);
+  const isLegacyPhone =
+    LEGACY_PHONES.includes(settings.contactPhone ?? "") ||
+    /99317759[57]$/.test(digits) || // عائلة 0993… القديمة بكل صيغها
+    /933177595$/.test(digits); // النهاية الخاطئة 5 من عائلة 0933…
   if (!settings.contactPhone || isLegacyPhone) settings.contactPhone = SEED_SETTINGS.contactPhone;
   const auth = { ...initialAuth, ...(saved.auth ?? {}) };
   /* إن كان الإعداد القديم يحتوي authUser فقد أُلغيت هذه الحالة */

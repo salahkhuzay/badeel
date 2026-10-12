@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS: Settings = {
   usdToSyp: 13000,
   whatsappCountryCode: "963",
   siteSlogan: "بديل — خيارك الأفضل للبيع والشراء في منبج",
-  contactPhone: "0993177597", // هاتف التواصل والدعم (اتصال + واتساب)
+  contactPhone: "0933177597", // هاتف التواصل والدعم (اتصال + واتساب)
   facebookUrl: "https://www.facebook.com/", // يُستبدل بصفحة بديل الرسمية لاحقاً
   /* ---- الأمان ---- */
   adminUsername: ADMIN_USERNAME,
