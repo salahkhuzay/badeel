@@ -15,6 +15,7 @@ import {
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/Toast";
 import { displayPhone, formatMoney } from "@/lib/currency";
+import { contactNumbers } from "@/lib/contact";
 import SecurityPanel from "./SecurityPanel";
 
 /** إعدادات المنصة: سعر الصرف، بيانات التواصل، وإعادة تعيين البيانات التجريبية */
@@ -24,6 +25,7 @@ export default function SettingsPanel() {
 
   const [rate, setRate] = useState(String(settings.usdToSyp));
   const [phone, setPhone] = useState(settings.contactPhone);
+  const [phone2, setPhone2] = useState(settings.contactPhone2 ?? "");
   const [cc, setCc] = useState(settings.whatsappCountryCode);
   const [slogan, setSlogan] = useState(settings.siteSlogan);
   const [facebook, setFacebook] = useState(settings.facebookUrl);
@@ -31,6 +33,7 @@ export default function SettingsPanel() {
   useEffect(() => {
     setRate(String(settings.usdToSyp));
     setPhone(settings.contactPhone);
+    setPhone2(settings.contactPhone2 ?? "");
     setCc(settings.whatsappCountryCode);
     setSlogan(settings.siteSlogan);
     setFacebook(settings.facebookUrl);
@@ -50,6 +53,7 @@ export default function SettingsPanel() {
     updateSettings({
       usdToSyp: r,
       contactPhone: phone.trim(),
+      contactPhone2: phone2.trim(),
       whatsappCountryCode: cc.replace(/\D/g, "") || "963",
       siteSlogan: slogan.trim(),
       facebookUrl: facebook.trim() || settings.facebookUrl,
@@ -116,7 +120,7 @@ export default function SettingsPanel() {
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="label">رقم الدعم</label>
+            <label className="label">رقم الدعم (الأساسي)</label>
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -124,6 +128,9 @@ export default function SettingsPanel() {
               dir="ltr"
               placeholder="0955555555"
             />
+            <p className="hint">
+              اتصال + واتساب. غيّره متى شئت — يُحفظ ولا يُستبدل تلقائياً أبداً بعد ذلك.
+            </p>
           </div>
           <div>
             <label className="label">مفتاح الدولة لواتساب</label>
@@ -136,6 +143,21 @@ export default function SettingsPanel() {
             />
             <p className="hint">يُستخدم في بناء روابط wa.me لكل الإعلانات.</p>
           </div>
+        </div>
+
+        <div className="mt-3">
+          <label className="label">رقم ثانٍ — اختياري</label>
+          <input
+            value={phone2}
+            onChange={(e) => setPhone2(e.target.value)}
+            className="input"
+            dir="ltr"
+            placeholder="اتركه فارغاً فلا يظهر أي رقم ثانٍ"
+          />
+          <p className="hint">
+            عند تعبئته يظهر تلقائياً بجانب الرقم الأساسي في التذييل والترويسة وصفحة «كيف يعمل
+            بديل؟» — وعند تركه فارغاً يختفي تماماً. جاهز لأي رقم جديد متى احتجته.
+          </p>
         </div>
 
         <div className="mt-3">
@@ -164,11 +186,14 @@ export default function SettingsPanel() {
         </div>
 
         <p className="mt-3 rounded-xl bg-navy-50/70 p-3 text-[11.5px] leading-relaxed text-navy-500 dark:bg-navy-900 dark:text-navy-300">
-          الرقم المعروض حالياً للزوار:{" "}
+          {contactNumbers(settings).length > 1 ? "الأرقام المعروضة حالياً للزوار:" : "الرقم المعروض حالياً للزوار:"}{" "}
           <span className="font-extrabold text-navy-700 dark:text-navy-100" dir="ltr">
-            {displayPhone(settings.contactPhone, settings.whatsappCountryCode)}
+            {contactNumbers(settings)
+              .map((p) => displayPhone(p, settings.whatsappCountryCode))
+              .join(" · ")}
           </span>{" "}
-          — يُستخدم في زر الاتصال وزر واتساب في الترويسة والتذييل وفي صفحة «كيف يعمل بديل؟».
+          — تُستخدم في زر الاتصال وزر واتساب في الترويسة والتذييل وفي صفحة «كيف يعمل بديل؟».
+          الأرقام التي تضبطها هنا محفوظة ولا يمسّها أي تحديث تلقائي.
         </p>
 
         <button type="submit" className="btn-amber mt-5 w-full justify-center">

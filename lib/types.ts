@@ -160,6 +160,8 @@ export interface Settings {
   whatsappCountryCode: string;
   siteSlogan: string;
   contactPhone: string;
+  contactPhone2?: string; // رقم ثانٍ اختياري — يظهر تلقائياً عند تعبئته من اللوحة
+  contactPhoneSource?: "default" | "custom"; // من ضبط الرقم؟ «custom» لا يمسّه أي ترحيل
   facebookUrl: string;
   /* الأمان */
   adminUsername: string;

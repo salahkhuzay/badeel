@@ -26,6 +26,7 @@ import Logo from "./Logo";
 import CurrencySwitch from "./CurrencySwitch";
 import ThemeToggle from "./ThemeToggle";
 import { useStore } from "@/lib/store";
+import { contactNumbers } from "@/lib/contact";
 import { APP_VERSION, purgeAndReload } from "@/lib/pwa";
 import { cn, displayPhone, supportWhatsapp, telLink } from "@/lib/currency";
 
@@ -51,7 +52,6 @@ export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { pendingAds, auth, settings } = useStore();
-  const supportPhone = displayPhone(settings.contactPhone, settings.whatsappCountryCode);
   const tel = telLink(settings.contactPhone, settings.whatsappCountryCode);
   const wa = supportWhatsapp(settings.contactPhone, settings.whatsappCountryCode);
   const fb = settings.facebookUrl;
@@ -82,17 +82,22 @@ export default function Navbar() {
             </button>
           </span>
 
-          {/* التواصل والدعم: اتصال + واتساب + فيسبوك */}
+          {/* التواصل والدعم: اتصال (الأساسي + الثانوي إن وُجد) + واتساب + فيسبوك */}
           <span className="flex items-center gap-1">
             <span className="me-1 hidden text-navy-300 sm:inline">التواصل والدعم:</span>
-            <a
-              href={tel}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 transition hover:bg-white/10 hover:text-amberBrand-400"
-              title={`اتصل بنا: ${supportPhone}`}
-              dir="ltr"
-            >
-              <Phone size={11} /> {supportPhone}
-            </a>
+            {contactNumbers(settings).map((p, i) => (
+              <span key={p} className="inline-flex items-center gap-1">
+                {i > 0 && <span className="text-navy-400">·</span>}
+                <a
+                  href={telLink(p, settings.whatsappCountryCode)}
+                  className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 transition hover:bg-white/10 hover:text-amberBrand-400"
+                  title={`${i === 0 ? "اتصل بنا" : "رقم ثانٍ"}: ${displayPhone(p, settings.whatsappCountryCode)}`}
+                  dir="ltr"
+                >
+                  {i === 0 && <Phone size={11} />} {displayPhone(p, settings.whatsappCountryCode)}
+                </a>
+              </span>
+            ))}
             <a
               href={wa}
               target="_blank"

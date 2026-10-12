@@ -25,11 +25,11 @@ import {
 import Price from "@/components/Price";
 import { useStore } from "@/lib/store";
 import { displayPhone, supportWhatsapp, telLink } from "@/lib/currency";
+import { contactNumbers } from "@/lib/contact";
 
 export default function HowItWorksPage() {
   const { settings, publicAds } = useStore();
   const sample = publicAds.find((a) => a.status === "active");
-  const supportPhone = displayPhone(settings.contactPhone, settings.whatsappCountryCode);
   const tel = telLink(settings.contactPhone, settings.whatsappCountryCode);
 
   return (
@@ -233,9 +233,18 @@ export default function HowItWorksPage() {
               لأي استفسار أو طلب تعديل/إغلاق إعلان، تواصل مع فريق بديل مباشرة — اتصال أو واتساب،
               أو عبر صفحتنا على فيسبوك.
             </p>
-            <p className="mt-2 text-[15px] font-extrabold text-navy-800 dark:text-navy-50" dir="ltr">
-              {supportPhone}
-            </p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:justify-start">
+              {contactNumbers(settings).map((p) => (
+                <a
+                  key={p}
+                  href={telLink(p, settings.whatsappCountryCode)}
+                  className="text-[15px] font-extrabold text-navy-800 hover:text-amberBrand-600 dark:text-navy-50"
+                  dir="ltr"
+                >
+                  {displayPhone(p, settings.whatsappCountryCode)}
+                </a>
+              ))}
+            </div>
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <a href={tel} className="btn-primary px-5">

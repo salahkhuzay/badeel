@@ -19,6 +19,7 @@ import type {
 } from "./types";
 import { SEED_ADS, SEED_CITIES, SEED_SETTINGS } from "./seed";
 import { convert, safeStorage, uid } from "./currency";
+import { contactDigits, migrateContactPhone } from "./contact";
 import { ADMIN_USERNAME, hashPassword, safeEqual } from "./auth";
 
 /* ==========================================================================
@@ -94,16 +95,21 @@ function normalize(saved: Partial<AppState>): Partial<AppState> {
   });
   /* دمج إعدادات الأمان الجديدة إن كانت النسخة المحفوظة أقدم */
   const settings = { ...SEED_SETTINGS, ...(saved.settings ?? {}) };
-  /* ترحيل: تصحيح رقم الدعم المخزَّن في متصفح من سبق أن فتح المنصة
-     (الرقم الصحيح: 0933177597 — ونُصحّح أي صيغة قديمة محفوظة عنده:
-     0993… / +963993… / 00963993… / 963993… وبأي شكل كتابة) */
-  const LEGACY_PHONES = ["0993177597", "0993177595"];
-  const digits = String(settings.contactPhone ?? "").replace(/\D/g, "");
-  const isLegacyPhone =
-    LEGACY_PHONES.includes(settings.contactPhone ?? "") ||
-    /99317759[57]$/.test(digits) || // عائلة 0993… القديمة بكل صيغها
-    /933177595$/.test(digits); // النهاية الخاطئة 5 من عائلة 0933…
-  if (!settings.contactPhone || isLegacyPhone) settings.contactPhone = SEED_SETTINGS.contactPhone;
+  /* ترحيل أرقام التواصل (التفاصيل في lib/contact.ts):
+     - رقم افتراضي قديم مخزَّن بأي صيغة كتابة → يُحدَّث للافتراضي الحالي تلقائياً.
+     - أي رقم ضبطه المسؤول بنفسه (custom) → لا يُمسّ أبداً. */
+  settings.contactPhone = migrateContactPhone(
+    settings.contactPhone,
+    settings.contactPhoneSource,
+    SEED_SETTINGS.contactPhone
+  );
+  /* الوسم الافتراضي لمن سبق هذا الحقل: يطابق الافتراضي الحالي ⇒ «default»، وغيره ⇒ «custom» حمايةً له */
+  if (!settings.contactPhoneSource) {
+    settings.contactPhoneSource =
+      contactDigits(settings.contactPhone) === contactDigits(SEED_SETTINGS.contactPhone)
+        ? "default"
+        : "custom";
+  }
   const auth = { ...initialAuth, ...(saved.auth ?? {}) };
   /* إن كان الإعداد القديم يحتوي authUser فقد أُلغيت هذه الحالة */
   return { ...saved, cities, ads, settings, auth };
@@ -214,15 +220,24 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
 
-    case "UPDATE_SETTINGS":
+    case "UPDATE_SETTINGS": {
+      const nextSettings = { ...state.settings, ...action.settings };
+      /* إن ضبط المسؤول الرقم بنفسه ⇒ يُعلَّم «مخصّصاً» فلا يمسّه أي ترحيل تلقائي أبداً */
+      if (action.settings.contactPhone !== undefined) {
+        nextSettings.contactPhoneSource =
+          contactDigits(nextSettings.contactPhone) === contactDigits(SEED_SETTINGS.contactPhone)
+            ? "default"
+            : "custom";
+      }
       return {
         ...state,
-        settings: { ...state.settings, ...action.settings },
+        settings: nextSettings,
         audit: [
           log({ adRef: "—", action: "تحديث إعدادات المنصة", kind: "settings" }),
           ...state.audit,
         ].slice(0, 80),
       };
+    }
 
     /* ------------------------------- الأمان ------------------------------- */
     case "AUTH_LOGGED_IN":

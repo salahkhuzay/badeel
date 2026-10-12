@@ -20,14 +20,16 @@ import Logo from "./Logo";
 import { useStore } from "@/lib/store";
 import { APP_RELEASE, purgeAndReload } from "@/lib/pwa";
 import { displayPhone, supportWhatsapp, telLink } from "@/lib/currency";
+import { contactNumbers } from "@/lib/contact";
 import { mainCategoryLinks } from "@/lib/taxonomy";
 import SyriaFlag from "./SyriaFlag";
 
 export default function Footer() {
   const { cities, settings } = useStore();
-  const supportPhone = displayPhone(settings.contactPhone, settings.whatsappCountryCode);
   const tel = telLink(settings.contactPhone, settings.whatsappCountryCode);
   const wa = supportWhatsapp(settings.contactPhone, settings.whatsappCountryCode);
+  /* الأرقام الفعلية: الأساسي + الثانوي إن وُجد — يُدار كله من لوحة التحكم */
+  const numbers = contactNumbers(settings);
 
   return (
     <footer className="mt-16 border-t border-navy-100 bg-white dark:border-navy-800 dark:bg-navy-950">
@@ -104,12 +106,19 @@ export default function Footer() {
             تواصل ودعم
           </h4>
           <ul className="space-y-2.5 text-sm text-navy-500 dark:text-navy-300">
-            <li className="flex items-center gap-2">
-              <Phone size={14} className="text-amberBrand-500" />
-              <a href={tel} className="font-bold hover:text-amberBrand-600" dir="ltr">
-                {supportPhone}
-              </a>
-            </li>
+            {numbers.map((p, i) => (
+              <li key={p} className="flex items-center gap-2">
+                <Phone size={14} className="text-amberBrand-500" />
+                <a
+                  href={telLink(p, settings.whatsappCountryCode)}
+                  className="font-bold hover:text-amberBrand-600"
+                  dir="ltr"
+                >
+                  {displayPhone(p, settings.whatsappCountryCode)}
+                </a>
+                {i > 0 && <span className="text-[11px] text-navy-400">(رقم ثانٍ)</span>}
+              </li>
+            ))}
             <li className="flex items-center gap-2">
               <MessageCircle size={14} className="text-emeraldBrand-500" />
               <a
