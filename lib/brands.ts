@@ -82,7 +82,7 @@ export const BRANDS: Brand[] = [
       { id: "hd65", name: "شاحنة HD65", en: "HD65" },
       { id: "hd72", name: "شاحنة HD72", en: "HD72" },
       { id: "mighty", name: "شاحنة مايتي", en: "Mighty" },
-      { id: "equus", name: "إيكوس", en: "Equus", body: "sedan", hot: true },
+      { id: "equus", name: "ايكوس", en: "Equus", body: "sedan", hot: true },
     ],
   },
   {
