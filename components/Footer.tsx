@@ -6,8 +6,8 @@ import {
   Briefcase,
   Building2,
   Car,
+  Clock3,
   Facebook,
-  Mail,
   MessageCircle,
   Phone,
   Plug,
@@ -67,14 +67,6 @@ export default function Footer() {
               aria-label="اتصال"
             >
               <Phone size={16} />
-            </a>
-            <a
-              className="btn-icon"
-              href={`mailto:info@badeel.sy`}
-              title="راسلنا بالبريد"
-              aria-label="البريد"
-            >
-              <Mail size={16} />
             </a>
           </div>
         </div>
@@ -141,10 +133,8 @@ export default function Footer() {
               </a>
             </li>
             <li className="flex items-center gap-2">
-              <Mail size={14} className="text-navy-400" />
-              <a href="mailto:info@badeel.sy" className="hover:text-amberBrand-600">
-                info@badeel.sy
-              </a>
+              <Clock3 size={14} className="text-navy-400" />
+              <span>التواصل بالاتصال المباشر أو واتساب فقط</span>
             </li>
             <li className="text-[12px] leading-relaxed">
               منبج — حلب · يومياً من 9 صباحاً حتى 9 مساءً
