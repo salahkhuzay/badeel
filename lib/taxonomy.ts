@@ -235,7 +235,9 @@ export const OWNERSHIP_TYPES: { id: OwnershipType; name: string; hint?: string }
   { id: "tabu-green", name: "طابو أخضر", hint: "سند ملكية نظامي" },
   { id: "court-ruling", name: "حكم محكمة", hint: "مع صك / قرار حكم" },
   { id: "real-estate-agency", name: "وكالة عقارية", hint: "بيع بالوكالة" },
-  { id: "arqari-siyaq", name: "عرقاري - سياق", hint: "قيود وسجلات قديمة" },
+  /* تصحيح إملائي (2026-10-13): «عرقاري» ← «عقاري».
+     بقي المعرّف arqari-siyaq كما هو حتى لا تتعطل الإعلانات المحفوظة قديماً. */
+  { id: "arqari-siyaq", name: "عقاري - سياق", hint: "قيد/سجل عقاري قديم" },
 ];
 
 export const AREA_UNITS = [

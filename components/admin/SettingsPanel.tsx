@@ -52,6 +52,7 @@ export default function SettingsPanel() {
     }
     updateSettings({
       usdToSyp: r,
+      rateUpdatedAt: new Date().toISOString(),
       contactPhone: phone.trim(),
       contactPhone2: phone2.trim(),
       whatsappCountryCode: cc.replace(/\D/g, "") || "963",
@@ -94,6 +95,31 @@ export default function SettingsPanel() {
               SYP / USD
             </span>
           </div>
+
+          {/* أزرار تعديل سريع — السعر يتغير يومياً فتكفي نقرة على الجوال */}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {[-500, -100, +100, +500].map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => {
+                  const next = Math.max(100, (Number(rate) || 0) + d);
+                  setRate(String(next));
+                }}
+                className="rounded-lg border border-navy-200 px-2.5 py-1 text-[11.5px] font-bold text-navy-600 transition hover:border-amberBrand-400 hover:text-amberBrand-600 dark:border-navy-700 dark:text-navy-200"
+                dir="ltr"
+              >
+                {d > 0 ? `+${d}` : d}
+              </button>
+            ))}
+            <span className="self-center text-[10.5px] text-navy-400">تعديل سريع ثم «حفظ»</span>
+          </div>
+
+          {settings.rateUpdatedAt && (
+            <p className="hint mt-2">
+              آخر تعديل يدوي: {new Date(settings.rateUpdatedAt).toLocaleString("ar-SY")}
+            </p>
+          )}
           {rateNumber > 0 && (
             <div className="mt-2 grid grid-cols-2 gap-2 text-[11.5px]">
               <div className="rounded-lg bg-navy-50 p-2.5 dark:bg-navy-800/60">
@@ -110,6 +136,14 @@ export default function SettingsPanel() {
               </div>
             </div>
           )}
+
+          {/* نطاق سريان التعديل — بصراحة كاملة عن وضع «بلا خادم» الحالي */}
+          <p className="mt-3 rounded-lg border border-sky-200 bg-sky-50/60 p-2.5 text-[11px] leading-relaxed text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
+            تعديلك يسري <b>فوراً</b> على كل الأسعار والفلترة في هذا المتصفح (لوحتك ومعايناتك).
+            ولكي يصل التعديل إلى كل الزوار: المنصة تعمل حالياً بلا خادم، فيُثبَّت السعر الرسمي في
+            النسخة المنشورة — أرسل السعر الجديد ويُنشَر خلال دقيقة. وعند ربط خادم مستقبلاً يسري
+            تعديلك هنا على الجميع مباشرة بلا أي خطوة إضافية.
+          </p>
         </div>
 
         <div className="divider my-5" />

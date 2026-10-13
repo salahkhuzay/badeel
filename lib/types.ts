@@ -157,6 +157,7 @@ export interface City {
 /* -------------------------------- الإعدادات -------------------------------- */
 export interface Settings {
   usdToSyp: number;
+  rateUpdatedAt?: string; // وقت آخر تعديل يدوي لسعر الصرف (يُعرض في اللوحة)
   whatsappCountryCode: string;
   siteSlogan: string;
   contactPhone: string;
