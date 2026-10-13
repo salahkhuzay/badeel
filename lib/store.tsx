@@ -81,6 +81,7 @@ type Action =
   | { type: "AUTH_LOGOUT" }
   | { type: "AUTH_REFRESH"; minutes: number }
   | { type: "AUTH_LOGOUT_ALL" }
+  | { type: "AUTH_LOCAL_RESET" }
   | { type: "LOG"; entry: AuditEntry }
   | { type: "RESET_DEMO" };
 
@@ -316,6 +317,25 @@ function reducer(state: AppState, action: Action): AppState {
         auth: { ...state.auth, sessionExpiresAt: plusMinutes(action.minutes) },
       };
 
+    /* استرجاع بلا خادم: تصفير دخول هذا المتصفح وحده — تُعاد بصمة كلمة المرور
+       الافتراضية ويُصفّى عدّاد المحاولات والقفل، بلا أي أثر على الزوار أو على
+       بقية أجهزة المسؤول أو على باقي الإعدادات (سعر/تواصل/…). */
+    case "AUTH_LOCAL_RESET":
+      return {
+        ...state,
+        auth: initialAuth,
+        settings: {
+          ...state.settings,
+          adminUsername: SEED_SETTINGS.adminUsername,
+          adminSalt: SEED_SETTINGS.adminSalt,
+          adminHash: SEED_SETTINGS.adminHash,
+          passwordChanged: false,
+          sessionMinutes: SEED_SETTINGS.sessionMinutes,
+          maxLoginAttempts: SEED_SETTINGS.maxLoginAttempts,
+          lockMinutes: SEED_SETTINGS.lockMinutes,
+        },
+      };
+
     case "AUTH_LOGOUT_ALL":
       return {
         ...state,
@@ -371,6 +391,7 @@ interface StoreValue extends AppState {
   login: (user: string, pass: string) => Promise<LoginResult>;
   logout: () => void;
   logoutAll: () => void;
+  resetLocalLogin: () => void;
   refreshSession: () => void;
   changePassword: (current: string, next: string) => Promise<{ ok: boolean; error?: string }>;
   sessionMinutesLeft: () => number;
@@ -494,6 +515,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       logout: () => dispatch({ type: "AUTH_LOGOUT" }),
       logoutAll: () => dispatch({ type: "AUTH_LOGOUT_ALL" }),
+      resetLocalLogin: () => dispatch({ type: "AUTH_LOCAL_RESET" }),
       refreshSession: () => dispatch({ type: "AUTH_REFRESH", minutes: state.settings.sessionMinutes }),
 
       changePassword: async (current, next) => {

@@ -332,7 +332,7 @@ function resetDemoSafe() {
    شاشة الدخول الآمنة — لا تُعرض كلمة المرور ولا تلميحات في الواجهة
    ========================================================================== */
 function LoginScreen() {
-  const { login, settings } = useStore();
+  const { login, settings, resetLocalLogin } = useStore();
   const toast = useToast();
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
@@ -513,6 +513,31 @@ function LoginScreen() {
               {busy ? "جار التحقق..." : locked ? "الدخول مقفل" : "تسجيل الدخول"}
             </button>
           </form>
+
+          {/* استرجاع بلا خادم: المنصة لا تملك بريداً ولا خادماً لاستعادة الكلمة،
+              لذا الاسترجاع الصحيح الوحيد هو تصفير دخول هذا المتصفح وحده */}
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                confirm(
+                  "إعادة تعيين دخول هذا المتصفح فقط؟\n" +
+                    "ستعود كلمة المرور إلى الافتراضية ويُصفّى عدّاد المحاولات والقفل في هذا المتصفح وحده،\n" +
+                    "بلا أي أثر على الزوار أو على بقية أجهزتك أو على إعدادات المنصة."
+                )
+              ) {
+                resetLocalLogin();
+                toast({
+                  type: "info",
+                  title: "صُفّر دخول هذا المتصفح",
+                  desc: "ادخل الآن باسم المستخدم وكلمة المرور الافتراضيين.",
+                });
+              }
+            }}
+            className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-bold text-navy-500 transition hover:text-rose-600 dark:text-navy-300 dark:hover:text-rose-400"
+          >
+            <KeyRound size={13} /> نسيت كلمة المرور؟ صفّر دخول هذا المتصفح
+          </button>
 
           <div className="mt-5 flex items-start gap-2 rounded-xl bg-navy-50/70 p-3 text-[11.5px] leading-relaxed text-navy-500 dark:bg-navy-900 dark:text-navy-300">
             <Info size={14} className="mt-0.5 shrink-0 text-amberBrand-500" />
