@@ -17,10 +17,17 @@ import { useToast } from "@/components/Toast";
 import { displayPhone, formatMoney } from "@/lib/currency";
 import { contactNumbers } from "@/lib/contact";
 import SecurityPanel from "./SecurityPanel";
+import {
+  fetchRemoteRate,
+  getRateKey,
+  publishRemoteRate,
+  setRateKey,
+  type RemoteRate,
+} from "@/lib/remote-rate";
 
 /** إعدادات المنصة: سعر الصرف، بيانات التواصل، وإعادة تعيين بيانات المنصة */
 export default function SettingsPanel() {
-  const { settings, updateSettings, resetDemo, ads } = useStore();
+  const { settings, updateSettings, resetDemo, ads, remoteRate } = useStore();
   const toast = useToast();
 
   const [rate, setRate] = useState(String(settings.usdToSyp));
@@ -29,6 +36,22 @@ export default function SettingsPanel() {
   const [cc, setCc] = useState(settings.whatsappCountryCode);
   const [slogan, setSlogan] = useState(settings.siteSlogan);
   const [facebook, setFacebook] = useState(settings.facebookUrl);
+  /* النشر العام للسعر: المفتاح + حالة الخادم */
+  const [rateKey, setRateKeyState] = useState("");
+  const [server, setServer] = useState<RemoteRate | null>(remoteRate);
+  const [refreshing, setRefreshing] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
+  useEffect(() => {
+    setRateKeyState(getRateKey());
+  }, []);
+
+  const refreshServer = async () => {
+    setRefreshing(true);
+    const r = await fetchRemoteRate();
+    setServer(r);
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     setRate(String(settings.usdToSyp));
@@ -39,7 +62,7 @@ export default function SettingsPanel() {
     setFacebook(settings.facebookUrl);
   }, [settings]);
 
-  const save = (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const r = Number(rate);
     if (!r || r < 100) {
@@ -59,11 +82,24 @@ export default function SettingsPanel() {
       siteSlogan: slogan.trim(),
       facebookUrl: facebook.trim() || settings.facebookUrl,
     });
-    toast({
-      type: "success",
-      title: "تم حفظ الإعدادات",
-      desc: `تم تحديث سعر الصرف إلى 1 $ = ${r.toLocaleString("en-US")} ل.س وتحديث كل الأسعار المعروضة.`,
-    });
+    /* نشر السعر لكل الزوار عبر المخزن السحابي (Upstash KV) */
+    setPublishing(true);
+    const pub = await publishRemoteRate(r, getRateKey());
+    setPublishing(false);
+    if (pub.ok) {
+      setServer({ usdToSyp: r, updatedAt: pub.updatedAt, source: "kv" });
+      toast({
+        type: "success",
+        title: "تم الحفظ والنشر لكل الزوار",
+        desc: `السعر الرسمي الآن 1 $ = ${r.toLocaleString("en-US")} ل.س في كل المنصة.`,
+      });
+    } else {
+      toast({
+        type: "info",
+        title: "حُفظ في هذا المتصفح فقط",
+        desc: `${pub.error} — أدخل «مفتاح النشر» أدناه ليصل السعر إلى كل الزوار.`,
+      });
+    }
   };
 
   const rateNumber = Number(rate) || 0;
@@ -138,12 +174,54 @@ export default function SettingsPanel() {
           )}
 
           {/* نطاق سريان التعديل — بصراحة كاملة عن وضع «بلا خادم» الحالي */}
-          <p className="mt-3 rounded-lg border border-sky-200 bg-sky-50/60 p-2.5 text-[11px] leading-relaxed text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
-            تعديلك يسري <b>فوراً</b> على كل الأسعار والفلترة في هذا المتصفح (لوحتك ومعايناتك).
-            ولكي يصل التعديل إلى كل الزوار: المنصة تعمل حالياً بلا خادم، فيُثبَّت السعر الرسمي في
-            النسخة المنشورة — أرسل السعر الجديد ويُنشَر خلال دقيقة. وعند ربط خادم مستقبلاً يسري
-            تعديلك هنا على الجميع مباشرة بلا أي خطوة إضافية.
+          <p className="mt-3 rounded-lg border border-emeraldBrand-500/30 bg-emeraldBrand-500/5 p-2.5 text-[11px] leading-relaxed text-emeraldBrand-700 dark:text-emeraldBrand-300">
+            عند الحفظ يُنشر السعر <b>فوراً لكل الزوار</b> عبر المخزن السحابي المرتبط بالمنصة
+            (Upstash KV) فيصير هو السعر الرسمي في كل الصفحات والفلترة. وإن تعذّر النشر — غياب
+            مفتاح النشر أو انقطاع الاتصال — يبقى محفوظاً في متصفحك فقط ويظهر تنبيه بذلك.
           </p>
+
+          {/* حالة السعر العام + مفتاح النشر */}
+          <div className="mt-3 rounded-lg border border-navy-200 p-3 dark:border-navy-700">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11.5px] font-extrabold text-navy-700 dark:text-navy-100">
+                السعر العام النافذ لكل الزوار
+              </span>
+              <button
+                type="button"
+                onClick={refreshServer}
+                className="flex items-center gap-1 rounded-lg border border-navy-200 px-2 py-1 text-[10.5px] font-bold text-navy-500 transition hover:text-amberBrand-600 dark:border-navy-700 dark:text-navy-300"
+              >
+                <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} /> تحديث
+              </button>
+            </div>
+            <p className="mt-1 text-[13px] font-extrabold text-navy-900 dark:text-white" dir="ltr">
+              {server
+                ? `1 $ = ${server.usdToSyp.toLocaleString("en-US")} SYP`
+                : "لم يُجلب بعد — اضغط «تحديث»"}
+            </p>
+            {server?.updatedAt ? (
+              <p className="hint mt-0.5">
+                آخر نشر: {new Date(server.updatedAt).toLocaleString("ar-SY")}
+              </p>
+            ) : null}
+
+            <label className="label mt-3">مفتاح النشر (RATE_WRITE_KEY)</label>
+            <input
+              type="password"
+              value={rateKey}
+              onChange={(e) => setRateKeyState(e.target.value)}
+              onBlur={() => setRateKey(rateKey.trim())}
+              placeholder="يُحفظ في متصفحك فقط ولا يُرسل إلا للخادم"
+              className="input"
+              dir="ltr"
+              autoComplete="off"
+            />
+            <p className="hint mt-1">
+              يُكتب مرة واحدة؛ ويجب أن يطابق متغيّر <span dir="ltr">RATE_WRITE_KEY</span> المضبوط
+              في Vercel. بدونه يُحفظ السعر محلياً فقط.
+            </p>
+            {publishing && <p className="hint mt-1">جارٍ النشر لكل الزوار…</p>}
+          </div>
         </div>
 
         <div className="divider my-5" />

@@ -14,6 +14,7 @@ const puppeteer = require("puppeteer");
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const BUMP = 1234; // فرق واضح عن السعر الحالي لإثبات السريان
+const RATE_KEY = process.env.RATE_WRITE_KEY || "qa-key-123"; // مفتاح النشر في بيئة الاختبار
 let pass = 0;
 let fail = 0;
 const ok = (label, cond, extra = "") => {
@@ -141,6 +142,8 @@ await page.evaluate(() => {
 await wait(300);
 await page.evaluate(() => document.querySelector('form button[type="submit"]')?.click());
 await wait(2800);
+/* زرع مفتاح النشر كي ينجح النشر العام في بيئة الاختبار */
+await page.evaluate((k) => localStorage.setItem("badeel.rateWriteKey.v1", k), RATE_KEY);
 await page.evaluate(() => {
   Array.from(document.querySelectorAll("button"))
     .find((x) => x.textContent.trim().startsWith("الإعدادات والأمان"))
@@ -250,18 +253,20 @@ const saved = await page.evaluate(() => {
 await wait(1800);
 const afterSave = await page.evaluate(
   (r) => ({
-    toast: /تم حفظ/.test(document.body.innerText),
+    toast: /تم الحفظ والنشر لكل الزوار/.test(document.body.innerText),
     active: document.body.innerText.includes(`1 $ = ${r.toLocaleString("en-US")} ل.س`),
     updatedAt: /آخر تعديل يدوي:/.test(document.body.innerText),
-    note: /يسري\s*فوراً|بلا خادم/.test(document.body.innerText),
+    note: /لكل الزوار/.test(document.body.innerText),
+    serverRow: document.body.innerText.includes(`1 $ = ${r.toLocaleString("en-US")} SYP`),
   }),
   newRate
 );
 ok("زر الحفظ نُقر", saved);
-ok("إشعار الحفظ ظهر", afterSave.toast);
+ok("إشعار «تم الحفظ والنشر لكل الزوار» ظهر", afterSave.toast);
 ok("«سعر الصرف النشط» يعرض السعر الجديد", afterSave.active);
 ok("تاريخ آخر تعديل يدوي يُسجَّل ويظهر", afterSave.updatedAt);
-ok("ملاحظة نطاق السريان ظاهرة للمسؤول", afterSave.note);
+ok("ملاحظة النشر العام ظاهرة للمسؤول", afterSave.note);
+ok("صف «السعر العام النافذ» يعرض السعر المنشور", afterSave.serverRow);
 
 /* ─────────── ② سريان السعر الجديد على التحويل ─────────── */
 console.log("\n② سريان السعر الجديد في نموذج الإعلان…");

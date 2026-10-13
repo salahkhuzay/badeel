@@ -21,6 +21,7 @@ import { SEED_ADS, SEED_CITIES, SEED_SETTINGS, isDemoAdRef } from "./seed";
 import { convert, safeStorage, uid } from "./currency";
 import { contactDigits, migrateContactPhone } from "./contact";
 import { ADMIN_USERNAME, hashPassword, safeEqual } from "./auth";
+import { fetchRemoteRate, type RemoteRate } from "./remote-rate";
 
 /* ==========================================================================
    مخزن الحالة العام — بديل | Badeel
@@ -48,6 +49,8 @@ export interface AppState {
   currency: Currency;
   theme: "light" | "dark";
   hydrated: boolean;
+  /* السعر الرسمي القادم من المخزن السحابي (/api/rate) — null قبل أول جلب */
+  remoteRate: RemoteRate | null;
 }
 
 const initialState: AppState = {
@@ -59,6 +62,7 @@ const initialState: AppState = {
   currency: "USD",
   theme: "light",
   hydrated: false,
+  remoteRate: null,
 };
 
 type Action =
@@ -71,6 +75,7 @@ type Action =
   | { type: "INC_VIEW"; id: string }
   | { type: "TOGGLE_CITY"; cityId: string }
   | { type: "UPDATE_SETTINGS"; settings: Partial<Settings> }
+  | { type: "REMOTE_RATE"; rate: RemoteRate }
   | { type: "AUTH_LOGGED_IN"; minutes: number }
   | { type: "AUTH_FAIL"; lockedUntil: string | null; attempts: number }
   | { type: "AUTH_LOGOUT" }
@@ -229,6 +234,19 @@ function reducer(state: AppState, action: Action): AppState {
         ),
       };
 
+    case "REMOTE_RATE": {
+      /* السعر العام من المخزن السحابي هو الحاكم: يطغى على المحلي ويحدّث طابعه الزمني */
+      if (!action.rate.usdToSyp || action.rate.usdToSyp < 100) return state;
+      return {
+        ...state,
+        remoteRate: action.rate,
+        settings: {
+          ...state.settings,
+          usdToSyp: action.rate.usdToSyp,
+          rateUpdatedAt: action.rate.updatedAt ?? state.settings.rateUpdatedAt,
+        },
+      };
+    }
     case "UPDATE_SETTINGS": {
       const nextSettings = { ...state.settings, ...action.settings };
       /* إن ضبط المسؤول الرقم بنفسه ⇒ يُعلَّم «مخصّصاً» فلا يمسّه أي ترحيل تلقائي أبداً */
@@ -376,6 +394,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* سعر الصرف العام: يُقرأ مرة عند فتح المنصة ويطغى على أي سعر محلي قديم */
+  useEffect(() => {
+    let alive = true;
+    fetchRemoteRate().then((r) => {
+      if (alive && r) dispatch({ type: "REMOTE_RATE", rate: r });
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
