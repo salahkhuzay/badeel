@@ -60,7 +60,6 @@ async function waitPhotos(n, timeout = 60000) {
 }
 
 const galleryInput = () => page.$('input[type="file"][multiple]');
-const cameraInput = () => page.$('input[type="file"][capture="environment"]');
 
 /* ───────────────────────── ① فتح الصفحة ───────────────────────── */
 console.log("① فتح «أضف إعلانك» على محاكي جوال أندرويد…");
@@ -69,19 +68,21 @@ await page.waitForSelector("text/صور الإعلان", { timeout: 20000 });
 await wait(1500); /* مهلة استقرار عامل الخدمة */
 
 const ui = await page.evaluate(() => ({
-  camera: Boolean(document.querySelector('input[type="file"][capture="environment"]')),
+  /* مهم: لا نية كاميرا خارجية — كانت سبب خروج «رجوع» من الموقع في أندرويد */
+  captureInput: Boolean(document.querySelector('input[capture]')),
   gallery: Boolean(document.querySelector('input[type="file"][multiple]')),
+  inputCount: document.querySelectorAll('input[type="file"]').length,
   acceptImage: document.querySelector('input[type="file"]')?.accept === "image/*",
-  cameraBtn: /التقط صورة/.test(document.body.innerText),
-  galleryBtn: /من معرض الصور/.test(document.body.innerText),
+  oneBtn: /أضف صوراً — من الكاميرا أو المعرض/.test(document.body.innerText),
+  hint: /زر الرجوع يعيدك إلى هنا دائماً/.test(document.body.innerText),
   noReload: true,
 }));
 ok("الصفحة فُتحت ولم تُعاد تحميلها تلقائياً", ui.noReload);
-ok("حقل الكاميرا موجود (capture=environment)", ui.camera);
-ok("حقل المعرض موجود (multiple)", ui.gallery);
-ok("الحقول تقبل الصور فقط (accept=image/*)", ui.acceptImage);
-ok("زر «التقط صورة» ظاهر", ui.cameraBtn);
-ok("زر «من معرض الصور» ظاهر", ui.galleryBtn);
+ok("لا حقل بـ capture (بلا نية كاميرا خارجية)", !ui.captureInput);
+ok("حقل ملف واحد يقبل صوراً متعددة", ui.gallery && ui.inputCount === 1);
+ok("الحقل يقبل الصور فقط (accept=image/*)", ui.acceptImage);
+ok("زر واحد يضم الكاميرا والمعرض", ui.oneBtn);
+ok("تلميح الأمان ظاهر", ui.hint);
 
 /* ───────────────── ② رفع صورة كبيرة من المعرض ───────────────── */
 console.log("\n② رفع صورة كبيرة (3000×2250 · 277 ك.ب) من المعرض…");
@@ -124,7 +125,7 @@ console.log(`   (الأصل ${Math.round(origBytes / 1024)} ك.ب ← النات
 
 /* ─────────────────── ③ صورة طولية عبر الكاميرا ─────────────────── */
 console.log("\n③ التقاط صورة طولية (1200×1600) عبر زر الكاميرا…");
-await (await cameraInput()).uploadFile(path.join(FIX, "portrait.jpg"));
+await (await galleryInput()).uploadFile(path.join(FIX, "portrait.jpg"));
 await waitPhotos(2);
 await wait(400);
 const r2 = await page.evaluate(() => {
@@ -441,6 +442,65 @@ if (published.ref) {
   ok("الإعلان المرفوع مدرج في اللوحة", admin.listed && admin.ourTitle);
   ok("صورته تظهر في لوحة المراجعة", admin.hasPhoto);
 }
+
+/* ─────────── ⑬ المسودة التلقائية + حارس زر الرجوع ─────────── */
+console.log("\n⑬ المسودة التلقائية وحارس زر الرجوع…");
+await page.goto(`${BASE}/`, { waitUntil: "networkidle2" });
+await wait(1200);
+await page.goto(`${BASE}/post-ad`, { waitUntil: "networkidle2" });
+await wait(1800);
+
+/* اكتب عنواناً فيصير النموذج «متسخاً» وتُحفظ مسودة ويُدفَع الحارس */
+await page.evaluate(() => {
+  const l = Array.from(document.querySelectorAll("label")).find((x) =>
+    x.textContent.trim().startsWith("عنوان الإعلان")
+  );
+  const box = l?.closest("[data-error]") ?? l?.parentElement;
+  const el = box?.querySelector("input");
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(
+    el,
+    "مسودة اختبار زر الرجوع"
+  );
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+});
+await wait(1000);
+ok(
+  "المسودة حُفظت تلقائياً بعد الكتابة",
+  await page.evaluate(() => sessionStorage.getItem("badeel.postad.draft.v1") !== null)
+);
+
+/* رجوع #1: يبقى ويشرح */
+await page.evaluate(() => history.back());
+await wait(1500);
+const back1 = await page.evaluate(() => ({
+  url: location.pathname,
+  toast: /مسودتك محفوظة هنا/.test(document.body.innerText),
+}));
+ok("رجوع #1 يُبقي المستخدم في صفحة الإعلان", back1.url === "/post-ad", back1.url);
+ok("مع شرح أن المسودة محفوظة", back1.toast);
+
+/* رجوع #2: خروج طبيعي بإرادته */
+await page.evaluate(() => history.back());
+await wait(2000);
+const back2 = await page.evaluate(() => location.pathname);
+ok("رجوع #2 يُخرج طبيعياً (لا احتجاز)", back2 !== "/post-ad", back2);
+
+/* العودة: تُستعاد المسودة */
+await page.goto(`${BASE}/post-ad`, { waitUntil: "networkidle2" });
+await wait(2000);
+const restored = await page.evaluate(() => {
+  const l = Array.from(document.querySelectorAll("label")).find((x) =>
+    x.textContent.trim().startsWith("عنوان الإعلان")
+  );
+  const box = l?.closest("[data-error]") ?? l?.parentElement;
+  return {
+    title: box?.querySelector("input")?.value ?? "",
+    toast: /استعدنا مسودتك/.test(document.body.innerText),
+  };
+});
+ok("المسودة استُعيدت عند العودة", restored.title.includes("مسودة اختبار"), restored.title);
+ok("إشعار الاستعادة ظهر", restored.toast);
+await page.evaluate(() => sessionStorage.removeItem("badeel.postad.draft.v1"));
 
 /* ─────────────────── ⑫ أخطاء JavaScript ─────────────────── */
 console.log("\n⑫ سجل الأخطاء…");

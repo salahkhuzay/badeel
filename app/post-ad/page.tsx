@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Banknote,
@@ -59,6 +59,7 @@ import {
   photosSizeMb,
   isRealPhoto,
 } from "@/lib/photo";
+import { clearDraft, loadDraft, saveDraft } from "@/lib/draft";
 import {
   CONDITIONS,
   DEAL_TYPES,
@@ -242,10 +243,15 @@ export default function PostAdPage() {
   const [done, setDone] = useState<Ad | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewRef, setPreviewRef] = useState("BD-###");
-  /* رفع الصور من الجوال */
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  /* رفع الصور من الجوال — حقل واحد بلا capture:
+     نية الكاميرا الخارجية المباشرة كانت تجعل زر «رجوع» في أندرويد يُنهي
+     المتصفح أو يعيد تحميله فيخرج المستخدم من الموقع؛ منتقي النظام (الذي يضم
+     خيار الكاميرا والمعرض) يعود بأمان دائماً. */
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [busyPhotos, setBusyPhotos] = useState<{ done: number; total: number } | null>(null);
+  /* حارس زر الرجوع + المسودة */
+  const guardRef = useRef(false);
+  const warnedRef = useRef(false);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -312,6 +318,81 @@ export default function PostAdPage() {
       setBusyPhotos(null);
     }
   };
+
+  /* ------------------- مسودة غير مكتملة + حارس زر الرجوع ------------------- */
+  /** هل لدى المستخدم عمل غير منشور؟ (حقول أو صور) */
+  const dirty =
+    !done &&
+    (form.images.length > 0 ||
+      [form.title, form.description, form.price, form.sellerName, form.sellerPhone].some((v) =>
+        String(v).trim() !== ""
+      ));
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+
+  /* استعادة المسودة مرة واحدة عند الفتح (بعد عودة من الكاميرا أو إعادة تحميل) */
+  useEffect(() => {
+    const d = loadDraft<Partial<FormState>>();
+    if (d && typeof d === "object") {
+      setForm((f) => ({ ...f, ...d }));
+      toast({
+        type: "info",
+        title: "استعدنا مسودتك",
+        desc: "حقولك وصورك كما تركتها — أكمل من حيث توقفت.",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* حفظ المسودة بعد كل تغيير (بتأخير بسيط) وحذفها حين تفرغ */
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (done) return;
+      if (dirtyRef.current) saveDraft(form);
+      else clearDraft();
+    }, 350);
+    return () => clearTimeout(t);
+  }, [form, done]);
+
+  /* حارس زر الرجوع: أول ضغطة تُبقي المستخدم وتشرح أن مسودته محفوظة،
+     والضغطة الثانية تُخرجه طبيعياً. يعمل في التبويب وفي وضع PWA المثبّت. */
+  useEffect(() => {
+    const onPop = () => {
+      if (!dirtyRef.current) {
+        warnedRef.current = false;
+        return; // لا مسودة — الرجوع طبيعي
+      }
+      if (!warnedRef.current) {
+        warnedRef.current = true;
+        history.pushState({ badeelGuard: 1 }, "");
+        toast({
+          type: "info",
+          title: "مسودتك محفوظة هنا",
+          desc: "لديك إعلان غير مكتمل. إن أردت الخروج فعلاً فاضغط رجوع مرة أخرى — وستجد مسودتك عند العودة.",
+        });
+      } else {
+        warnedRef.current = false;
+        /* إدخال الحارس جعل الرجوع الطبيعي يعود إلى نفس العنوان (صفحة الإعلان)،
+           لذلك نُكمل الخروج برمجياً إلى ما قبلها — خروج بإرادة المستخدم. */
+        setTimeout(() => history.back(), 0);
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* دفع إدخال حارس واحد حين يصير النموذج متسخاً */
+  useEffect(() => {
+    if (dirty && !guardRef.current) {
+      guardRef.current = true;
+      history.pushState({ badeelGuard: 1 }, "");
+    }
+    if (!dirty) {
+      guardRef.current = false;
+      warnedRef.current = false;
+    }
+  }, [dirty]);
 
   const activeCities = cities.filter((c) => c.active);
 
@@ -475,6 +556,7 @@ export default function PostAdPage() {
     const ad = { ...buildAd(), ref: previewRef !== "BD-###" ? previewRef : nextRef(ads) };
     addAd(ad);
     setDone(ad);
+    clearDraft(); // نُشر فعلاً — لا حاجة للمسودة
     toast({
       type: "success",
       title: "تم إرسال إعلانك للمراجعة",
@@ -1339,35 +1421,23 @@ export default function PostAdPage() {
             title="صور الإعلان"
             desc={`أضف صوراً حقيقية من جوالك — تُضغط تلقائياً. الصورة الأولى هي الغلاف (اختياري، حتى ${MAX_AD_PHOTOS} صور)`}
           >
-            {/* ① أزرار الرفع: الكاميرا أو معرض الصور */}
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                disabled={busyPhotos !== null}
-                className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-amberBrand-400 bg-amberBrand-50/60 py-3 text-[13px] font-extrabold text-amberBrand-700 transition hover:bg-amberBrand-50 disabled:opacity-50 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
-              >
-                <Camera size={17} /> التقط صورة
-              </button>
-              <button
-                type="button"
-                onClick={() => galleryInputRef.current?.click()}
-                disabled={busyPhotos !== null}
-                className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-navy-300 py-3 text-[13px] font-extrabold text-navy-700 transition hover:bg-navy-50 disabled:opacity-50 dark:border-navy-600 dark:text-navy-100 dark:hover:bg-navy-800/60"
-              >
-                <Images size={17} /> من معرض الصور
-              </button>
-            </div>
+            {/* ① زر الرفع الآمن: منتقي النظام (كاميرا أو معرض) — بلا نية خارجية */}
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={busyPhotos !== null}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-amberBrand-400 bg-amberBrand-50/60 py-3.5 text-[13.5px] font-extrabold text-amberBrand-700 transition hover:bg-amberBrand-50 disabled:opacity-50 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+            >
+              <Camera size={18} />
+              <Images size={18} />
+              أضف صوراً — من الكاميرا أو المعرض
+            </button>
+            <p className="hint mt-2">
+              تفتح قائمة جوالك فتختار «الكاميرا» للتصوير الآن أو «المعرض» لصورة موجودة.
+              وزر الرجوع يعيدك إلى هنا دائماً — ومسودتك محفوظة تلقائياً فلا يضيع شيء.
+            </p>
 
-            {/* حقول الملفات — مخفية، تُفتح بالأزرار أعلاه */}
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={onPickPhotos}
-            />
+            {/* حقل ملف واحد بلا capture — المنتقي يضم الكاميرا والمعرض */}
             <input
               ref={galleryInputRef}
               type="file"
