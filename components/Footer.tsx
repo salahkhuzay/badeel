@@ -23,6 +23,7 @@ import { displayPhone, supportWhatsapp, telLink } from "@/lib/currency";
 import { contactNumbers } from "@/lib/contact";
 import { mainCategoryLinks } from "@/lib/taxonomy";
 import SyriaFlag from "./SyriaFlag";
+import ShareButton from "./ShareButton";
 
 export default function Footer() {
   const { cities, settings } = useStore();
@@ -70,6 +71,7 @@ export default function Footer() {
             >
               <Phone size={16} />
             </a>
+            <ShareButton variant="icon" />
           </div>
         </div>
 

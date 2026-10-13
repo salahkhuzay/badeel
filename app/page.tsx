@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ShareButton from "@/components/ShareButton";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -139,6 +140,11 @@ export default function HomePage() {
                 منزلي، أدوات كهربائية، ملابس، ووظائف (عرض وطلب عمل). كل الأسعار بالدولار والليرة
                 السورية، وكل إعلان يُراجع قبل النشر.
               </p>
+
+              {/* مشاركة المنصة — قناة انتشار السوق (واتساب/فيسبوك/نسخ) */}
+              <div className="mt-4">
+                <ShareButton variant="pill" />
+              </div>
 
               {/* البحث */}
               <form

@@ -1051,3 +1051,24 @@ RULES في `lib/vehicleBodies.ts` كي يُشتق الهيكل الصحيح أي
 نصوص حرة: ستاريا/سنتنيال/شاص/تاسمان) · `qa/wave17-e2e.mjs` ‏18/18 · بناء next ‏23/23 ·
 بلا انحدار: photo-upload ‏52/52 · no-demo ‏35/35 · contact ‏29/29 · recovery ‏6/6 ·
 credentials ‏9/9 · rate-server ‏13/13 · rate-ownership ‏21/21.
+
+### 10.27 موجة 18: بطاقة المشاركة الاجتماعية، زر المشاركة، ترويسات الأمان (2026-10-13)
+
+**① بطاقة OG:** صورة `public/og-cover.png` ‏(1200×630) بهوية المنصة (كحلي/ذهبي/زمردي +
+الشعار الحقيقي) مولّدة بتصوير صفحة `qa/og-card.html` عبر puppeteer، ومربوطة في
+`openGraph.images` و`twitter.card = summary_large_image` — فصارت مشاركة الرابط على
+واتساب/فيسبوك تظهر كبطاقة branded لا كنص مجرد.
+
+**② زر المشاركة `components/ShareButton.tsx`:** في هيرو الرئيسية (pill) وفي صف أيقونات
+الفوتر (icon). يستخدم `navigator.share` الأصلي على الجوال، وعلى غيره قائمة: واتساب
+(`wa.me/?text=`) / فيسبوك (`sharer.php?u=`) / نسخ الرابط بتأكيد «تم النسخ».
+`url()` آمن SSR (يعود إلى `SITE_URL` عند غياب `window`) — درس مهم: أي href يُحسب
+وقت الرسم يجب ألا يلمس `window` وإلا انكسر prerender.
+
+**③ ترويسات أمنية آمنة** في `next.config.mjs`: `X-Content-Type-Options: nosniff` ·
+`Referrer-Policy: strict-origin-when-cross-origin` · `Permissions-Policy` يعطّل
+كاميرا/ميكروفون/موقع. بلا CSP/X-Frame-Options عمداً (المعاينة iframe والثيم inline).
+
+**التحقق:** `qa/wave18-share.mjs` ‏14/14 · انحدار كامل: wave17-e2e ‏18/18 · taxonomy ‏40/40 ·
+photo ‏52/52 · no-demo ‏35/35 · contact ‏29/29 · recovery ‏6/6 · credentials ‏9/9 ·
+rate-server ‏13/13 · rate-ownership ‏21/21.

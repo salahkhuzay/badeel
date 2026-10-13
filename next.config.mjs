@@ -13,6 +13,20 @@ const nextConfig = {
   async headers() {
     return [
       {
+        /* ترويسات أمنية أساسية على كل الاستجابات:
+           - nosniff: منع تخمين نوع المحتوى (حقيبة XSS كلاسيكية).
+           - Referrer-Policy: عدم تسريب مسار الصفحة كاملة للمواقع الخارجية.
+           - Permissions-Policy: تعطيل واجهات حساسة لا يستخدمها الموقع.
+           ملاحظة: لا نضيف X-Frame-Options ولا CSP صارماً حالياً لأن المعاينة
+           الحية تُعرض داخل iframe، والثيم يُحقن سكربتاً inline. */
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+      {
         source: "/sw.js",
         headers: [
           { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },

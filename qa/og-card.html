@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1200px; height:630px; overflow:hidden; }
+  body {
+    font-family:"Noto Kufi Arabic","DejaVu Sans",sans-serif;
+    background:#0F172A; color:#F8FAFC; position:relative;
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:64px 72px 52px;
+  }
+  /* توهّجات العلامة */
+  .glow-a { position:absolute; width:520px; height:520px; border-radius:50%;
+    background:radial-gradient(circle, rgba(245,158,11,.22), transparent 65%);
+    top:-160px; left:-140px; }
+  .glow-b { position:absolute; width:560px; height:560px; border-radius:50%;
+    background:radial-gradient(circle, rgba(5,150,105,.20), transparent 65%);
+    bottom:-200px; right:-160px; }
+  .top { display:flex; align-items:center; gap:34px; position:relative; }
+  .mark { width:132px; height:132px; border-radius:30px; background:#1E293B;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 18px 40px rgba(0,0,0,.45); }
+  .brand h1 { font-size:64px; font-weight:800; letter-spacing:-1px; line-height:1.15; }
+  .brand .en { font-size:26px; font-weight:700; color:#F59E0B; letter-spacing:6px; margin-top:6px; }
+  .tag { font-size:30px; color:#CBD5E1; margin-top:26px; position:relative; }
+  .chips { display:flex; gap:16px; margin-top:30px; position:relative; flex-wrap:wrap; }
+  .chip { font-size:24px; font-weight:600; padding:12px 26px; border-radius:999px;
+    background:rgba(248,250,252,.08); border:1px solid rgba(248,250,252,.16); }
+  .chip.g { color:#34D399; border-color:rgba(5,150,105,.55); }
+  .chip.a { color:#FBBF24; border-color:rgba(245,158,11,.55); }
+  .bottom { display:flex; align-items:center; justify-content:space-between; position:relative; }
+  .url { font-size:28px; font-weight:700; color:#F8FAFC; direction:ltr;
+    background:rgba(248,250,252,.10); padding:14px 30px; border-radius:14px;
+    border:1px solid rgba(248,250,252,.18); }
+  .note { font-size:23px; color:#94A3B8; }
+</style>
+</head>
+<body>
+  <div class="glow-a"></div><div class="glow-b"></div>
+  <div>
+    <div class="top">
+      <div class="mark">
+        <svg width="92" height="92" viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M20 24h18l-4.6-4.6 3.2-3.2 9.4 9.3-9.4 9.3-3.2-3.2L38 27H20z" fill="#F59E0B"/>
+          <path d="M44 40H26l4.6 4.6-3.2 3.2L18 38.5l9.4-9.3 3.2 3.2L26 37h18z" fill="#059669"/>
+        </svg>
+      </div>
+      <div class="brand">
+        <h1>بديل أونلاين</h1>
+        <div class="en">BADEEL ONLINE</div>
+      </div>
+    </div>
+    <div class="tag">سوق منبج للإعلانات المبوبة — خيارك الأفضل للبيع والشراء</div>
+    <div class="chips">
+      <span class="chip g">عقارات</span>
+      <span class="chip a">سيارات ومركبات</span>
+      <span class="chip g">هواتف</span>
+      <span class="chip a">أثاث وأجهزة</span>
+      <span class="chip g">وظائف</span>
+    </div>
+  </div>
+  <div class="bottom">
+    <span class="url">badeel-online.vercel.app</span>
+    <span class="note">أسعار بالدولار والليرة السورية</span>
+  </div>
+</body>
+</html>
