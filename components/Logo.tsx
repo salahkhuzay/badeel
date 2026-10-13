@@ -34,7 +34,7 @@ export default function Logo({
       {showText && (
         <span className="flex flex-col leading-none">
           <span className="text-lg font-extrabold tracking-tight text-navy-900 dark:text-white">
-            بديل
+            بديل أونلاين
           </span>
           {tagline ? (
             <span className="mt-1 text-[11px] font-medium text-navy-400 dark:text-navy-300">
@@ -42,7 +42,7 @@ export default function Logo({
             </span>
           ) : (
             <span className="text-[10px] font-semibold uppercase tracking-widest text-amberBrand-500">
-              Badeel
+              Badeel Online
             </span>
           )}
         </span>

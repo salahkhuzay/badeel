@@ -6,8 +6,8 @@ import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: {
-    default: "بديل | Badeel — سوق العقارات والمركبات والهواتف في منبج",
-    template: "%s | بديل - Badeel",
+    default: "بديل أونلاين | Badeel Online — سوق العقارات والمركبات والهواتف في منبج",
+    template: "%s | بديل أونلاين - Badeel Online",
   },
   description:
     "بديل — خيارك الأفضل للبيع والشراء في منبج. منصة إعلانات مبوبة محلية: عقارات، سيارات ومركبات، هواتف جديدة ومستعملة، أثاث، أجهزة كهربائية، ملابس ووظائف — بأسعار بالدولار والليرة السورية.",
@@ -25,9 +25,9 @@ export const metadata: Metadata = {
     "Badeel",
     "Manbij",
   ],
-  applicationName: "بديل - Badeel",
+  applicationName: "بديل أونلاين - Badeel Online",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "بديل" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "بديل أونلاين" },
   formatDetection: { telephone: true },
   metadataBase: new URL(SITE_URL),
   alternates: { canonical: "/" },
@@ -43,10 +43,10 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "ar_SY",
-    title: "بديل | Badeel — سوق العقارات والمركبات والهواتف في منبج",
+    title: "بديل أونلاين | Badeel Online — سوق العقارات والمركبات والهواتف في منبج",
     description:
       "بديل — خيارك الأفضل للبيع والشراء في منبج. عقارات، مركبات، هواتف، أثاث، أجهزة ووظائف مع أسعار بالدولار والليرة السورية.",
-    siteName: "بديل - Badeel",
+    siteName: "بديل أونلاين - Badeel Online",
   },
 };
 

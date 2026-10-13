@@ -73,7 +73,7 @@ const ui = await page.evaluate(() => ({
   gallery: Boolean(document.querySelector('input[type="file"][multiple]')),
   inputCount: document.querySelectorAll('input[type="file"]').length,
   acceptImage: document.querySelector('input[type="file"]')?.accept === "image/*",
-  oneBtn: /أضف صوراً — من الكاميرا أو المعرض/.test(document.body.innerText),
+  oneBtn: /أضف صوراً من المعرض/.test(document.body.innerText),
   hint: /زر الرجوع يعيدك إلى هنا دائماً/.test(document.body.innerText),
   noReload: true,
 }));

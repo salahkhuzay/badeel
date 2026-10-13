@@ -49,6 +49,9 @@ export const CAR_EXTRA: Brand[] = [
     logo: "chevrolet",
     alt: ["شفروليه", "شفرولية", "شيفرولية", "Chevrolet", "Chevy"],
     models: [
+      { id: "d20", name: "بيك أب D20", en: "D20" },
+      { id: "caprice", name: "كابريس", en: "Caprice" },
+      { id: "epica", name: "إبيكا", en: "Epica" },
       { id: "spark", name: "سبارك", en: "Spark" },
       { id: "aveo", name: "آفيو", en: "Aveo" },
       { id: "optra", name: "أوبترا", en: "Optra" },

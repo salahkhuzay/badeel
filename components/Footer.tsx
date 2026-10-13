@@ -94,6 +94,26 @@ export default function Footer() {
               </Link>
             </li>
             <li>
+              <Link href="/about" className="hover:text-amberBrand-600">
+                من نحن
+              </Link>
+            </li>
+            <li>
+              <Link href="/terms" className="hover:text-amberBrand-600">
+                شروط الاستخدام
+              </Link>
+            </li>
+            <li>
+              <Link href="/privacy" className="hover:text-amberBrand-600">
+                سياسة الخصوصية
+              </Link>
+            </li>
+            <li>
+              <Link href="/cookies" className="hover:text-amberBrand-600">
+                سياسة ملفات الارتباط
+              </Link>
+            </li>
+            <li>
               <Link href="/admin" className="hover:text-amberBrand-600">
                 لوحة التحكم الإدارية
               </Link>
@@ -162,7 +182,7 @@ export default function Footer() {
       <div className="border-t border-navy-100 py-5 dark:border-navy-800">
         <div className="container-page flex flex-col items-center justify-between gap-3 text-center text-xs text-navy-400 sm:flex-row sm:text-right dark:text-navy-400">
           <div className="flex flex-col items-center gap-1 sm:items-start">
-            <p>© {new Date().getFullYear()} بديل — Badeel. جميع الحقوق محفوظة.</p>
+            <p>© {new Date().getFullYear()} بديل أونلاين — Badeel Online. جميع الحقوق محفوظة.</p>
             <p className="flex items-center gap-2 text-[10.5px] text-navy-400">
               <span>الإصدار {APP_RELEASE}</span>
               <button

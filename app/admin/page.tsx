@@ -359,7 +359,7 @@ function LoginScreen() {
     try {
       const res = await login(user, pass);
       if (res.ok) {
-        toast({ type: "success", title: "مرحباً بك في لوحة بديل", desc: "تم تسجيل الدخول بنجاح." });
+        toast({ type: "success", title: "مرحباً بك في لوحة بديل أونلاين", desc: "تم تسجيل الدخول بنجاح." });
         setPass("");
         return;
       }

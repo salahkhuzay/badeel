@@ -94,11 +94,18 @@ export const PROPERTY_TYPES: { id: PropertyType; name: string; icon: string }[] 
 ];
 
 /* ------------------------------ المركبات ------------------------------ */
+/* موجة 17 (بلاغ 2026-10-13): أنواع السوق كما ينطقها — سياحية/جيب، فصل البيك أب
+   عن الشاحنات، فصل الجرار عن الآليات الثقيلة، وإضافة فان وميكروباص وباص. */
 export const VEHICLE_TYPES: { id: VehicleType; name: string; icon: string }[] = [
-  { id: "passenger", name: "سيارة سياحية", icon: "CarFront" },
-  { id: "truck", name: "شاحنة / بيك أب", icon: "Truck" },
+  { id: "passenger", name: "سيارة سياحية / جيب", icon: "CarFront" },
+  { id: "pickup", name: "بيك أب", icon: "TruckPickup" },
+  { id: "truck", name: "شاحنة", icon: "Truck" },
+  { id: "van", name: "فان", icon: "Van" },
+  { id: "microbus", name: "ميكروباص", icon: "BusFront" },
+  { id: "bus", name: "باص", icon: "Bus" },
   { id: "motorcycle", name: "دراجة نارية", icon: "Bike" },
-  { id: "machinery", name: "آليات ثقيلة / جرار زراعي", icon: "Tractor" },
+  { id: "tractor", name: "جرار زراعي", icon: "Tractor" },
+  { id: "machinery", name: "آليات ثقيلة", icon: "Construction" },
 ];
 
 export const BODY_CONDITIONS: { id: BodyCondition; name: string }[] = [
