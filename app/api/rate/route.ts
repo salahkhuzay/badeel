@@ -86,14 +86,17 @@ async function writeRate(rate: number, updatedAt: string): Promise<boolean> {
 
 export async function GET() {
   const { rate, updatedAt, via } = await readRate();
+  /* kvConfigured: هل متغيّرات Upstash محقونة فعلاً؟ (تشخيص آمن بلا أسرار) */
+  const env = kvEnv(true);
+  const kvConfigured = Boolean(env.url && env.token);
   if (rate !== null) {
     return NextResponse.json(
-      { usdToSyp: rate, updatedAt, source: via === "dev" ? "dev-memory" : "kv" },
+      { usdToSyp: rate, updatedAt, source: via === "dev" ? "dev-memory" : "kv", kvConfigured },
       { headers: { "Cache-Control": "no-store" } }
     );
   }
   return NextResponse.json(
-    { usdToSyp: DEFAULT_SETTINGS.usdToSyp, updatedAt: null, source: "default" },
+    { usdToSyp: DEFAULT_SETTINGS.usdToSyp, updatedAt: null, source: "default", kvConfigured },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
