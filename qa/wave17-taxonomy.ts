@@ -46,6 +46,21 @@ ok("بورترو هيونداي ← نقل خفيف", bm("hyundai", "porter") ==
 
 ok("اشتقاق من نص مخصّص: «كوستر» ← باص", bodyTypeOfAd({ make: "تويوتا", model: "كوستر 2012" }) === "bus");
 ok("اشتقاق من نص مخصّص: «هايلوكس» ← بيك أب", bodyTypeOfAd({ model: "هايلوكس فيغو" }) === "pickup");
+ok("سنتنيال ← شاحنة", bm("hyundai", "centennial") === "truck");
+ok("ستاريا ← فان", bm("hyundai", "staria") === "van");
+ok("H100 شاحنة ← نقل خفيف (لا باص)", bm("hyundai", "h100-truck") === "lighttruck");
+ok("كاسبر ← SUV", bm("hyundai", "casper") === "suv");
+ok("كليك ← هاتشباك", bm("hyundai", "click") === "hatchback");
+ok("بورتر ← نقل خفيف", bm("hyundai", "porter") === "lighttruck");
+ok("تاسمان كيا ← بيك أب", bm("kia", "tasman") === "pickup");
+ok("K4000 كيا ← نقل خفيف", bm("kia", "k4000") === "lighttruck");
+ok("سونيت كيا ← SUV", bm("kia", "sonet") === "suv");
+ok("ستينغر كيا ← كوبيه", bm("kia", "stinger") === "coupe");
+ok("شاص تويوتا ← بيك أب", bm("toyota", "shass") === "pickup");
+ok("نص حر: «ستاريا» ← فان", bodyTypeOfAd({ model: "ستاريا 2022" }) === "van");
+ok("نص حر: «سنتنيال» ← شاحنة", bodyTypeOfAd({ model: "سنتنيال قاطر" }) === "truck");
+ok("نص حر: «شاص» ← بيك أب", bodyTypeOfAd({ model: "شاص غمار" }) === "pickup");
+ok("نص حر: «تاسمان» ← بيك أب", bodyTypeOfAd({ make: "كيا", model: "تاسمان" }) === "pickup");
 ok("قائمة الهيكل ما زالت موجودة للفلاتر", BODY_TYPES.length >= 14);
 
 console.log(`\n══ النتيجة: ${pass} نجاح · ${fail} فشل ══`);
