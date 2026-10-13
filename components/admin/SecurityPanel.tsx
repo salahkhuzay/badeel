@@ -79,6 +79,10 @@ export default function SecurityPanel() {
 
   function savePolicy(e: React.FormEvent) {
     e.preventDefault();
+    const un = username.trim();
+    if (un.includes(" ") || un.includes("\n")) {
+      return toast({ type: "error", title: "اسم المستخدم بلا مسافات", desc: "استخدم حروفاً وأرقاماً ورموزاً بلا فراغات." });
+    }
     const sm = Number(sessionMinutes);
     const ma = Number(maxAttempts);
     const lm = Number(lockMinutes);
@@ -87,7 +91,7 @@ export default function SecurityPanel() {
     if (lm < 1 || lm > 120) return toast({ type: "error", title: "مدة القفل بين دقيقة و120 دقيقة" });
 
     updateSettings({
-      adminUsername: username.trim() || "admin",
+      adminUsername: un || "admin",
       sessionMinutes: sm,
       maxLoginAttempts: ma,
       lockMinutes: lm,
@@ -106,20 +110,6 @@ export default function SecurityPanel() {
           كلمة المرور لا تُخزَّن كنص صريح: تُحوَّل إلى بصمة PBKDF2-SHA256 بملح خاص ونحو 120 ألف
           تكرار. حتى لو فُتح ملف البيانات، لا يمكن استرجاع كلمة المرور منه.
         </p>
-
-        <div className="mt-4">
-          <label className="label">اسم المستخدم للأدمن</label>
-          <div className="relative">
-            <UserCog size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-navy-400" />
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="input pr-9"
-              dir="ltr"
-            />
-          </div>
-          <p className="hint">يُستخدم مع كلمة المرور لتسجيل الدخول إلى /admin</p>
-        </div>
 
         <div className="divider my-4" />
 
@@ -234,6 +224,25 @@ export default function SecurityPanel() {
           <p className="mt-1.5 text-[12px] leading-relaxed text-navy-500 dark:text-navy-300">
             اضبط المدة التي تبقى فيها اللوحة مفتوحة، وعدد المحاولات المسموح بها قبل القفل المؤقت.
           </p>
+
+          {/* اسم المستخدم يعيش هنا لأن زر هذا النموذج هو ما يحفظه فعلاً */}
+          <div className="mt-4">
+            <label className="label">اسم المستخدم للأدمن</label>
+            <div className="relative">
+              <UserCog size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-navy-400" />
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="input pr-9"
+                dir="ltr"
+                autoComplete="username"
+              />
+            </div>
+            <p className="hint">
+              يُستخدم مع كلمة المرور لتسجيل الدخول إلى /admin — يُحفظ بزر «حفظ سياسة الأمان» في
+              أسفل هذه البطاقة.
+            </p>
+          </div>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div>
