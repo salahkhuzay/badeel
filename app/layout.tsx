@@ -6,7 +6,7 @@ import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: {
-    default: "بديل أونلاين | عقارات، سيارات، أثاث وسلع مستعملة في منبج",
+    default: "بديل أونلاين | عقارات، سيارات، أثاث وسلع مستعملة في منبج — Badeel Online",
     template: "%s | بديل أونلاين - Badeel Online",
   },
   description:

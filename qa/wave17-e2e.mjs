@@ -27,7 +27,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 /* ─────────── SSR ─────────── */
 console.log("① فحص HTML الخادم…");
 const home = await (await fetch(`${BASE}/`)).text();
-ok("العنوان يحمل الاسم الجديد", home.includes("بديل أونلاين | Badeel Online"));
+ok("العنوان يحمل الاسم الجديد والأقسام أولاً", home.includes("بديل أونلاين | عقارات، سيارات") && home.includes("Badeel Online"));
 ok("اللوغو يعرض «بديل أونلاين»", home.includes("بديل أونلاين"));
 ok("الفوتر: © بديل أونلاين — Badeel Online", home.includes("بديل أونلاين — Badeel Online. جميع الحقوق محفوظة"));
 for (const [href, label] of [
