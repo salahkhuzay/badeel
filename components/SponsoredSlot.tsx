@@ -60,7 +60,9 @@ export default function SponsoredSlot() {
       <img
         src={live.imageUrl.trim()}
         alt={live.title}
-        className="block h-24 w-full rounded-2xl object-cover sm:h-32"
+        /* الصورة كلها تظهر أبداً: ارتفاع طبيعي بلا اقتطاع (object-contain)،
+           وسقف 380بكسل للصور الطويلة مع توسيد جانبي بدل قص المحتوى */
+        className="block max-h-[380px] w-full rounded-2xl object-contain bg-navy-950/30"
         loading="eager"
       />
     );

@@ -25,6 +25,9 @@ const day = (offset) => new Date(Date.now() + offset * 86400000).toISOString().s
 
 /* ① HTML الخادم بلا حملات */
 const home = await (await fetch(`${BASE}/`)).text();
+/* سرعة اللوحة: حقول الدخول في HTML الخادم نفسه — لا انتظار للجافاسكربت */
+const adminHtml = await (await fetch(`${BASE}/admin`)).text();
+ok("SSR: نموذج دخول اللوحة (كلمة المرور) في HTML الخادم", adminHtml.includes('type="password"'));
 ok("SSR: لافتة بيع المساحة حاضرة افتراضياً", home.includes("مساحتك الإعلانية هنا"));
 ok("SSR: زر الحجز عبر واتساب", home.includes("احجز المساحة عبر واتساب"));
 
@@ -123,11 +126,12 @@ snap = await page.evaluate((src) => {
   return {
     img: Boolean(img),
     wrapped: Boolean(img?.closest("a[href='https://example.com/img']")),
+    contain: img ? getComputedStyle(img).objectFit === "contain" : false,
     label: document.body.innerText.includes("إعلان ممول"),
     noTitle: !document.body.innerText.includes("عنوان إداري لا يظهر"),
   };
 }, TINY_PNG);
-ok("حملة بصورة فقط: صورة قابلة للنقر + وسم ممول + بلا نص", snap.img && snap.wrapped && snap.label && snap.noTitle, JSON.stringify(snap));
+ok("حملة بصورة فقط: صورة كاملة (contain) قابلة للنقر + وسم ممول + بلا نص", snap.img && snap.wrapped && snap.label && snap.noTitle && snap.contain, JSON.stringify(snap));
 
 /* ③ حملة منتهية */
 await seedAndOpen([

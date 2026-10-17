@@ -84,10 +84,12 @@ export default function AdminPage() {
 
   const minutesLeft = useMemo(() => sessionMinutesLeft(), [tick, auth.sessionExpiresAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* قبل اكتمال الاسترجاع من التخزين المحلي: نرسم شاشة الدخول نفسها (لا «جار
+     التحميل») — فتظهر حقول الدخول في HTML الخادم فوراً على الجوال البطيء بدل
+     انتظار تنزيل كل الجافاسكربت وتنفيذه (شكوى صاحب المنصة 2026-10-17).
+     من له جلسة قائمة يرى ومضة دخول خاطفة ثم لوحته — أهون من شاشة فارغة. */
   if (!hydrated) {
-    return (
-      <div className="container-page py-16 text-center text-[13px] text-navy-400">جار التحميل...</div>
-    );
+    return <LoginScreen />;
   }
 
   /* ------------------------------ شاشة الدخول ------------------------------ */
