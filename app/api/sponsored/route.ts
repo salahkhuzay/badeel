@@ -79,12 +79,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "مخزن KV غير مرتبط بالمنصة" }, { status: 503 });
   }
   try {
-    const w = await fetch(`${url}/set/${KV_KEY}`, {
+    /* صيغة Upstash REST المعتمدة في المنصة (كما في جسر السعر): القيمة في
+       المسار /set/{key}/{value} — الكتابة بجسم الطلب تُهمَل بصمت */
+    const w = await fetch(`${url}/set/${KV_KEY}/${encodeURIComponent(JSON.stringify(list))}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(JSON.stringify(list)),
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
     });
     if (!w.ok) return NextResponse.json({ error: "تعذّرت الكتابة إلى مخزن KV" }, { status: 502 });
+    const wj = (await w.json().catch(() => null)) as { result?: unknown } | null;
+    if (wj?.result !== "OK") {
+      return NextResponse.json({ error: "تعذّرت الكتابة إلى مخزن KV" }, { status: 502 });
+    }
     return NextResponse.json({ ok: true, count: list.length, updatedAt: new Date().toISOString() });
   } catch {
     return NextResponse.json({ error: "تعذّرت الكتابة إلى مخزن KV" }, { status: 502 });
