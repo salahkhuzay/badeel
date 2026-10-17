@@ -32,13 +32,16 @@ import {
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/Toast";
 import Logo from "@/components/Logo";
-import AdminStats from "@/components/admin/AdminStats";
-import ModerationQueue from "@/components/admin/ModerationQueue";
-import AdsTable from "@/components/admin/AdsTable";
-import CitiesManager from "@/components/admin/CitiesManager";
-import SettingsPanel from "@/components/admin/SettingsPanel";
-import SponsoredManager from "@/components/admin/SponsoredManager";
-import AuditLog from "@/components/admin/AuditLog";
+/* تحميل كسول لمحتوى التبويبات (موجة 20+): اللوحة تفتح على الجوال بحزمة
+   النظرة العامة فقط، وينزل جافاسكربت كل تبويب عند أول فتح له — لا دفعة واحدة */
+import dynamic from "next/dynamic";
+const AdminStats = dynamic(() => import("@/components/admin/AdminStats"), { ssr: false });
+const ModerationQueue = dynamic(() => import("@/components/admin/ModerationQueue"), { ssr: false });
+const AdsTable = dynamic(() => import("@/components/admin/AdsTable"), { ssr: false });
+const CitiesManager = dynamic(() => import("@/components/admin/CitiesManager"), { ssr: false });
+const SettingsPanel = dynamic(() => import("@/components/admin/SettingsPanel"), { ssr: false });
+const SponsoredManager = dynamic(() => import("@/components/admin/SponsoredManager"), { ssr: false });
+const AuditLog = dynamic(() => import("@/components/admin/AuditLog"), { ssr: false });
 import { cn, formatNumber } from "@/lib/currency";
 import { formatDuration } from "@/lib/auth";
 

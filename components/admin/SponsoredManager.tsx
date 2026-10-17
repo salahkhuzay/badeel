@@ -64,30 +64,40 @@ export default function SponsoredManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pubState, setPubState] = useState("");
 
-  /* نشر القائمة لكل الزوار عبر KV — بنفس مفتاح نشر السعر (تبويب الإعدادات) */
-  const publish = async () => {
-    const key = getRateKey().trim();
-    if (!key) {
-      setPubState("أدخل «مفتاح النشر» من تبويب الإعدادات والأمان أولاً ثم انشر.");
-      return;
-    }
-    setPubState("جارٍ النشر…");
-    const r = await publishSponsored(sponsored, key);
-    setPubState(r.ok ? `تم النشر لكل الزوار (${r.count} حملة)` : `تعذّر النشر: ${r.error}`);
-  };
-
   const set = (patch: Partial<SponsoredAd>) => setForm((f) => ({ ...f, ...patch }));
 
-  const save = () => {
-    if (!form.title.trim() || !form.advertiser.trim()) return;
-    if (form.endsAt < form.startsAt) return;
-    if (editingId) {
-      setSponsored(sponsored.map((a) => (a.id === editingId ? { ...form, id: editingId } : a)));
-    } else {
-      setSponsored([...sponsored, { ...form, id: uid("spn") }]);
+  /* نشر فوري لقائمة معطاة + رسالة حالة واضحة (المفتاح من تبويب الإعدادات) */
+  const publishList = async (list: SponsoredAd[]) => {
+    const key = getRateKey().trim();
+    if (!key) {
+      setPubState("حُفظت محلياً فقط — أدخل «مفتاح النشر» من الإعدادات والأمان ثم انشر.");
+      return;
     }
+    const r = await publishSponsored(list, key);
+    setPubState(
+      r.ok ? `تم الحفظ والنشر لكل الزوار (${r.count} حملة)` : `حُفظت محلياً — تعذّر النشر: ${r.error}`
+    );
+  };
+
+  /* زر واحد يفعل كل شيء: يحفظ الحملة وينشرها فوراً لكل الزوار —
+     فلا تتكرر حيرة «نشرت قبل أن أضيف» (موجة 20+) */
+  const save = async () => {
+    if (!form.title.trim() || !form.advertiser.trim()) {
+      setPubState("أكمل اسم المعلن والنص الرئيسي (أو ارفع صورة) أولاً.");
+      return;
+    }
+    if (form.endsAt < form.startsAt) {
+      setPubState("تاريخ النهاية قبل البداية — صحّح الفترة.");
+      return;
+    }
+    const next = editingId
+      ? sponsored.map((a) => (a.id === editingId ? { ...form, id: editingId } : a))
+      : [...sponsored, { ...form, id: uid("spn") }];
+    setSponsored(next);
     setForm(emptyForm());
     setEditingId(null);
+    setPubState("جارٍ الحفظ والنشر…");
+    await publishList(next);
   };
 
   const edit = (a: SponsoredAd) => {
@@ -95,12 +105,15 @@ export default function SponsoredManager() {
     setEditingId(a.id);
   };
 
-  const remove = (id: string) => {
-    setSponsored(sponsored.filter((a) => a.id !== id));
+  const remove = async (id: string) => {
+    const next = sponsored.filter((a) => a.id !== id);
+    setSponsored(next);
     if (editingId === id) {
       setForm(emptyForm());
       setEditingId(null);
     }
+    setPubState("جارٍ النشر بعد الحذف…");
+    await publishList(next);
   };
 
   return (
@@ -234,8 +247,8 @@ export default function SponsoredManager() {
           </label>
         </div>
         <div className="mt-4 flex gap-2">
-          <button type="button" className="btn-amber px-5" onClick={save}>
-            <Plus size={15} /> {editingId ? "حفظ التعديلات" : "إضافة الحملة"}
+          <button type="button" className="btn-amber px-5" onClick={() => void save()}>
+            <Plus size={15} /> {editingId ? "حفظ التعديلات ونشرها" : "حفظ الحملة ونشرها لكل الزوار"}
           </button>
           {editingId && (
             <button
@@ -251,17 +264,17 @@ export default function SponsoredManager() {
           )}
         </div>
 
-        {/* النشر العام: التعديلات محلية حتى تُنشر — كجسر السعر تماماً */}
+        {/* النشر اليدوي: مزامنة/إعادة نشر القائمة الحالية كما هي */}
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-navy-100 pt-4 dark:border-navy-800">
-          <button type="button" className="btn-ghost px-4" onClick={publish}>
-            <Send size={15} /> نشر المساحة لكل الزوار
+          <button type="button" className="btn-ghost px-4" onClick={() => void publishList(sponsored)}>
+            <Send size={15} /> إعادة نشر القائمة الحالية
           </button>
           {pubState && (
             <span className="text-[11px] font-bold text-navy-500 dark:text-navy-300">{pubState}</span>
           )}
           <span className="w-full text-[11px] leading-relaxed text-navy-400">
-            التعديلات تبقى في متصفحك حتى تنشرها — وبعدها يراها كل الزوار فوراً عبر المخزن
-            السحابي، بنفس مفتاح نشر سعر الصرف.
+            كل حفظ أو حذف أو تعديل يُنشر تلقائياً لكل الزوار عبر المخزن السحابي — لا خطوة
+            نشر منفصلة يمكن نسيانها أو سبقها قبل الإضافة.
           </span>
         </div>
       </div>

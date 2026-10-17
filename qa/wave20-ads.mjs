@@ -169,7 +169,7 @@ await page2.evaluate(() => {
     .find((x) => x.textContent.trim().startsWith("إعلانات مأجورة"))
     ?.click();
 });
-await wait(900);
+await wait(2000); /* التحميل الكسول للتبويب */
 ok("تبويب «إعلانات مأجورة» موجود ويفتح", await page2.evaluate(() => document.body.innerText.includes("المساحة الإعلانية المأجورة — الشريط أعلى الرئيسية")));
 ok(
   "حقل رفع صورة البانر من الجهاز موجود",
@@ -197,7 +197,7 @@ ok("حقلا المعلن والنص قابلان للتعبئة", inputs);
 await wait(300);
 await page2.evaluate(() => {
   Array.from(document.querySelectorAll("button"))
-    .find((b) => b.textContent.includes("إضافة الحملة"))
+    .find((b) => b.textContent.includes("حفظ الحملة ونشرها"))
     ?.click();
 });
 await wait(900);
