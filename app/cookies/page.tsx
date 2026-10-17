@@ -4,6 +4,8 @@ import { Cookie } from "lucide-react";
 export const metadata: Metadata = {
   title: "سياسة ملفات الارتباط",
   description: "ما الذي يخزّنه موقع بديل أونلاين في متصفحك ولماذا، وكيف تتحكم به.",
+  robots: { index: false, follow: true },
+  alternates: { canonical: "/cookies" },
 };
 
 const S = ({ t, children }: { t: string; children: React.ReactNode }) => (

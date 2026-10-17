@@ -3,7 +3,11 @@ import Link from "next/link";
 import { WifiOff } from "lucide-react";
 import Logo from "@/components/Logo";
 
-export const metadata = { title: "لا يوجد اتصال" };
+export const metadata = {
+  title: "لا يوجد اتصال",
+  robots: { index: false, follow: false },
+  alternates: { canonical: "/offline" },
+};
 
 export default function OfflinePage() {
   return (

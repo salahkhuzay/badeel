@@ -5,6 +5,8 @@ import { FileText } from "lucide-react";
 export const metadata: Metadata = {
   title: "شروط الاستخدام",
   description: "شروط استخدام منصة بديل أونلاين للإعلانات المبوبة في منبج.",
+  robots: { index: false, follow: true },
+  alternates: { canonical: "/terms" },
 };
 
 const S = ({ t, children }: { t: string; children: React.ReactNode }) => (

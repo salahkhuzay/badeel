@@ -5,6 +5,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "من نحن",
   description: "قصة بديل أونلاين — منصة الإعلانات المبوبة المحلية في منبج.",
+  alternates: { canonical: "/about" },
 };
 
 const S = ({ t, children }: { t: string; children: React.ReactNode }) => (

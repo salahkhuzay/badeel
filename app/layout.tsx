@@ -5,12 +5,13 @@ import AppShell from "@/components/AppShell";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
+  /* موجة 23: العنوان الافتراضي يبدأ بما طلبه صاحب المنصة — عقارات وسيارات */
   title: {
-    default: "بديل أونلاين | عقارات، سيارات، أثاث وسلع مستعملة في منبج — Badeel Online",
+    default: "عقارات وسيارات للبيع والشراء في منبج | بديل أونلاين — Badeel Online",
     template: "%s | بديل أونلاين - Badeel Online",
   },
   description:
-    "موقع بديل أونلاين في منبج — بيع وشراء العقارات، السيارات والمركبات، الأثاث المنزلي، الهواتف والسلع المستعملة مباشرة بين البائع والمشتري، بأسعار بالدولار والليرة السورية.",
+    "عقارات وسيارات ومركبات في منبج أولاً: شقق وأراضٍ ومحلات وسيارات مستعملة وجديدة، إضافة إلى أثاث منزلي وأدوات كهربائية وملابس وهواتف ووظائف — بيع وشراء مباشر بين البائع والمشتري على بديل أونلاين، بأسعار بالدولار والليرة السورية.",
   keywords: [
     "بديل",
     "منبج",
@@ -30,7 +31,9 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "بديل أونلاين" },
   formatDetection: { telephone: true },
   metadataBase: new URL(SITE_URL),
-  alternates: { canonical: "/" },
+  /* موجة 23: أُزيل canonical العام من هنا — كان يُسنَد لكل صفحة فيدمج جوجل
+     صفحات الخصوصية/التصنيفات في فهرس الرئيسية (سبب النتائج المشوّهة).
+     كل صفحة تعلن رابطها القانوني بنفسها الآن. */
   robots: {
     index: true,
     follow: true,

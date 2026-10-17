@@ -4,6 +4,10 @@ import { ShieldCheck } from "lucide-react";
 export const metadata: Metadata = {
   title: "سياسة الخصوصية",
   description: "كيف تتعامل منصة بديل أونلاين مع بياناتك الشخصية وإعلاناتك.",
+  /* موجة 23: صفحات قانونية رقيقة — تُستبعد من الفهرسة كي لا تزاحم
+     الرئيسية في نتائج البحث عن اسم المنصة، مع رابطها القانوني الخاص */
+  robots: { index: false, follow: true },
+  alternates: { canonical: "/privacy" },
 };
 
 const S = ({ t, children }: { t: string; children: React.ReactNode }) => (

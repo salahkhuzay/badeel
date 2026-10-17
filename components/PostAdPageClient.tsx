@@ -1,0 +1,1725 @@
+"use client";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  Banknote,
+  BadgeCheck,
+  Briefcase,
+  Building,
+  Building2,
+  CalendarDays,
+  Camera,
+  Car,
+  Bus,
+  BusFront,
+  CarFront,
+  Construction,
+  CheckCircle2,
+  CircleDollarSign,
+  Eye,
+  Fuel,
+  Home,
+  Image as ImageIcon,
+  ImagePlus,
+  Images,
+  Info,
+  LandPlot,
+  Layers,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Plug,
+  Ruler,
+  Send,
+  Smartphone,
+  Shirt,
+  Sofa,
+  Sparkles,
+  Store,
+  Timer,
+  Trees,
+  Truck,
+  Bike,
+  Tractor,
+  User,
+  Warehouse,
+  X,
+  Zap,
+} from "lucide-react";
+import { useStore } from "@/lib/store";
+import { useToast } from "@/components/Toast";
+import AdCard from "@/components/AdCard";
+import StatusBadge from "@/components/StatusBadge";
+import AdPreviewModal from "@/components/AdPreviewModal";
+import BrandSelector from "@/components/BrandSelector";
+import { bodyTypeOfAd, type BodyTypeId } from "@/lib/vehicleBodies";
+import VehicleBodyIcon from "@/components/VehicleBodyIcon";
+import { cn, formatMoney, nextRef, uid } from "@/lib/currency";
+import {
+  compressPhotoBatch,
+  MAX_AD_PHOTOS,
+  photosSizeMb,
+  isRealPhoto,
+} from "@/lib/photo";
+import { clearDraft, loadDraft, saveDraft } from "@/lib/draft";
+import {
+  CONDITIONS,
+  DEAL_TYPES,
+  EMPLOYMENT_TYPES,
+  FUEL_TYPES,
+  JOB_KINDS,
+  OWNERSHIP_TYPES,
+  PLATE_REGIONS,
+  PROPERTY_TYPES,
+  SUBTYPES,
+  VEHICLE_TYPES,
+  BODY_CONDITIONS,
+  DONUM_TYPES,
+  RENTABLE,
+  YEAR_REQUIRED,
+  categoryName,
+  dealTypesFor,
+} from "@/lib/taxonomy";
+import { PHONE_BRANDS, PHONE_STORAGE, VEHICLE_YEARS, brandName, modelName } from "@/lib/brands";
+import type {
+  Ad,
+  BodyCondition,
+  Currency,
+  DealType,
+  EmploymentType,
+  FuelType,
+  ItemCondition,
+  ListingKind,
+  MainCategory,
+  OwnershipType,
+  PlateRegion,
+  PropertyType,
+  VehicleType,
+} from "@/lib/types";
+import AdArtwork from "@/lib/artwork";
+
+/* أيقونات */
+const CATEGORY_ICON: Record<MainCategory, React.ReactNode> = {
+  "real-estate": <Building2 size={22} />,
+  vehicles: <Car size={22} />,
+  furniture: <Sofa size={22} />,
+  appliances: <Plug size={22} />,
+  clothing: <Shirt size={22} />,
+  phones: <Smartphone size={22} />,
+  jobs: <Briefcase size={22} />,
+};
+
+const CATEGORY_TONE: Record<MainCategory, string> = {
+  "real-estate": "from-emeraldBrand-500 to-emeraldBrand-700",
+  vehicles: "from-amberBrand-500 to-amberBrand-700",
+  furniture: "from-rose-500 to-rose-700",
+  appliances: "from-sky-500 to-sky-700",
+  clothing: "from-violet-500 to-violet-700",
+  phones: "from-indigo-500 to-indigo-700",
+  jobs: "from-navy-600 to-navy-900",
+};
+
+const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
+  apartment: <Building size={20} />,
+  house: <Home size={20} />,
+  "land-building": <LandPlot size={20} />,
+  "land-agricultural": <Trees size={20} />,
+  shop: <Store size={20} />,
+  warehouse: <Warehouse size={20} />,
+};
+
+const VEHICLE_ICONS: Record<VehicleType, React.ReactNode> = {
+  passenger: <CarFront size={20} />,
+  pickup: <VehicleBodyIcon type="pickup" size={22} />,
+  truck: <Truck size={20} />,
+  van: <VehicleBodyIcon type="van" size={22} />,
+  microbus: <BusFront size={20} />,
+  bus: <Bus size={20} />,
+  motorcycle: <Bike size={20} />,
+  tractor: <Tractor size={20} />,
+  machinery: <Construction size={20} />,
+};
+
+/* مكتبة رسوم مدمجة (SVG مرسوم داخل الصفحة — بلا ملفات ولا طلبات شبكة) */
+const SAMPLE_ART: { key: string; label: string }[] = [
+  { key: "house", label: "منزل" },
+  { key: "apartment", label: "شقة" },
+  { key: "land", label: "أرض" },
+  { key: "shop", label: "محل" },
+  { key: "sedan", label: "سيارة" },
+  { key: "suv", label: "رباعية" },
+  { key: "pickup", label: "بيك أب" },
+  { key: "truck", label: "شاحنة" },
+  { key: "lighttruck", label: "شاحنة صغيرة" },
+  { key: "motorcycle", label: "دراجة" },
+  { key: "tractor", label: "جرار" },
+  { key: "phone", label: "هاتف" },
+  { key: "sofa", label: "أثاث" },
+  { key: "fridge", label: "جهاز" },
+  { key: "shirt", label: "ملابس" },
+  { key: "briefcase", label: "وظيفة" },
+];
+
+interface FormState {
+  category: MainCategory;
+  /* عقارات */
+  propertyType: PropertyType | "";
+  dealType: DealType;
+  areaSize: string;
+  areaUnit: "m2" | "donum";
+  ownership: OwnershipType | "";
+  /* مركبات */
+  vehicleType: VehicleType | "";
+  bodyType: BodyTypeId | "";
+  brandId: string;
+  modelId: string;
+  customMake: string;
+  customModel: string;
+  year: string;
+  bodyCondition: BodyCondition | "";
+  fuelType: FuelType | "";
+  plateRegion: PlateRegion | "";
+  /* أثاث / أجهزة / ملابس */
+  subtypeId: string;
+  condition: ItemCondition | "";
+  itemBrand: string; // ماركة الجهاز
+  storage: string; // سعة تخزين الهاتف
+  sizeText: string; // مقاس الملابس
+  /* وظائف */
+  jobKind: ListingKind;
+  employmentType: EmploymentType | "";
+  experienceYears: string;
+  /* مشترك */
+  title: string;
+  description: string;
+  price: string;
+  currency: Currency;
+  negotiable: boolean;
+  cityId: string;
+  images: string[];
+  sellerName: string;
+  sellerPhone: string;
+  sellerWhatsapp: string;
+  sameWhatsapp: boolean;
+}
+
+const INITIAL: FormState = {
+  category: "real-estate",
+  propertyType: "",
+  dealType: "sale",
+  areaSize: "",
+  areaUnit: "m2",
+  ownership: "",
+  vehicleType: "",
+  bodyType: "", // موجة 17: لم يعد سؤالاً — يُشتق عند النشر
+  brandId: "",
+  modelId: "",
+  customMake: "",
+  customModel: "",
+  year: "",
+  bodyCondition: "",
+  fuelType: "",
+  plateRegion: "",
+  subtypeId: "",
+  condition: "",
+  itemBrand: "",
+  storage: "",
+  sizeText: "",
+  jobKind: "offer",
+  employmentType: "",
+  experienceYears: "",
+  title: "",
+  description: "",
+  price: "",
+  currency: "USD",
+  negotiable: true,
+  cityId: "manbij",
+  images: [],
+  sellerName: "",
+  sellerPhone: "",
+  sellerWhatsapp: "",
+  sameWhatsapp: true,
+};
+
+export default function PostAdPage() {
+  const { cities, settings, addAd, ads, toUsd, toSyp } = useStore();
+  const toast = useToast();
+
+  const [form, setForm] = useState<FormState>(INITIAL);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [done, setDone] = useState<Ad | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewRef, setPreviewRef] = useState("BD-###");
+  /* رفع الصور من الجوال — حقل واحد بلا capture:
+     نية الكاميرا الخارجية المباشرة كانت تجعل زر «رجوع» في أندرويد يُنهي
+     المتصفح أو يعيد تحميله فيخرج المستخدم من الموقع؛ منتقي النظام (الذي يضم
+     خيار الكاميرا والمعرض) يعود بأمان دائماً. */
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [busyPhotos, setBusyPhotos] = useState<{ done: number; total: number } | null>(null);
+  /* حارس زر الرجوع + المسودة */
+  const guardRef = useRef(false);
+  const warnedRef = useRef(false);
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((e) => ({ ...e, [key]: "" }));
+  };
+
+  /* ---------------------- صور الإعلان: حقيقية + رسوم جاهزة ---------------------- */
+  /** الصور الحقيقية المرفوعة من الجهاز (الغلاف هو الأولى) */
+  const photos = form.images.filter(isRealPhoto);
+  /** رسوم بديل الجاهزة (art:…) — تبقى دائماً بعد الصور الحقيقية */
+  const artPicks = form.images.filter((s) => s.startsWith("art:"));
+  /** ترتيب ثابت: الصور الحقيقية أولاً ثم الرسوم */
+  const setPhotos = (nextPhotos: string[], nextArt = artPicks) =>
+    set("images", [...nextPhotos, ...nextArt]);
+  const setArtPicks = (nextArt: string[]) => set("images", [...photos, ...nextArt]);
+  const toggleArt = (src: string) =>
+    setArtPicks(artPicks.includes(src) ? artPicks.filter((s) => s !== src) : [...artPicks, src]);
+  const makeCover = (src: string) => setPhotos([src, ...photos.filter((p) => p !== src)]);
+
+  /** استقبال الملفات من الكاميرا أو المعرض: ضغط داخل الجوال ثم إضافة */
+  const onPickPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
+    const files = Array.from(input.files ?? []);
+    input.value = ""; // يسمح بإعادة اختيار الصورة نفسها لاحقاً
+    if (!files.length) return;
+
+    const room = MAX_AD_PHOTOS - photos.length;
+    if (room <= 0) {
+      toast({
+        type: "error",
+        title: "الحد الأقصى للصور",
+        desc: `يمكن إضافة ${MAX_AD_PHOTOS} صور في الإعلان الواحد — احذف صورة ثم أعد المحاولة.`,
+      });
+      return;
+    }
+    const take = files.slice(0, room);
+    setBusyPhotos({ done: 0, total: take.length });
+    try {
+      const { photos: made, errors: failed } = await compressPhotoBatch(take, (d, t) =>
+        setBusyPhotos({ done: d, total: t })
+      );
+      if (made.length) setPhotos([...photos, ...made]);
+      if (failed.length) {
+        toast({
+          type: "error",
+          title: made.length ? "بعض الصور لم تُضف" : "لم تُضف الصور",
+          desc: failed[0],
+        });
+      } else if (made.length) {
+        toast({
+          type: "success",
+          title: made.length === 1 ? "تمت إضافة الصورة" : `تمت إضافة ${made.length} صور`,
+          desc: "ضُغطت داخل جوالك — الصورة الأولى هي غلاف الإعلان.",
+        });
+      }
+      if (files.length > take.length) {
+        toast({
+          type: "info",
+          title: "الحد الأقصى للصور",
+          desc: `أُضيفت أول ${take.length} صور فقط (الحد ${MAX_AD_PHOTOS} في الإعلان الواحد).`,
+        });
+      }
+    } finally {
+      setBusyPhotos(null);
+    }
+  };
+
+  /* ------------------- مسودة غير مكتملة + حارس زر الرجوع ------------------- */
+  /** هل لدى المستخدم عمل غير منشور؟ (حقول أو صور) */
+  const dirty =
+    !done &&
+    (form.images.length > 0 ||
+      [form.title, form.description, form.price, form.sellerName, form.sellerPhone].some((v) =>
+        String(v).trim() !== ""
+      ));
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
+
+  /* استعادة المسودة مرة واحدة عند الفتح (بعد عودة من الكاميرا أو إعادة تحميل) */
+  useEffect(() => {
+    const d = loadDraft<Partial<FormState>>();
+    if (d && typeof d === "object") {
+      setForm((f) => ({ ...f, ...d }));
+      toast({
+        type: "info",
+        title: "استعدنا مسودتك",
+        desc: "حقولك وصورك كما تركتها — أكمل من حيث توقفت.",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* حفظ المسودة بعد كل تغيير (بتأخير بسيط) وحذفها حين تفرغ */
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (done) return;
+      if (dirtyRef.current) saveDraft(form);
+      else clearDraft();
+    }, 350);
+    return () => clearTimeout(t);
+  }, [form, done]);
+
+  /* حارس زر الرجوع: أول ضغطة تُبقي المستخدم وتشرح أن مسودته محفوظة،
+     والضغطة الثانية تُخرجه طبيعياً. يعمل في التبويب وفي وضع PWA المثبّت. */
+  useEffect(() => {
+    const onPop = () => {
+      if (!dirtyRef.current) {
+        warnedRef.current = false;
+        return; // لا مسودة — الرجوع طبيعي
+      }
+      if (!warnedRef.current) {
+        warnedRef.current = true;
+        history.pushState({ badeelGuard: 1 }, "");
+        toast({
+          type: "info",
+          title: "مسودتك محفوظة هنا",
+          desc: "لديك إعلان غير مكتمل. إن أردت الخروج فعلاً فاضغط رجوع مرة أخرى — وستجد مسودتك عند العودة.",
+        });
+      } else {
+        warnedRef.current = false;
+        /* إدخال الحارس جعل الرجوع الطبيعي يعود إلى نفس العنوان (صفحة الإعلان)،
+           لذلك نُكمل الخروج برمجياً إلى ما قبلها — خروج بإرادة المستخدم. */
+        setTimeout(() => history.back(), 0);
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* دفع إدخال حارس واحد حين يصير النموذج متسخاً */
+  useEffect(() => {
+    if (dirty && !guardRef.current) {
+      guardRef.current = true;
+      history.pushState({ badeelGuard: 1 }, "");
+    }
+    if (!dirty) {
+      guardRef.current = false;
+      warnedRef.current = false;
+    }
+  }, [dirty]);
+
+  const activeCities = cities.filter((c) => c.active);
+
+  const priceNumber = Number(form.price) || 0;
+  const converted = useMemo(() => {
+    if (!priceNumber) return null;
+    return form.currency === "USD"
+      ? { other: toSyp(priceNumber, "USD"), label: "ل.س" }
+      : { other: toUsd(priceNumber, "SYP"), label: "$" };
+  }, [priceNumber, form.currency, toSyp, toUsd]);
+
+  const cat = form.category;
+  const isLand = cat === "real-estate" && DONUM_TYPES.includes(form.propertyType as PropertyType);
+  const yearRequired = cat === "vehicles" && YEAR_REQUIRED.includes(form.vehicleType as VehicleType);
+  const isJob = cat === "jobs";
+  const isRentable = RENTABLE.includes(cat);
+  const subtypeList = SUBTYPES[cat];
+
+  /* ------------------------------- التحقق ------------------------------- */
+  function validate(): boolean {
+    const e: Record<string, string> = {};
+    if (form.title.trim().length < 10) e.title = "أدخل عنواناً واضحاً لا يقل عن 10 أحرف.";
+    if (form.description.trim().length < 30)
+      e.description = "اكتب وصفاً مفصّلاً لا يقل عن 30 حرفاً.";
+    if (!isJob && (!priceNumber || priceNumber <= 0)) e.price = "أدخل سعراً صحيحاً أكبر من صفر.";
+    if (form.sellerName.trim().length < 3) e.sellerName = "أدخل اسمك أو اسم المكتب.";
+    if (form.sellerPhone.replace(/\D/g, "").length < 8)
+      e.sellerPhone = "أدخل رقم هاتف صحيح (مثال: 0955123456).";
+    if (!form.sameWhatsapp && form.sellerWhatsapp.replace(/\D/g, "").length < 8)
+      e.sellerWhatsapp = "أدخل رقم واتساب صحيح.";
+
+    if (cat === "real-estate") {
+      if (!form.propertyType) e.propertyType = "اختر نوع العقار.";
+      if (!form.areaSize || Number(form.areaSize) <= 0) e.areaSize = "أدخل مساحة صحيحة.";
+      if (!form.ownership) e.ownership = "حدّد وضع أوراق الملكية.";
+    } else if (cat === "vehicles") {
+      if (!form.vehicleType) e.vehicleType = "اختر نوع المركبة.";
+      if (!form.brandId) e.brandId = "اختر الماركة من الأيقونات.";
+      if (form.brandId === "other") {
+        if (!form.customMake.trim()) e.brandId = "اكتب اسم الماركة.";
+        if (!form.customModel.trim()) e.modelId = "اكتب الموديل.";
+      } else if (!form.modelId) e.modelId = "اختر الموديل.";
+      if (yearRequired && (!form.year || Number(form.year) < 1950 || Number(form.year) > 2026))
+        e.year = "أدخل سنة صنع صحيحة (1950 - 2026).";
+      if (!form.bodyCondition) e.bodyCondition = "حدّد حالة الجسم.";
+      if (!form.fuelType) e.fuelType = "حدّد نوع الوقود.";
+      if (!form.plateRegion) e.plateRegion = "حدّد نمرة التسجيل.";
+    } else if (cat === "furniture" || cat === "appliances" || cat === "clothing") {
+      if (!form.subtypeId) e.subtypeId = "اختر النوع.";
+      if (!form.condition) e.condition = "حدّد الحالة.";
+    } else if (cat === "phones") {
+      if (!form.brandId) e.brandId = "اختر ماركة الهاتف.";
+      if (form.brandId === "other-phone") {
+        if (!form.customMake.trim()) e.brandId = "اكتب اسم الماركة.";
+        if (!form.customModel.trim()) e.modelId = "اكتب الموديل.";
+      } else if (!form.modelId) e.modelId = "اختر الموديل.";
+      if (!form.condition) e.condition = "حدّد حالة الجهاز (جديد أم مستعمل).";
+    } else if (cat === "jobs") {
+      if (!form.subtypeId) e.subtypeId = "اختر مجال العمل.";
+      if (!form.employmentType) e.employmentType = "حدّد نوع الدوام.";
+    }
+
+    setErrors(e);
+    if (Object.keys(e).length > 0) {
+      toast({
+        type: "error",
+        title: "يرجى إكمال الحقول المطلوبة",
+        desc: `يوجد ${Object.keys(e).length} حقل بحاجة إلى تصحيح.`,
+      });
+      document.querySelector("[data-error='true']")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return false;
+    }
+    return true;
+  }
+
+  /* ------------------------------ البناء/الإرسال ------------------------------ */
+  function buildAd(): Ad {
+    const price = Number(form.price) || 0;
+    const subtypeLabel = subtypeList.find((s) => s.id === form.subtypeId)?.name;
+    const isOtherBrand = form.brandId === "other" || form.brandId === "other-phone";
+    const make = isOtherBrand ? form.customMake.trim() : brandName(form.brandId);
+    const model = isOtherBrand ? form.customModel.trim() : modelName(form.brandId, form.modelId);
+
+    return {
+      id: uid("ad"),
+      ref: previewRef !== "BD-###" ? previewRef : nextRef(ads),
+      title: form.title.trim(),
+      description: form.description.trim(),
+      category: cat,
+
+      subtypeId: form.subtypeId || undefined,
+      subtypeLabel,
+      jobKind: isJob ? form.jobKind : undefined,
+      employmentType: isJob ? ((form.employmentType as EmploymentType) || undefined) : undefined,
+      experienceYears: isJob && form.experienceYears ? Number(form.experienceYears) : undefined,
+      condition: form.condition ? (form.condition as ItemCondition) : undefined,
+
+      propertyType: cat === "real-estate" ? (form.propertyType as PropertyType) : undefined,
+      dealType: isRentable ? form.dealType : "sale",
+      areaSize: cat === "real-estate" ? Number(form.areaSize) : undefined,
+      areaUnit: cat === "real-estate" ? form.areaUnit : undefined,
+      ownership: cat === "real-estate" ? (form.ownership as OwnershipType) : undefined,
+
+      vehicleType: cat === "vehicles" ? (form.vehicleType as VehicleType) : undefined,
+      /* موجة 17: أُلغي سؤال «الهيكل» — يُشتق آلياً من الماركة/الطراز (أو نص الماركة
+         المخصّصة) بقواعد vehicleBodies، فتبقى الأيقونات والفلاتر تعمل بلا سؤال زائد */
+      bodyType:
+        cat === "vehicles"
+          ? bodyTypeOfAd({
+              brandId: form.brandId && form.brandId !== "other" ? form.brandId : undefined,
+              modelId: form.modelId || undefined,
+              make: form.customMake || undefined,
+              model: form.customModel || undefined,
+            })
+          : undefined,
+      brandId: cat === "vehicles" ? form.brandId : undefined,
+      modelId: cat === "vehicles" && !isOtherBrand ? form.modelId : undefined,
+      make:
+        cat === "vehicles" || cat === "phones"
+          ? make
+          : cat === "appliances"
+            ? form.itemBrand.trim() || undefined
+            : undefined,
+      model:
+        cat === "vehicles" || cat === "phones"
+          ? model
+          : cat === "clothing"
+            ? form.sizeText.trim() || undefined
+            : undefined,
+      storage: cat === "phones" && form.storage ? form.storage : undefined,
+      year: cat === "vehicles" && form.year ? Number(form.year) : undefined,
+      bodyCondition: cat === "vehicles" ? (form.bodyCondition as BodyCondition) : undefined,
+      fuelType: cat === "vehicles" ? (form.fuelType as FuelType) : undefined,
+      plateRegion: cat === "vehicles" ? (form.plateRegion as PlateRegion) : undefined,
+
+      price,
+      currency: form.currency,
+      priceUsd: form.currency === "USD" ? price : toUsd(price, "SYP"),
+      priceSyp: form.currency === "SYP" ? price : toSyp(price, "USD"),
+      priceOnRequest: isJob && !price,
+      negotiable: isJob ? form.negotiable : form.negotiable,
+
+      cityId: form.cityId,
+
+      images: form.images,
+      sellerName: form.sellerName.trim(),
+      sellerPhone: form.sellerPhone.trim(),
+      sellerWhatsapp: (form.sameWhatsapp ? form.sellerPhone : form.sellerWhatsapp).trim(),
+
+      status: "pending",
+      featured: false,
+      views: 0,
+      createdAt: new Date().toISOString(),
+      publishedAt: null,
+      soldAt: null,
+      rejectionReason: null,
+      moderatedBy: null,
+    };
+  }
+
+  function openPreview(validateFirst = true) {
+    if (validateFirst && !validate()) return;
+    setPreviewRef(nextRef(ads));
+    setShowPreview(true);
+  }
+
+  function submit() {
+    setShowPreview(false);
+    if (!validate()) return;
+    const ad = { ...buildAd(), ref: previewRef !== "BD-###" ? previewRef : nextRef(ads) };
+    addAd(ad);
+    setDone(ad);
+    clearDraft(); // نُشر فعلاً — لا حاجة للمسودة
+    toast({
+      type: "success",
+      title: "تم إرسال إعلانك للمراجعة",
+      desc: `رقم الإعلان ${ad.ref} — سيُنشر بعد موافقة فريق بديل.`,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  /* ------------------------------ شاشة النجاح ------------------------------ */
+  if (done) {
+    return (
+      <div className="container-page py-10">
+        <div className="card mx-auto max-w-2xl p-6 text-center sm:p-8">
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emeraldBrand-50 text-emeraldBrand-600 dark:bg-emeraldBrand-500/10">
+            <CheckCircle2 size={32} />
+          </span>
+          <h1 className="mt-4 text-xl font-extrabold text-navy-900 dark:text-white">
+            تم إرسال إعلانك بنجاح 🎉
+          </h1>
+          <p className="mt-2 text-[13.5px] leading-relaxed text-navy-500 dark:text-navy-300">
+            إعلانك الآن <span className="font-bold text-amberBrand-600">قيد المراجعة</span> ولن يظهر
+            للعموم حتى الموافقة عليه. عادةً تستغرق المراجعة أقل من 12 ساعة.
+          </p>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <StatusBadge status="pending" />
+            <span className="badge bg-navy-100 text-navy-600 dark:bg-navy-800 dark:text-navy-200">
+              رقم الإعلان: {done.ref}
+            </span>
+            <span className="badge bg-navy-100 text-navy-600 dark:bg-navy-800 dark:text-navy-200">
+              {categoryName(done.category)}
+            </span>
+          </div>
+
+          <div className="mt-6 text-right">
+            <p className="mb-2 flex items-center gap-1.5 text-[12.5px] font-bold text-navy-500 dark:text-navy-300">
+              <Eye size={14} /> معاينة الإعلان كما سيظهر بعد الموافقة
+            </p>
+            <div className="pointer-events-none mx-auto max-w-sm opacity-95">
+              <AdCard ad={done} />
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => {
+                setForm(INITIAL);
+                setDone(null);
+              }}
+              className="btn-amber"
+            >
+              <Sparkles size={16} /> إضافة إعلان آخر
+            </button>
+            <Link href="/" className="btn-ghost">
+              العودة للرئيسية
+            </Link>
+            <Link href="/admin" className="btn-primary">
+              لوحة التحكم
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* -------------------------------- النموذج -------------------------------- */
+  const filledCount = [
+    form.title,
+    form.description,
+    form.price,
+    form.sellerName,
+    form.sellerPhone,
+    form.images.length ? "x" : "",
+    cat === "real-estate"
+      ? form.propertyType
+      : cat === "vehicles"
+        ? form.vehicleType
+        : cat === "phones"
+          ? form.brandId
+          : form.subtypeId,
+  ].filter(Boolean).length;
+
+  const previewData: Ad = { ...buildAd(), ref: previewRef };
+
+  return (
+    <div className="container-page py-6">
+      <div className="mb-5">
+        <h1 className="text-xl font-extrabold text-navy-900 dark:text-white sm:text-2xl">
+          أضف إعلانك مجاناً
+        </h1>
+        <p className="mt-1 text-[12.5px] text-navy-500 dark:text-navy-300">
+          ستّة تصنيفات: عقارات · سيارات ومركبات · أثاث منزلي · أدوات كهربائية · ملابس · وظائف.
+        </p>
+        <p className="mt-3 inline-flex items-start gap-2 rounded-xl border border-amberBrand-200 bg-amberBrand-50/70 px-3.5 py-2.5 text-[12px] font-semibold leading-relaxed text-navy-700 dark:border-amberBrand-500/30 dark:bg-amberBrand-500/10 dark:text-navy-100">
+          <Eye size={15} className="mt-0.5 shrink-0 text-amberBrand-600" />
+          خطوة المعاينة إلزامية: ستظهر لك شاشة معاينة كاملة قبل إرسال أي بيانات للمراجعة.
+        </p>
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          openPreview(true);
+        }}
+        className="grid gap-5 lg:grid-cols-[1fr_330px]"
+      >
+        <div className="space-y-5">
+          {/* ============================ 1) التصنيف ============================ */}
+          <Section step="1" title="نوع الإعلان" desc="اختر التصنيف، ثم ستظهر الحقول المناسبة له تلقائياً">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(
+                [
+                  "real-estate",
+                  "vehicles",
+                  "furniture",
+                  "appliances",
+                  "clothing",
+                  "phones",
+                  "jobs",
+                ] as MainCategory[]
+              ).map((c) => {
+                const meta = { name: categoryName(c) };
+                return (
+                  <button
+                    type="button"
+                    key={c}
+                    onClick={() => {
+                      set("category", c);
+                      set("propertyType", "");
+                      set("vehicleType", "");
+                      set("subtypeId", "");
+                      set("dealType", c === "vehicles" ? "sale" : "sale");
+                      if (c === "jobs") set("negotiable", true);
+                    }}
+                    className={cn(
+                      "option-card items-center gap-3 p-3.5",
+                      cat === c && "option-card-active"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white",
+                        CATEGORY_TONE[c]
+                      )}
+                    >
+                      {CATEGORY_ICON[c]}
+                    </span>
+                    <span className="text-right">
+                      <span className="block text-[13.5px] font-extrabold text-navy-900 dark:text-white">
+                        {meta.name}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          {/* ====================== 2) التفاصيل حسب التصنيف ====================== */}
+          {cat === "real-estate" && (
+            <Section step="2" title="تفاصيل العقار" desc="نوع العقار، نوع التعامل (بيع أو إيجار)، المساحة والأوراق">
+              <div data-error={Boolean(errors.propertyType)}>
+                <label className="label">نوع العقار *</label>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {PROPERTY_TYPES.map((p) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      onClick={() => {
+                        set("propertyType", p.id);
+                        if (DONUM_TYPES.includes(p.id)) set("areaUnit", "donum");
+                        else set("areaUnit", "m2");
+                      }}
+                      className={cn(
+                        "option-card flex-col items-center gap-2 py-3 text-center",
+                        form.propertyType === p.id && "option-card-active"
+                      )}
+                    >
+                      <span className="text-navy-500 dark:text-navy-200">{PROPERTY_ICONS[p.id]}</span>
+                      <span className="text-[12.5px] font-bold text-navy-800 dark:text-navy-100">
+                        {p.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {errors.propertyType && <p className="error-text">{errors.propertyType}</p>}
+              </div>
+
+              <div className="mt-5">
+                <label className="label">نوع التعامل * — بيع أو إيجار</label>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {dealTypesFor("real-estate").map((d) => (
+                    <button
+                      type="button"
+                      key={d.id}
+                      onClick={() => set("dealType", d.id)}
+                      className={cn("option-card flex-col items-start py-3", form.dealType === d.id && "option-card-active")}
+                    >
+                      <span className="text-[13px] font-bold text-navy-800 dark:text-navy-100">{d.name}</span>
+                      <span className="text-[11px] text-navy-400">{d.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div data-error={Boolean(errors.areaSize)}>
+                  <label className="label">المساحة *</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Ruler size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-navy-400" />
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={form.areaSize}
+                        onChange={(e) => set("areaSize", e.target.value)}
+                        placeholder={isLand ? "مثال: 12" : "مثال: 145"}
+                        className="input pr-9"
+                      />
+                    </div>
+                    <select
+                      value={form.areaUnit}
+                      onChange={(e) => set("areaUnit", e.target.value as "m2" | "donum")}
+                      className="select w-36"
+                    >
+                      {(
+                        [
+                          { id: "m2" as const, name: "متر مربع (م²)" },
+                          { id: "donum" as const, name: "دونم" },
+                        ]
+                      )
+                        .filter((u) => (isLand ? true : u.id === "m2"))
+                        .map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  {errors.areaSize && <p className="error-text">{errors.areaSize}</p>}
+                </div>
+                <div>
+                  <label className="label">حالة التفاوض</label>
+                  <label className="flex cursor-pointer items-center justify-between rounded-xl border border-navy-200 px-3.5 py-2.5 dark:border-navy-700">
+                    <span className="text-[13px] font-semibold text-navy-700 dark:text-navy-100">
+                      السعر قابل للتفاوض
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={form.negotiable}
+                      onChange={(e) => set("negotiable", e.target.checked)}
+                      className="h-4 w-4 accent-emeraldBrand-500"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="mt-5" data-error={Boolean(errors.ownership)}>
+                <label className="label">وضع أوراق الملكية *</label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {OWNERSHIP_TYPES.map((o) => (
+                    <button
+                      type="button"
+                      key={o.id}
+                      onClick={() => set("ownership", o.id)}
+                      className={cn("option-card items-center py-3", form.ownership === o.id && "option-card-active")}
+                    >
+                      <BadgeCheck size={17} className="text-emeraldBrand-500" />
+                      <span>
+                        <span className="block text-[13px] font-bold text-navy-800 dark:text-navy-100">
+                          {o.name}
+                        </span>
+                        {o.hint && <span className="block text-[11px] text-navy-400">{o.hint}</span>}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {errors.ownership && <p className="error-text">{errors.ownership}</p>}
+              </div>
+            </Section>
+          )}
+
+          {cat === "vehicles" && (
+            <Section step="2" title="تفاصيل المركبة" desc="النوع، الماركة والموديل، سنة الصنع، الحالة والنمرة">
+              <div data-error={Boolean(errors.vehicleType)}>
+                <label className="label">نوع المركبة *</label>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {VEHICLE_TYPES.map((v) => (
+                    <button
+                      type="button"
+                      key={v.id}
+                      onClick={() => set("vehicleType", v.id)}
+                      className={cn(
+                        "option-card flex-col items-center gap-2 py-3 text-center",
+                        form.vehicleType === v.id && "option-card-active"
+                      )}
+                    >
+                      <span className="text-navy-500 dark:text-navy-200">{VEHICLE_ICONS[v.id]}</span>
+                      <span className="text-[12px] font-bold leading-tight text-navy-800 dark:text-navy-100">
+                        {v.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {errors.vehicleType && <p className="error-text">{errors.vehicleType}</p>}
+              </div>
+
+              {/* الماركة والموديل بالأيقونات */}
+              <div className="mt-5">
+                <BrandSelector
+                  brandId={form.brandId}
+                  modelId={form.modelId}
+                  customMake={form.customMake}
+                  customModel={form.customModel}
+                  bodyFilter={form.bodyType || "all"}
+                  error={errors.brandId || errors.modelId}
+                  onChange={(patch) => {
+                    if (patch.brandId !== undefined) set("brandId", patch.brandId);
+                    if (patch.modelId !== undefined) set("modelId", patch.modelId);
+                    if (patch.customMake !== undefined) set("customMake", patch.customMake);
+                    if (patch.customModel !== undefined) set("customModel", patch.customModel);
+                  }}
+                />
+              </div>
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                <div data-error={Boolean(errors.year)}>
+                  <label className="label">سنة الصنع {yearRequired ? "*" : "(اختياري)"}</label>
+                  <div className="relative">
+                    <CalendarDays size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-navy-400" />
+                    <select
+                      value={form.year}
+                      onChange={(e) => set("year", e.target.value)}
+                      className="select pr-9"
+                    >
+                      <option value="">— اختر السنة —</option>
+                      {VEHICLE_YEARS.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.year && <p className="error-text">{errors.year}</p>}
+                </div>
+                <div data-error={Boolean(errors.bodyCondition)}>
+                  <label className="label">حالة الجسم *</label>
+                  <select
+                    value={form.bodyCondition}
+                    onChange={(e) => set("bodyCondition", e.target.value as BodyCondition)}
+                    className="select"
+                  >
+                    <option value="">— اختر —</option>
+                    {BODY_CONDITIONS.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.bodyCondition && <p className="error-text">{errors.bodyCondition}</p>}
+                </div>
+                <div data-error={Boolean(errors.fuelType)}>
+                  <label className="label">نوع الوقود *</label>
+                  <div className="relative">
+                    <Fuel size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-navy-400" />
+                    <select
+                      value={form.fuelType}
+                      onChange={(e) => set("fuelType", e.target.value as FuelType)}
+                      className="select pr-9"
+                    >
+                      <option value="">— اختر —</option>
+                      {FUEL_TYPES.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.fuelType && <p className="error-text">{errors.fuelType}</p>}
+                </div>
+              </div>
+
+              {/* نوع التعامل للمركبات: بيع أو إيجار */}
+              <div className="mt-5">
+                <label className="label">بيع أم إيجار؟ *</label>
+                <div className="grid gap-2 sm:grid-cols-4">
+                  {dealTypesFor("vehicles").map((d) => (
+                    <button
+                      type="button"
+                      key={d.id}
+                      onClick={() => set("dealType", d.id)}
+                      className={cn("option-card flex-col items-start py-3", form.dealType === d.id && "option-card-active")}
+                    >
+                      <span className="text-[12.5px] font-bold text-navy-800 dark:text-navy-100">{d.name}</span>
+                      <span className="text-[10.5px] text-navy-400">{d.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* نمر السيارات المحدّثة */}
+              <div className="mt-5" data-error={Boolean(errors.plateRegion)}>
+                <label className="label">نمرة التسجيل *</label>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {PLATE_REGIONS.map((p) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      onClick={() => set("plateRegion", p.id)}
+                      className={cn(
+                        "option-card items-center justify-between py-3",
+                        form.plateRegion === p.id && "option-card-active"
+                      )}
+                    >
+                      <span className="text-[13px] font-bold text-navy-800 dark:text-navy-100">
+                        {p.name}
+                      </span>
+                      {form.plateRegion === p.id && (
+                        <CheckCircle2 size={16} className="text-amberBrand-500" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="hint">اختر نوع النمرة كما هي مكتوبة على المركبة حالياً.</p>
+                {errors.plateRegion && <p className="error-text">{errors.plateRegion}</p>}
+              </div>
+            </Section>
+          )}
+
+          {(cat === "furniture" || cat === "appliances" || cat === "clothing") && (
+            <Section
+              step="2"
+              title={cat === "furniture" ? "تفاصيل الأثاث" : cat === "appliances" ? "تفاصيل الجهاز" : "تفاصيل الملابس"}
+              desc="النوع والحالة — إضافة الماركة أو المقاس عند الحاجة"
+            >
+              <div data-error={Boolean(errors.subtypeId)}>
+                <label className="label">
+                  {cat === "furniture" ? "نوع الأثاث *" : cat === "appliances" ? "نوع الجهاز *" : "نوع الملابس *"}
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {subtypeList.map((s) => (
+                    <button
+                      type="button"
+                      key={s.id}
+                      onClick={() => set("subtypeId", s.id)}
+                      className={cn(
+                        "rounded-xl border-2 px-3 py-2 text-[12.5px] font-bold transition",
+                        form.subtypeId === s.id
+                          ? "border-amberBrand-500 bg-amberBrand-50 text-amberBrand-700 dark:border-amberBrand-500 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+                          : "border-navy-100 text-navy-600 hover:border-amberBrand-300 dark:border-navy-800 dark:text-navy-200"
+                      )}
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+                {errors.subtypeId && <p className="error-text">{errors.subtypeId}</p>}
+              </div>
+
+              <div className="mt-5" data-error={Boolean(errors.condition)}>
+                <label className="label">الحالة *</label>
+                <div className="grid gap-2 sm:grid-cols-4">
+                  {CONDITIONS.map((c) => (
+                    <button
+                      type="button"
+                      key={c.id}
+                      onClick={() => set("condition", c.id)}
+                      className={cn(
+                        "option-card items-center justify-center py-2.5",
+                        form.condition === c.id && "option-card-active"
+                      )}
+                    >
+                      <span className="text-[12px] font-bold text-navy-800 dark:text-navy-100">
+                        {c.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {errors.condition && <p className="error-text">{errors.condition}</p>}
+              </div>
+
+              {cat === "appliances" && (
+                <div className="mt-5">
+                  <label className="label">ماركة الجهاز (اختياري)</label>
+                  <input
+                    value={form.itemBrand}
+                    onChange={(e) => set("itemBrand", e.target.value)}
+                    placeholder="سامسونغ، LG، بوش، توشيبا..."
+                    className="input"
+                  />
+                </div>
+              )}
+
+              {cat === "clothing" && (
+                <div className="mt-5">
+                  <label className="label">المقاس (اختياري)</label>
+                  <input
+                    value={form.sizeText}
+                    onChange={(e) => set("sizeText", e.target.value)}
+                    placeholder="S / M / L / XL أو 38 / 40 ..."
+                    className="input"
+                  />
+                </div>
+              )}
+            </Section>
+          )}
+
+          {cat === "phones" && (
+            <Section
+              step="2"
+              title="تفاصيل الهاتف"
+              desc="الماركة والموديل بالأيقونات الرسمية + الحالة + سعة التخزين"
+            >
+              <BrandSelector
+                brands={PHONE_BRANDS}
+                brandId={form.brandId}
+                modelId={form.modelId}
+                customMake={form.customMake}
+                customModel={form.customModel}
+                error={errors.brandId || errors.modelId}
+                onChange={(patch) => {
+                  if (patch.brandId !== undefined) set("brandId", patch.brandId);
+                  if (patch.modelId !== undefined) set("modelId", patch.modelId);
+                  if (patch.customMake !== undefined) set("customMake", patch.customMake);
+                  if (patch.customModel !== undefined) set("customModel", patch.customModel);
+                }}
+              />
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div data-error={Boolean(errors.condition)}>
+                  <label className="label">حالة الجهاز *</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        { id: "new" as const, name: "جديد" },
+                        { id: "like-new" as const, name: "مستعمل كالجديد" },
+                        { id: "good" as const, name: "مستعمل بحالة جيدة" },
+                        { id: "needs-repair" as const, name: "يحتاج صيانة" },
+                      ]
+                    ).map((c) => (
+                      <button
+                        type="button"
+                        key={c.id}
+                        onClick={() => set("condition", c.id)}
+                        className={cn(
+                          "option-card items-center justify-center py-2.5",
+                          form.condition === c.id && "option-card-active"
+                        )}
+                      >
+                        <span className="text-[12px] font-bold text-navy-800 dark:text-navy-100">
+                          {c.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  {errors.condition && <p className="error-text">{errors.condition}</p>}
+                </div>
+
+                <div>
+                  <label className="label">سعة التخزين</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PHONE_STORAGE.map((st) => (
+                      <button
+                        type="button"
+                        key={st}
+                        onClick={() => set("storage", form.storage === st ? "" : st)}
+                        className={cn(
+                          "rounded-xl border-2 px-3 py-2 text-[12px] font-bold transition",
+                          form.storage === st
+                            ? "border-amberBrand-500 bg-amberBrand-50 text-amberBrand-700 dark:border-amberBrand-500 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+                            : "border-navy-100 text-navy-600 hover:border-amberBrand-300 dark:border-navy-800 dark:text-navy-200"
+                        )}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="hint">اختياري — يساعد المشتري على التمييز بين النسخ.</p>
+                </div>
+              </div>
+            </Section>
+          )}
+
+          {cat === "jobs" && (
+            <Section step="2" title="تفاصيل الوظيفة" desc="عرض وظيفة (تبحث عن موظف) أو طلب عمل (تبحث عن عمل)">
+              <div>
+                <label className="label">نوع الإعلان *</label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {JOB_KINDS.map((k) => (
+                    <button
+                      type="button"
+                      key={k.id}
+                      onClick={() => set("jobKind", k.id)}
+                      className={cn("option-card flex-col items-start py-3.5", form.jobKind === k.id && "option-card-active")}
+                    >
+                      <span className="text-[13.5px] font-extrabold text-navy-800 dark:text-navy-100">
+                        {k.name}
+                      </span>
+                      <span className="text-[11.5px] text-navy-400">{k.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-5" data-error={Boolean(errors.subtypeId)}>
+                <label className="label">مجال العمل *</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {subtypeList.map((s) => (
+                    <button
+                      type="button"
+                      key={s.id}
+                      onClick={() => set("subtypeId", s.id)}
+                      className={cn(
+                        "rounded-xl border-2 px-3 py-2 text-[12.5px] font-bold transition",
+                        form.subtypeId === s.id
+                          ? "border-amberBrand-500 bg-amberBrand-50 text-amberBrand-700 dark:border-amberBrand-500 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+                          : "border-navy-100 text-navy-600 hover:border-amberBrand-300 dark:border-navy-800 dark:text-navy-200"
+                      )}
+                    >
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+                {errors.subtypeId && <p className="error-text">{errors.subtypeId}</p>}
+              </div>
+
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div data-error={Boolean(errors.employmentType)}>
+                  <label className="label">نوع الدوام *</label>
+                  <div className="relative">
+                    <Timer size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-navy-400" />
+                    <select
+                      value={form.employmentType}
+                      onChange={(e) => set("employmentType", e.target.value as EmploymentType)}
+                      className="select pr-9"
+                    >
+                      <option value="">— اختر —</option>
+                      {EMPLOYMENT_TYPES.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.employmentType && <p className="error-text">{errors.employmentType}</p>}
+                </div>
+                <div>
+                  <label className="label">سنوات الخبرة المطلوبة (اختياري)</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={form.experienceYears}
+                    onChange={(e) => set("experienceYears", e.target.value)}
+                    placeholder="مثال: 2"
+                    className="input"
+                  />
+                </div>
+              </div>
+            </Section>
+          )}
+
+          {/* ============================== 3) المدينة ============================== */}
+          <Section step="3" title="المدينة" desc="اختر المدينة التي يقع فيها ما تعرضه">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label">المدينة</label>
+                <select
+                  value={form.cityId}
+                  onChange={(e) => set("cityId", e.target.value)}
+                  className="select"
+                >
+                  {activeCities.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.governorate}
+                    </option>
+                  ))}
+                </select>
+                <p className="hint">
+                  المدن الإضافية تُفعَّل من لوحة التحكم (الأحياء والمدن) عند التوسّع خارج منبج.
+                </p>
+              </div>
+            </div>
+          </Section>
+
+          {/* ============================== 4) المحتوى ============================== */}
+          <Section step="4" title="عنوان الإعلان والوصف" desc="عنوان واضح ووصف دقيق يزيدان فرص البيع أو التوظيف">
+            <div data-error={Boolean(errors.title)}>
+              <label className="label">عنوان الإعلان *</label>
+              <input
+                value={form.title}
+                onChange={(e) => set("title", e.target.value)}
+                maxLength={90}
+                placeholder={
+                  cat === "real-estate"
+                    ? "شقة سكنية 145 م² للبيع في حي الكواكبي — طابو أخضر"
+                    : cat === "vehicles"
+                      ? "كيا سيراتو 2016 — خالية العلام أورجينال، مجمرك"
+                      : cat === "furniture"
+                        ? "غرفة نوم خشب زان كاملة بحالة ممتازة"
+                        : cat === "appliances"
+                          ? "ثلاجة سامسونغ 18 قدم — نوفروست"
+                          : cat === "clothing"
+                            ? "طقم رجالي رسمي جديد مقاس L"
+                            : "مطلوب معلم رياضيات للمرحلة الإعدادية — دوام كامل"
+                }
+                className="input"
+              />
+              <p className="hint">{form.title.length}/90 حرفاً</p>
+              {errors.title && <p className="error-text">{errors.title}</p>}
+            </div>
+
+            <div className="mt-4" data-error={Boolean(errors.description)}>
+              <label className="label">الوصف التفصيلي *</label>
+              <textarea
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                rows={6}
+                maxLength={1500}
+                placeholder={
+                  cat === "jobs"
+                    ? "اذكر: المهام، ساعات الدوام، مكان العمل، الخبرة المطلوبة، والأجر إن أمكن..."
+                    : "اذكر التفاصيل المهمة: الحالة، الأوراق، سبب البيع، وأي معلومة تساعد المشتري..."
+                }
+                className="input resize-y leading-7"
+              />
+              <p className="hint">{form.description.length}/1500 حرفاً</p>
+              {errors.description && <p className="error-text">{errors.description}</p>}
+            </div>
+          </Section>
+
+          {/* ============================== 5) السعر ============================== */}
+          <Section
+            step="5"
+            title={isJob ? "الأجر (اختياري)" : "السعر والعملة"}
+            desc="يُحوَّل السعر تلقائياً ويُعرض بالعملتين معاً"
+          >
+            <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+              <div data-error={Boolean(errors.price)}>
+                <label className="label">
+                  {isJob ? "الأجر الشهري/اليومي (اتركه فارغاً إذا كان بالاتفاق)" : "السعر *"}{" "}
+                  {form.dealType === "rent-daily"
+                    ? "(عن اليوم)"
+                    : form.dealType === "rent-monthly"
+                      ? "(عن الشهر)"
+                      : form.dealType === "rent-yearly"
+                        ? "(عن السنة)"
+                        : ""}
+                </label>
+                <div className="relative">
+                  <CircleDollarSign size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-navy-400" />
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={form.price}
+                    onChange={(e) => set("price", e.target.value)}
+                    placeholder={form.currency === "USD" ? "38000" : "494000000"}
+                    className="input pr-9 text-lg font-bold"
+                  />
+                </div>
+                {errors.price && <p className="error-text">{errors.price}</p>}
+              </div>
+
+              <div>
+                <label className="label">عملة الإدخال</label>
+                <div className="flex gap-1 rounded-xl bg-navy-100/80 p-1 dark:bg-navy-800">
+                  {(["USD", "SYP"] as Currency[]).map((c) => (
+                    <button
+                      type="button"
+                      key={c}
+                      onClick={() => set("currency", c)}
+                      className={cn(
+                        "rounded-lg px-4 py-2 text-[12.5px] font-bold transition",
+                        form.currency === c
+                          ? "bg-white text-navy-900 shadow-sm dark:bg-navy-900 dark:text-white"
+                          : "text-navy-500 dark:text-navy-200"
+                      )}
+                    >
+                      {c === "USD" ? "$ دولار" : "ل.س ليرة"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {converted && (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-emeraldBrand-200 bg-emeraldBrand-50/70 p-3.5 dark:border-emeraldBrand-500/30 dark:bg-emeraldBrand-500/10">
+                <BadgeCheck size={18} className="text-emeraldBrand-600" />
+                <p className="text-[12.5px] text-navy-700 dark:text-navy-100">
+                  سيُعرض السعر بالعملتين:{" "}
+                  <span className="font-extrabold">{formatMoney(priceNumber, form.currency)}</span>{" "}
+                  <span className="text-navy-400">≈</span>{" "}
+                  <span className="font-extrabold">
+                    {converted.label === "$"
+                      ? `$ ${converted.other.toLocaleString("en-US")}`
+                      : `${converted.other.toLocaleString("en-US")} ل.س`}
+                  </span>
+                </p>
+                <span className="badge ms-auto bg-white text-navy-600 dark:bg-navy-900 dark:text-navy-200">
+                  سعر الصرف: 1 $ = {settings.usdToSyp.toLocaleString("en-US")} ل.س
+                </span>
+              </div>
+            )}
+
+            {isJob && (
+              <label className="mt-3 flex cursor-pointer items-center justify-between rounded-xl border border-navy-200 px-3.5 py-2.5 dark:border-navy-700">
+                <span className="text-[13px] font-semibold text-navy-700 dark:text-navy-100">
+                  الأجر قابل للتفاوض
+                </span>
+                <input
+                  type="checkbox"
+                  checked={form.negotiable}
+                  onChange={(e) => set("negotiable", e.target.checked)}
+                  className="h-4 w-4 accent-emeraldBrand-500"
+                />
+              </label>
+            )}
+          </Section>
+
+          {/* ============================== 6) الصور ============================== */}
+          <Section
+            step="6"
+            title="صور الإعلان"
+            desc={`أضف صوراً حقيقية من جوالك — تُضغط تلقائياً. الصورة الأولى هي الغلاف (اختياري، حتى ${MAX_AD_PHOTOS} صور)`}
+          >
+            {/* ① زر الرفع الآمن: منتقي النظام (كاميرا أو معرض) — بلا نية خارجية */}
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={busyPhotos !== null}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-amberBrand-400 bg-amberBrand-50/60 py-3.5 text-[13.5px] font-extrabold text-amberBrand-700 transition hover:bg-amberBrand-50 disabled:opacity-50 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+            >
+              <Camera size={18} />
+              <Images size={18} />
+              أضف صوراً من المعرض
+            </button>
+            <p className="hint mt-2">
+              تفتح قائمة جوالك فتختار «الكاميرا» للتصوير الآن أو «المعرض» لصورة موجودة.
+              وزر الرجوع يعيدك إلى هنا دائماً — ومسودتك محفوظة تلقائياً فلا يضيع شيء.
+            </p>
+
+            {/* حقل ملف واحد بلا capture — المنتقي يضم الكاميرا والمعرض */}
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={onPickPhotos}
+            />
+
+            {/* ② شريط التقدّم أثناء الضغط */}
+            {busyPhotos && (
+              <div className="mt-3 rounded-xl bg-navy-50 p-3 dark:bg-navy-800/60">
+                <p className="flex items-center gap-2 text-[12.5px] font-bold text-navy-700 dark:text-navy-100">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amberBrand-500 border-t-transparent" />
+                  جاري تجهيز الصور… {busyPhotos.done} من {busyPhotos.total}
+                </p>
+                <p className="mt-1 text-[11px] text-navy-400">
+                  تُضغط الصور داخل جوالك — لا تُرسل إلى أي مكان.
+                </p>
+              </div>
+            )}
+
+            {/* ③ الصور المرفوعة من الجهاز */}
+            {photos.length > 0 && (
+              <div className="mt-3">
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {photos.map((src, i) => (
+                    <div
+                      key={`${src.slice(0, 32)}-${i}`}
+                      className="relative aspect-[4/3] overflow-hidden rounded-xl border-2 border-navy-200 dark:border-navy-700"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={`صورة ${i + 1}`} className="h-full w-full object-cover" />
+                      {i === 0 && (
+                        <span className="absolute right-1 top-1 rounded-md bg-amberBrand-500 px-1.5 py-0.5 text-[9.5px] font-extrabold text-navy-900 shadow">
+                          الغلاف
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        title="حذف الصورة"
+                        onClick={() => setPhotos(photos.filter((_, idx) => idx !== i))}
+                        className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-rose-600/90 text-white shadow transition hover:bg-rose-700"
+                      >
+                        <X size={13} />
+                      </button>
+                      {i > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => makeCover(src)}
+                          className="absolute inset-x-1 bottom-1 rounded-md bg-navy-950/70 py-1 text-[9.5px] font-bold text-white backdrop-blur-sm transition hover:bg-navy-950/85"
+                        >
+                          اجعليها الغلاف
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="hint mt-2 inline-flex items-center gap-1.5">
+                  <ImagePlus size={13} /> {photos.length} صورة من جوالك · الحجم ≈{" "}
+                  {photosSizeMb(photos).toFixed(1)} م.ب مُضغوطة
+                </p>
+              </div>
+            )}
+
+            {/* ④ مكتبة رسوم بديل — تبقى متاحة كخيار إضافي */}
+            <div className="mt-4 border-t border-navy-100 pt-3 dark:border-navy-800">
+              <p className="mb-2 text-[12px] font-bold text-navy-500 dark:text-navy-300">
+                أو اختر من رسوم بديل الجاهزة (لِمن لا يملك صورة):
+              </p>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {SAMPLE_ART.map(({ key, label }) => {
+                  const src = `art:${key}`;
+                  const selected = artPicks.includes(src);
+                  return (
+                    <button
+                      type="button"
+                      key={key}
+                      onClick={() => toggleArt(src)}
+                      className={cn(
+                        "relative aspect-[4/3] overflow-hidden rounded-xl border-2 transition",
+                        selected
+                          ? "border-amberBrand-500"
+                          : "border-transparent opacity-80 hover:opacity-100"
+                      )}
+                    >
+                      <AdArtwork
+                        ad={{ ...previewData, images: [src] }}
+                        className="h-full w-full"
+                      />
+                      <span className="absolute bottom-1 right-1 rounded bg-white/85 px-1.5 text-[10px] font-bold text-navy-700 dark:bg-navy-900/85 dark:text-navy-100">
+                        {label}
+                      </span>
+                      {selected && (
+                        <span className="absolute inset-0 flex items-center justify-center bg-navy-950/40">
+                          <CheckCircle2 size={22} className="text-white" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between">
+              <p className="hint inline-flex items-center gap-1.5">
+                <ImageIcon size={13} /> {form.images.length} صورة مختارة
+              </p>
+              {form.images.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => set("images", [])}
+                  className="inline-flex items-center gap-1 text-[11.5px] font-bold text-navy-400 hover:text-rose-500"
+                >
+                  <X size={12} /> إزالة الكل
+                </button>
+              )}
+            </div>
+          </Section>
+
+          {/* =========================== 7) بيانات التواصل =========================== */}
+          <Section step="7" title="بيانات التواصل" desc="لن تُعرض بياناتك علناً إلا بعد نشر الإعلان">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div data-error={Boolean(errors.sellerName)}>
+                <label className="label">الاسم أو اسم المكتب *</label>
+                <div className="relative">
+                  <User size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-navy-400" />
+                  <input
+                    value={form.sellerName}
+                    onChange={(e) => set("sellerName", e.target.value)}
+                    placeholder="أبو أحمد / المكتب العقاري النموذجي"
+                    className="input pr-9"
+                  />
+                </div>
+                {errors.sellerName && <p className="error-text">{errors.sellerName}</p>}
+              </div>
+
+              <div data-error={Boolean(errors.sellerPhone)}>
+                <label className="label">رقم الهاتف *</label>
+                <div className="relative">
+                  <Phone size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-navy-400" />
+                  <input
+                    value={form.sellerPhone}
+                    onChange={(e) => {
+                      set("sellerPhone", e.target.value);
+                      if (form.sameWhatsapp) set("sellerWhatsapp", e.target.value);
+                    }}
+                    placeholder="0955123456"
+                    inputMode="tel"
+                    className="input pl-16 pr-9"
+                    dir="ltr"
+                  />
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-navy-400">
+                    +963
+                  </span>
+                </div>
+                {errors.sellerPhone && <p className="error-text">{errors.sellerPhone}</p>}
+              </div>
+            </div>
+
+            <label className="mt-4 flex cursor-pointer items-center gap-2.5">
+              <input
+                type="checkbox"
+                checked={form.sameWhatsapp}
+                onChange={(e) => {
+                  set("sameWhatsapp", e.target.checked);
+                  if (e.target.checked) set("sellerWhatsapp", form.sellerPhone);
+                }}
+                className="h-4 w-4 accent-emeraldBrand-500"
+              />
+              <span className="text-[13px] font-semibold text-navy-700 dark:text-navy-100">
+                نفس الرقم متاح على واتساب
+              </span>
+            </label>
+
+            {!form.sameWhatsapp && (
+              <div className="mt-3" data-error={Boolean(errors.sellerWhatsapp)}>
+                <label className="label">رقم الواتساب</label>
+                <div className="relative">
+                  <MessageCircle size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-emeraldBrand-500" />
+                  <input
+                    value={form.sellerWhatsapp}
+                    onChange={(e) => set("sellerWhatsapp", e.target.value)}
+                    placeholder="0955123456"
+                    inputMode="tel"
+                    className="input pl-16 pr-9"
+                    dir="ltr"
+                  />
+                </div>
+                {errors.sellerWhatsapp && <p className="error-text">{errors.sellerWhatsapp}</p>}
+              </div>
+            )}
+          </Section>
+
+          <div className="lg:hidden">
+            <SubmitBar errors={Object.keys(errors).length} />
+          </div>
+        </div>
+
+        {/* ============================ العمود الجانبي ============================ */}
+        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+          <div className="hidden lg:block">
+            <SubmitBar errors={Object.keys(errors).length} />
+          </div>
+
+          <div className="card p-4">
+            <h3 className="flex items-center gap-2 text-[13px] font-extrabold text-navy-900 dark:text-white">
+              <Info size={15} className="text-amberBrand-500" /> قبل أن تُرسل
+            </h3>
+            <ul className="mt-3 space-y-2 text-[12px] leading-relaxed text-navy-500 dark:text-navy-300">
+              <li>• الإعلان يُنشر بعد موافقة الإدارة (الموافقة المسبقة).</li>
+              <li>• العقارات والمركبات تقبل «بيع» أو «إيجار» — اختر البند الصحيح.</li>
+              <li>• للمركبات: اختر الماركة بالأيقونة ثم الموديل، وحدّد سنة الصنع بدقة.</li>
+              <li>• الوظائف: اختر «عرض وظيفة» إن كنت تبحث عن موظف، و«طلب عمل» إن كنت تبحث عن عمل.</li>
+              <li>• لا تذكر أي بيانات مصرفية في الوصف.</li>
+            </ul>
+          </div>
+
+          <div className="card overflow-hidden">
+            <div className="bg-navy-900 p-4 text-white dark:bg-navy-800">
+              <h3 className="flex items-center gap-2 text-[13px] font-extrabold">
+                <Eye size={15} className="text-amberBrand-400" /> معاينة مباشرة (مصغّرة)
+              </h3>
+            </div>
+            <div className="p-3">
+              {form.title || form.price ? (
+                <div className="pointer-events-none">
+                  <AdCard ad={previewData} compact />
+                </div>
+              ) : (
+                <p className="py-6 text-center text-[12px] text-navy-400">
+                  ابدأ بتعبئة النموذج لعرض معاينة حيّة للإعلان هنا.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => openPreview(false)}
+                className="btn-ghost btn-sm mt-3 w-full justify-center"
+              >
+                <Eye size={14} /> فتح المعاينة الكاملة
+              </button>
+            </div>
+          </div>
+        </aside>
+      </form>
+
+      <AdPreviewModal
+        ad={previewData}
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        onConfirm={submit}
+        summaryCount={filledCount}
+      />
+    </div>
+  );
+}
+
+/* ---------------------------- مكوّنات مساعدة ---------------------------- */
+
+function Section({
+  step,
+  title,
+  desc,
+  children,
+}: {
+  step: string;
+  title: string;
+  desc?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="card p-5">
+      <header className="mb-4 flex items-start gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-[13px] font-extrabold text-amberBrand-400 dark:bg-white dark:text-navy-900">
+          {step}
+        </span>
+        <div>
+          <h2 className="text-[15px] font-extrabold text-navy-900 dark:text-white">{title}</h2>
+          {desc && (
+            <p className="mt-0.5 text-[12px] leading-relaxed text-navy-500 dark:text-navy-300">{desc}</p>
+          )}
+        </div>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function SubmitBar({ errors }: { errors: number }) {
+  return (
+    <div className="card p-4">
+      <button type="submit" className="btn-amber w-full justify-center py-3 text-[15px]">
+        <Eye size={17} /> معاينة الإعلان قبل الإرسال
+      </button>
+      <p className="mt-2 text-center text-[11px] leading-relaxed text-navy-400">
+        لن تُرسل بياناتك الآن — ستظهر شاشة معاينة كاملة، والإرسال يتم بعد تأكيدك.
+        {errors > 0 && (
+          <span className="mt-1 block font-bold text-rose-500">
+            يوجد {errors} حقل يحتاج إلى تصحيح قبل المعاينة
+          </span>
+        )}
+      </p>
+    </div>
+  );
+}
+

@@ -58,7 +58,14 @@ const META: Record<MainCategory, { title: string; desc: string }> = {
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const m = META[params.slug as MainCategory];
-  return m ? { title: m.title, description: m.desc } : { title: "تصنيف غير موجود" };
+  return m
+    ? {
+        title: m.title,
+        description: m.desc,
+        /* موجة 23: كل تصنيف يعلن رابطه القانوني — لا يشارك الرئيسية فهرسها */
+        alternates: { canonical: `/category/${params.slug}` },
+      }
+    : { title: "تصنيف غير موجود", robots: { index: false } };
 }
 
 export default function CategoryPage({ params }: { params: { slug: string } }) {
