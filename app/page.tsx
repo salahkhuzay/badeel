@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ShareButton from "@/components/ShareButton";
+import SponsoredSlot from "@/components/SponsoredSlot";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -126,6 +127,8 @@ export default function HomePage() {
           }}
         />
         <div className="container-page relative py-12 lg:py-16">
+          {/* المساحة الإعلانية المأجورة — الشريط الأعلى في الهيرو (موجة 20) */}
+          <SponsoredSlot />
           <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_.85fr]">
             <div className="animate-fade-up">
               <span className="chip bg-amberBrand-500/15 text-amberBrand-400 ring-1 ring-amberBrand-500/30">

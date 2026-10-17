@@ -20,6 +20,7 @@ import type {
 import { SEED_ADS, SEED_CITIES, SEED_SETTINGS, isDemoAdRef } from "./seed";
 import { convert, safeStorage, uid } from "./currency";
 import { contactDigits, migrateContactPhone } from "./contact";
+import type { SponsoredAd } from "./sponsored";
 import { ADMIN_USERNAME, hashPassword, safeEqual } from "./auth";
 import { fetchRemoteRate, type RemoteRate } from "./remote-rate";
 
@@ -49,6 +50,8 @@ export interface AppState {
   currency: Currency;
   theme: "light" | "dark";
   hydrated: boolean;
+  /* حملات المساحة الإعلانية المأجورة أعلى الهيرو (موجة 20) */
+  sponsored: SponsoredAd[];
   /* السعر الرسمي القادم من المخزن السحابي (/api/rate) — null قبل أول جلب */
   remoteRate: RemoteRate | null;
 }
@@ -62,6 +65,7 @@ const initialState: AppState = {
   currency: "USD",
   theme: "light",
   hydrated: false,
+  sponsored: [],
   remoteRate: null,
 };
 
@@ -75,6 +79,7 @@ type Action =
   | { type: "INC_VIEW"; id: string }
   | { type: "TOGGLE_CITY"; cityId: string }
   | { type: "UPDATE_SETTINGS"; settings: Partial<Settings> }
+  | { type: "SET_SPONSORED"; sponsored: SponsoredAd[] }
   | { type: "REMOTE_RATE"; rate: RemoteRate }
   | { type: "AUTH_LOGGED_IN"; minutes: number }
   | { type: "AUTH_FAIL"; lockedUntil: string | null; attempts: number }
@@ -132,7 +137,9 @@ function normalize(saved: Partial<AppState>): Partial<AppState> {
   if (PLACEHOLDER_FB.includes(fbNow)) settings.facebookUrl = SEED_SETTINGS.facebookUrl;
   const auth = { ...initialAuth, ...(saved.auth ?? {}) };
   /* إن كان الإعداد القديم يحتوي authUser فقد أُلغيت هذه الحالة */
-  return { ...saved, cities, ads, settings, auth };
+  /* حملات المساحة المأجورة: من حدّث قبل موجة 20 لا يملك الحقل ⇒ قائمة فارغة آمنة */
+  const sponsored = Array.isArray(saved.sponsored) ? saved.sponsored : [];
+  return { ...saved, cities, ads, settings, auth, sponsored };
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -253,6 +260,8 @@ function reducer(state: AppState, action: Action): AppState {
         },
       };
     }
+    case "SET_SPONSORED":
+      return { ...state, sponsored: action.sponsored };
     case "UPDATE_SETTINGS": {
       const nextSettings = { ...state.settings, ...action.settings };
       /* إن ضبط المسؤول الرقم بنفسه ⇒ يُعلَّم «مخصّصاً» فلا يمسّه أي ترحيل تلقائي أبداً */
@@ -391,6 +400,7 @@ interface StoreValue extends AppState {
   incrementViews: (id: string) => void;
   toggleCity: (cityId: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
+  setSponsored: (list: SponsoredAd[]) => void;
   resetDemo: () => void;
   /* الأمان */
   login: (user: string, pass: string) => Promise<LoginResult>;
@@ -443,6 +453,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       audit: state.audit,
       currency: state.currency,
       theme: state.theme,
+      sponsored: state.sponsored,
     });
   }, [
     state.hydrated,
@@ -453,6 +464,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     state.audit,
     state.currency,
     state.theme,
+    state.sponsored,
   ]);
 
   useEffect(() => {
@@ -487,6 +499,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       incrementViews: (id) => dispatch({ type: "INC_VIEW", id }),
       toggleCity: (cityId) => dispatch({ type: "TOGGLE_CITY", cityId }),
       updateSettings: (s) => dispatch({ type: "UPDATE_SETTINGS", settings: s }),
+      setSponsored: (list) => dispatch({ type: "SET_SPONSORED", sponsored: list }),
       resetDemo: () => dispatch({ type: "RESET_DEMO" }),
 
       /* ------------------------------ الأمان ------------------------------ */

@@ -19,6 +19,7 @@ import {
   Map,
   RotateCcw,
   Settings as SettingsIcon,
+  Megaphone,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -36,11 +37,12 @@ import ModerationQueue from "@/components/admin/ModerationQueue";
 import AdsTable from "@/components/admin/AdsTable";
 import CitiesManager from "@/components/admin/CitiesManager";
 import SettingsPanel from "@/components/admin/SettingsPanel";
+import SponsoredManager from "@/components/admin/SponsoredManager";
 import AuditLog from "@/components/admin/AuditLog";
 import { cn, formatNumber } from "@/lib/currency";
 import { formatDuration } from "@/lib/auth";
 
-type Tab = "overview" | "moderation" | "ads" | "geo" | "settings" | "audit";
+type Tab = "overview" | "moderation" | "ads" | "sponsored" | "geo" | "settings" | "audit";
 
 export default function AdminPage() {
   const {
@@ -97,6 +99,7 @@ export default function AdminPage() {
       badge: pendingAds.length,
     },
     { id: "ads", name: "إدارة الإعلانات", icon: <Table2 size={16} /> },
+    { id: "sponsored", name: "إعلانات مأجورة", icon: <Megaphone size={16} /> },
     { id: "geo", name: "المدن", icon: <Map size={16} /> },
     { id: "settings", name: "الإعدادات والأمان", icon: <SettingsIcon size={16} /> },
     { id: "audit", name: "سجل العمليات", icon: <History size={16} /> },
@@ -279,7 +282,8 @@ export default function AdminPage() {
             </>
           )}
 
-          {tab === "geo" && (
+          {tab === "sponsored" && <SponsoredManager />}
+        {tab === "geo" && (
             <>
               <SectionTitle
                 icon={<Map size={18} className="text-emeraldBrand-500" />}
