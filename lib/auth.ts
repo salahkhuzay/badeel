@@ -35,7 +35,16 @@ const toHex = (buf: ArrayBuffer) =>
   [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 /** بصمة كلمة المرور (PBKDF2-SHA256) — تعمل في المتصفح والخادم */
+/* كاش الذاكرة (موجة 22): اشتقاق 120 ألف تكرار يكلّف نحو ثانية على الجوال.
+   داخل التبويب الواحد تُشتق البصمة مرة واحدة وتُعاد من الذاكرة عند إعادة
+   الدخول بعد انتهاء الجلسة (20 دقيقة) — فلا انتظار ثانياً. الكاش في الذاكرة
+   فقط (Map) ولا يُكتب في أي تخزين، ويموت بإغلاق التبويب. */
+const deriveCache = new Map<string, string>();
+
 export async function hashPassword(password: string, salt: string): Promise<string> {
+  const cacheKey = `${salt}::${password}`;
+  const hit = deriveCache.get(cacheKey);
+  if (hit) return hit;
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
@@ -54,7 +63,9 @@ export async function hashPassword(password: string, salt: string): Promise<stri
     keyMaterial,
     PBKDF2_KEYLEN * 8
   );
-  return toHex(bits);
+  const hex = toHex(bits);
+  deriveCache.set(cacheKey, hex);
+  return hex;
 }
 
 /** مقارنة بزمن ثابت (تمنع هجمات قياس الزمن) */

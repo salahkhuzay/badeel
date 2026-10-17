@@ -9,7 +9,7 @@ import { createRequire } from "module";
 import fs from "fs";
 import path from "path";
 
-const require = createRequire("/home/user/");
+const require = createRequire(import.meta.url);
 const puppeteer = require("puppeteer");
 
 const OUT = path.resolve("qa/fixtures");

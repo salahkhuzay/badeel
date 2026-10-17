@@ -31,7 +31,13 @@ import { fetchRemoteSponsored } from "./remote-sponsored";
    المدينة فقط (أُلغيت الأحياء والمناطق) + جلسة إدارية آمنة.
    ========================================================================== */
 
+/* موجة 22 — فصل التخزين: المفتاح الخفيف (إعدادات/أمان/ثيم/مدن/سجل) يبقى
+   صغيراً فيُحلَّل فوراً وتنبثق اللوحة بلا انتظار؛ والإعلانات بصورها وحملات
+   المساحة ببنراتها (ميغابايتات) في مفتاحين خاصين يُقرآن بعد أول إطلالة
+   ويُدبَّج كتابتهما — فلم يعد الدخول يكتب كل الصور مرة واحدة */
 const STORAGE_KEY = "badeel.state.v1";
+const ADS_KEY = "badeel.ads.v1";
+const SPONSORED_KEY = "badeel.sponsored.v1";
 
 const initialAuth: AuthState = {
   loggedIn: false,
@@ -51,6 +57,8 @@ export interface AppState {
   currency: Currency;
   theme: "light" | "dark";
   hydrated: boolean;
+  /* اكتمال تحميل الشريحة الثقيلة (إعلانات + حملات) — بعد hydrated مباشرة */
+  heavyReady: boolean;
   /* حملات المساحة الإعلانية المأجورة أعلى الهيرو (موجة 20) */
   sponsored: SponsoredAd[];
   /* السعر الرسمي القادم من المخزن السحابي (/api/rate) — null قبل أول جلب */
@@ -68,6 +76,7 @@ const initialState: AppState = {
   currency: "USD",
   theme: "light",
   hydrated: false,
+  heavyReady: false,
   sponsored: [],
   remoteRate: null,
   remoteSponsored: null,
@@ -75,6 +84,7 @@ const initialState: AppState = {
 
 type Action =
   | { type: "HYDRATE"; payload: Partial<AppState> }
+  | { type: "HYDRATE_HEAVY"; ads: Ad[]; sponsored: SponsoredAd[] }
   | { type: "SET_CURRENCY"; currency: Currency }
   | { type: "TOGGLE_THEME" }
   | { type: "SET_THEME"; theme: "light" | "dark" }
@@ -100,19 +110,6 @@ const plusMinutes = (m: number) => new Date(Date.now() + m * 60000).toISOString(
 
 function normalize(saved: Partial<AppState>): Partial<AppState> {
   const cities = saved.cities ?? initialState.cities;
-  /* تنظيف الإعلانات التجريبية من ذاكرة الزائر: حُذفت هذه الإعلانات من الموقع
-     (2026-10-12)، لكن من سبق له زيارة الموقع ما زال يحملها في متصفحه.
-     القائمة صريحة (DEMO_AD_REFS) وكل إعلان حقيقي يبدأ من BD-8001،
-     لذلك يستحيل أن يُحذف إعلان حقيقي هنا. */
-  const ads = (saved.ads ?? initialState.ads).filter((ad) => !isDemoAdRef(ad?.ref)).map((ad) => {
-    /* ترحيل: إزالة حقول المنطقة القديمة من الإعلانات المحفوظة سابقاً */
-    const { districtId, districtLabel, districtKind, ...rest } = ad as Ad & {
-      districtId?: string;
-      districtLabel?: string;
-      districtKind?: string;
-    };
-    return rest as Ad;
-  });
   /* دمج إعدادات الأمان الجديدة إن كانت النسخة المحفوظة أقدم */
   const settings = { ...SEED_SETTINGS, ...(saved.settings ?? {}) };
   /* ترحيل الشعار عند إعادة التسمية (موجة 17): من زار قبل «بديل أونلاين» يحمل
@@ -142,9 +139,29 @@ function normalize(saved: Partial<AppState>): Partial<AppState> {
   if (PLACEHOLDER_FB.includes(fbNow)) settings.facebookUrl = SEED_SETTINGS.facebookUrl;
   const auth = { ...initialAuth, ...(saved.auth ?? {}) };
   /* إن كان الإعداد القديم يحتوي authUser فقد أُلغيت هذه الحالة */
-  /* حملات المساحة المأجورة: من حدّث قبل موجة 20 لا يملك الحقل ⇒ قائمة فارغة آمنة */
-  const sponsored = Array.isArray(saved.sponsored) ? saved.sponsored : [];
-  return { ...saved, cities, ads, settings, auth, sponsored };
+  /* حمولة خفيفة بلا إعلانات ولا حملات — الشريحتان الثقيلتان تصلان في الطور
+     الثاني (HYDRATE_HEAVY) من مفتاحيهما الخاصين */
+  const { ads: _ads, sponsored: _spn, ...light } = saved;
+  return { ...light, cities, settings, auth };
+}
+
+/**
+ * تنظيف قائمة الإعلانات: تصفية الإعلانات التجريبية من ذاكرة الزائر
+ * (حُذفت من الموقع 2026-10-12 والقائمة صريحة DEMO_AD_REFS، وكل إعلان حقيقي
+ * يبدأ من BD-8001 فلا يستحيل أن يُحذف إعلان حقيقي هنا) + إزالة حقول المنطقة
+ * القديمة المحفوظة قبل إلغاء الأحياء.
+ */
+function normalizeAds(raw?: Ad[]): Ad[] {
+  return (raw ?? initialState.ads)
+    .filter((ad) => !isDemoAdRef(ad?.ref))
+    .map((ad) => {
+      const { districtId, districtLabel, districtKind, ...rest } = ad as Ad & {
+        districtId?: string;
+        districtLabel?: string;
+        districtKind?: string;
+      };
+      return rest as Ad;
+    });
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -157,6 +174,9 @@ function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "HYDRATE":
       return { ...state, ...action.payload, hydrated: true };
+
+    case "HYDRATE_HEAVY":
+      return { ...state, ads: action.ads, sponsored: action.sponsored, heavyReady: true };
 
     case "SET_CURRENCY":
       return { ...state, currency: action.currency };
@@ -381,6 +401,7 @@ function reducer(state: AppState, action: Action): AppState {
         theme: state.theme,
         currency: state.currency,
         hydrated: true,
+        heavyReady: true,
       };
 
     default:
@@ -421,11 +442,70 @@ interface StoreValue extends AppState {
 
 const StoreContext = createContext<StoreValue | null>(null);
 
+/* كتابة الثقيل (صور الإعلانات/البنرات) تُدبَّج 700ms وتُدفع عند مغادرة الصفحة
+   فلا يحسّ المستخدم بكتابة ميغابايتات مع كل تغيير */
+const pendingWrites = new Map<string, { timer: ReturnType<typeof setTimeout>; value: unknown }>();
+function scheduleSave(key: string, value: unknown, delay = 700) {
+  const prev = pendingWrites.get(key);
+  if (prev) clearTimeout(prev.timer);
+  pendingWrites.set(key, {
+    timer: setTimeout(() => {
+      pendingWrites.delete(key);
+      safeStorage.set(key, value);
+    }, delay),
+    value,
+  });
+}
+function flushWrites() {
+  for (const [key, entry] of pendingWrites) {
+    clearTimeout(entry.timer);
+    safeStorage.set(key, entry.value);
+  }
+  pendingWrites.clear();
+}
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
     const saved = safeStorage.get<Partial<AppState>>(STORAGE_KEY);
+    /* ترحيل من الصيغة القديمة (موجة ≤21: كل شيء في مفتاح واحد): نفصل
+       الإعلانات والحملات إلى مفتاحيهما الثقيلين مرة واحدة، فتصير كل
+       استعادة لاحقة صغيرة وسريعة.
+       الأمان: الكتابة فوق المفتاح القديم قد تصطدم بحصة المتصفح (~5MB) لأن
+       المجموع momentarily يتضاعف — لذا نتحقق بالقراءة الخام بعد كل كتابة،
+       وعند الفشل نحرر مساحة المفتاح القديم أولاً (والبيانات كاملة في
+       الذاكرة) ثم نعيد الكتابة. لا يُمحى المفتاح القديم إلا بعد نجاح
+       الكتابتين الثقيلتين أو تحرير المساحة. */
+    if (saved && ("ads" in saved || "sponsored" in saved)) {
+      const { ads, sponsored, ...light } = saved;
+      const rawOk = (k: string) => {
+        try {
+          return window.localStorage.getItem(k) !== null;
+        } catch {
+          return false;
+        }
+      };
+      const writeHeavy = () => {
+        let okAds = true;
+        let okSpn = true;
+        if (Array.isArray(ads)) {
+          safeStorage.set(ADS_KEY, { ads });
+          okAds = rawOk(ADS_KEY);
+        }
+        if (Array.isArray(sponsored)) {
+          safeStorage.set(SPONSORED_KEY, { sponsored });
+          okSpn = rawOk(SPONSORED_KEY);
+        }
+        return okAds && okSpn;
+      };
+      if (!writeHeavy()) {
+        /* الحصة ممتلئة: حرّر المفتاح القديم ثم أعد المحاولة — البيانات في الذاكرة */
+        safeStorage.remove(STORAGE_KEY);
+        writeHeavy();
+      }
+      safeStorage.set(STORAGE_KEY, light);
+    }
     const prefersDark =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-color-scheme: dark)").matches;
@@ -436,6 +516,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         theme: saved?.theme ?? (prefersDark ? "dark" : "light"),
       },
     });
+    /* الطور الثقيل بعد أول إطلالة: تحليل صور الإعلانات والبنرات لا يقف في
+       طريق ظهور الحقول ولا في طريق ضغطة الدخول */
+    const loadHeavy = () => {
+      const a = safeStorage.get<{ ads?: Ad[] }>(ADS_KEY);
+      const s = safeStorage.get<{ sponsored?: SponsoredAd[] }>(SPONSORED_KEY);
+      dispatch({
+        type: "HYDRATE_HEAVY",
+        ads: normalizeAds(a?.ads),
+        sponsored: Array.isArray(s?.sponsored) ? s.sponsored : [],
+      });
+    };
+    const ric = window.requestIdleCallback as
+      | ((cb: () => void, opts?: { timeout: number }) => number)
+      | undefined;
+    const handle: number = ric ? ric(loadHeavy, { timeout: 2000 }) : window.setTimeout(loadHeavy, 80);
+    const cancel = () => {
+      if (ric && typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
+    };
+    return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -462,29 +562,52 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  /* الشريحة الخفيفة: بضعة كيلوبايت — تُكتب فوراً. الدخول/الخروج وتغيير
+     الإعدادات لم يعد يكتب صور الإعلانات والبنرات معها (موجة 22) */
   useEffect(() => {
     if (!state.hydrated) return;
     safeStorage.set(STORAGE_KEY, {
-      ads: state.ads,
       cities: state.cities,
       settings: state.settings,
       auth: state.auth,
       audit: state.audit,
       currency: state.currency,
       theme: state.theme,
-      sponsored: state.sponsored,
     });
   }, [
     state.hydrated,
-    state.ads,
     state.cities,
     state.settings,
     state.auth,
     state.audit,
     state.currency,
     state.theme,
-    state.sponsored,
   ]);
+
+  /* الشريحة الثقيلة: كتابة مدبَّجة في مفتاحيها الخاصين — لا تُكتب أبداً
+     قبل اكتمال الطور الثقيل كي لا تُمحى بيانات محفوظة بحالة البداية */
+  useEffect(() => {
+    if (!state.heavyReady) return;
+    scheduleSave(ADS_KEY, { ads: state.ads });
+  }, [state.heavyReady, state.ads]);
+
+  useEffect(() => {
+    if (!state.heavyReady) return;
+    scheduleSave(SPONSORED_KEY, { sponsored: state.sponsored });
+  }, [state.heavyReady, state.sponsored]);
+
+  /* دفع الكتابات المجدولة عند إخفاء الصفحة/مغادرتها كي لا يضيع آخر تغيير */
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flushWrites();
+    };
+    window.addEventListener("pagehide", flushWrites);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("pagehide", flushWrites);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;

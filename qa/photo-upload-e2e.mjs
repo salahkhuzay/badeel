@@ -12,7 +12,7 @@ import { createRequire } from "module";
 import fs from "fs";
 import path from "path";
 
-const require = createRequire("/home/user/");
+const require = createRequire(import.meta.url);
 const puppeteer = require("puppeteer");
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
@@ -369,7 +369,8 @@ await wait(3500);
 
 const published = await page.evaluate(() => {
   const text = document.body.innerText;
-  const stored = localStorage.getItem("badeel.state.v1") || "";
+  const stored =
+    (localStorage.getItem("badeel.ads.v1") || "") + (localStorage.getItem("badeel.state.v1") || "");
   return {
     review: /قيد المراجعة/.test(text),
     sent: /تم إرسال إعلانك بنجاح/.test(text),

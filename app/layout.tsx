@@ -75,12 +75,15 @@ export const viewport: Viewport = {
   ],
 };
 
-/* سكربت صغير لمنع "وميض" الوضع الليلي قبل تحميل React */
+/* سكربت صغير لمنع "وميض" الوضع الليلي قبل تحميل React —
+   يقرأ الثيم بتعبير نمطي من النص الخام بلا JSON.parse (موجة 22): ذاكرة
+   الصيغة القديمة عند بعض المستخدمين ميغابايتات، وتحليلها هنا كان يجمّد
+   أول إطلالة على الجوال */
 const themeInit = `
 (function(){try{
-  var raw = localStorage.getItem('badeel.state.v1');
-  var saved = raw ? JSON.parse(raw) : null;
-  var dark = saved && saved.theme ? saved.theme === 'dark'
+  var raw = localStorage.getItem('badeel.state.v1') || '';
+  var m = raw.match(/"theme":"(dark|light)"/);
+  var dark = m ? m[1] === 'dark'
     : window.matchMedia('(prefers-color-scheme: dark)').matches;
   if (dark) document.documentElement.classList.add('dark');
 }catch(e){}})();

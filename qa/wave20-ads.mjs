@@ -182,8 +182,10 @@ await page2.emulate({
     "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
 });
 await page2.goto(`${BASE}/admin`, { waitUntil: "networkidle2", timeout: 60000 });
-/* مسح أي بذور ورثتها الصفحة المشتركة ثم إعادة تحميل نظيفة */
-await page2.evaluate(() => localStorage.removeItem("badeel.state.v1"));
+/* مسح أي بذور ورثتها الصفحة المشتركة (المفاتيح الثلاثة — موجة 22) ثم إعادة تحميل نظيفة */
+await page2.evaluate(() =>
+  ["badeel.state.v1", "badeel.ads.v1", "badeel.sponsored.v1"].forEach((k) => localStorage.removeItem(k))
+);
 await page2.reload({ waitUntil: "networkidle2" });
 await wait(1500);
 await setVal('input[placeholder="اسم المستخدم"]', "admin", page2);

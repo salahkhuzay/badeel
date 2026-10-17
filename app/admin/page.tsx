@@ -63,6 +63,24 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [tick, setTick] = useState(0);
 
+  /* موجة 22: أثناء شاشة الدخول وفي وقت خمول المتصفح، تُجلب حزم أول لوحتين
+     مسبقاً — فعند نجاح الدخول يظهر التبويب الأول فوراً بلا انتظار تنزيل */
+  useEffect(() => {
+    if (!hydrated || auth.loggedIn) return;
+    const ric =
+      typeof window.requestIdleCallback === "function"
+        ? (cb: () => void) => window.requestIdleCallback(cb, { timeout: 3000 })
+        : (cb: () => void) => window.setTimeout(cb, 800);
+    const h = ric(() => {
+      import("@/components/admin/AdminStats");
+      import("@/components/admin/SponsoredManager");
+    });
+    return () => {
+      if (typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(h);
+      else window.clearTimeout(h);
+    };
+  }, [hydrated, auth.loggedIn]);
+
   /* نبضة كل 20 ثانية: تحديث العدّاد وإنهاء الجلسة تلقائياً عند الانتهاء */
   useEffect(() => {
     if (!auth.loggedIn) return;
@@ -326,11 +344,12 @@ export default function AdminPage() {
   );
 }
 
-/* تعويض بسيط: resetDemo من المخزن */
+/* تعويض بسيط: resetDemo من المخزن — يمسح المفاتيح الثلاثة (موجة 22) */
 function resetDemoSafe() {
   try {
-    const raw = localStorage.getItem("badeel.state.v1");
-    if (raw) localStorage.removeItem("badeel.state.v1");
+    ["badeel.state.v1", "badeel.ads.v1", "badeel.sponsored.v1"].forEach((k) =>
+      localStorage.removeItem(k)
+    );
   } catch {
     /* ignore */
   }

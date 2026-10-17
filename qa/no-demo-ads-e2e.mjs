@@ -13,7 +13,7 @@
    ========================================================================== */
 
 import { createRequire } from "module";
-const require = createRequire("/home/user/");
+const require = createRequire(import.meta.url);
 const puppeteer = require("puppeteer");
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
@@ -219,7 +219,8 @@ await page.evaluate(() =>
 await wait(3000);
 
 const newAd = await page.evaluate((key) => {
-  const s = JSON.parse(localStorage.getItem(key) || "{}");
+  /* موجة 22: الإعلانات في مفتاحها الثقيل الخاص (كتابة مدبَّجة ~700ms) */
+  const s = JSON.parse(localStorage.getItem("badeel.ads.v1") || localStorage.getItem(key) || "{}");
   const ad = (s.ads || [])[0];
   return {
     total: (s.ads || []).length,
@@ -384,7 +385,8 @@ ok("زُرعت ذاكرة قديمة (4 إعلانات: 3 تجريبية + 1 ح�
 await fresh.reload({ waitUntil: "networkidle2" });
 await wait(2500);
 const purged = await fresh.evaluate((key) => {
-  const s = JSON.parse(localStorage.getItem(key) || "{}");
+  /* بعد الترحيل (موجة 22) تعيش الإعلانات في مفتاحها الخاص */
+  const s = JSON.parse(localStorage.getItem("badeel.ads.v1") || localStorage.getItem(key) || "{}");
   const refs = (s.ads || []).map((a) => a.ref);
   return {
     refs,
