@@ -10,6 +10,11 @@
 import { NextResponse } from "next/server";
 import type { SponsoredAd } from "@/lib/sponsored";
 
+/* القراءة دائماً حية من KV — بلا ذلك تخزّن CDN لدى Vercel استجابة GET القديمة
+   (درس مستقى من جسر السعر الذي يعلن هذين السطرين منذ البداية) */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const KV_KEY = "site:sponsored";
 
 function kvEnv(readOnly: boolean): { url: string; token: string } {
