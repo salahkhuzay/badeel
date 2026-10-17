@@ -133,6 +133,29 @@ snap = await page.evaluate((src) => {
 }, TINY_PNG);
 ok("حملة بصورة فقط: صورة كاملة (contain) قابلة للنقر + وسم ممول + بلا نص", snap.img && snap.wrapped && snap.label && snap.noTitle && snap.contain, JSON.stringify(snap));
 
+/* ②-ج تناوب الحملات الحية كل 3 ثوانٍ */
+await seedAndOpen([
+  { id: "spn-rot-a", advertiser: "معلن أ", title: "حملة ألف الأولى", startsAt: day(-1), endsAt: day(1), enabled: true },
+  { id: "spn-rot-b", advertiser: "معلن ب", title: "حملة باء الثانية", startsAt: day(-1), endsAt: day(1), enabled: true },
+]);
+snap = await page.evaluate(() => ({
+  a: document.body.innerText.includes("حملة ألف الأولى"),
+  dots: document.querySelectorAll('[aria-label*="من 2"]').length === 1,
+}));
+await wait(3600);
+const snap2 = await page.evaluate(() => ({
+  b: document.body.innerText.includes("حملة باء الثانية"),
+  aGone: !document.body.innerText.includes("حملة ألف الأولى"),
+}));
+/* نبضة ثالثة تقع عند 6 ثوانٍ (تعود لألف) والرابعة عند 9 — نقرأ بينهما */
+await wait(2600);
+const snap3 = await page.evaluate(() => document.body.innerText.includes("حملة ألف الأولى"));
+ok(
+  "تناوب تلقائي كل 3 ثوانٍ: أ ← ب ← أ مع نقطتي تعداد",
+  snap.a && snap.dots && snap2.b && snap2.aGone && snap3,
+  JSON.stringify({ ...snap, ...snap2, back: snap3 })
+);
+
 /* ③ حملة منتهية */
 await seedAndOpen([
   {

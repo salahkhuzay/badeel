@@ -10,16 +10,26 @@
      عبر واتساب الدعم — فالمساحة لا تبقى ميتة أبداً، إما إيرادات أو دعوة.
    ========================================================================== */
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ExternalLink, Megaphone, Phone } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { pickLiveSponsored } from "@/lib/sponsored";
+import { isSponsoredLive } from "@/lib/sponsored";
 import { supportWhatsapp, displayPhone } from "@/lib/currency";
 
 export default function SponsoredSlot() {
   const { sponsored, remoteSponsored, settings } = useStore();
   /* المنشور في KV أولوية لكل الزوار؛ بلا KV تبقى القائمة المحلية */
-  const live = pickLiveSponsored(remoteSponsored ?? sponsored);
+  const liveList = (remoteSponsored ?? sponsored ?? []).filter((a) => isSponsoredLive(a));
+
+  /* تناوب تلقائي: كل 3 ثوانٍ تنتقل المساحة إلى الحملة الحية التالية (طلب صاحب
+     المنصة 2026-10-17) — فلا تُظلَم أي حملة مبيعة في نفس الفترة */
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (liveList.length < 2) return;
+    const iv = setInterval(() => setIdx((i) => (i + 1) % liveList.length), 3000);
+    return () => clearInterval(iv);
+  }, [liveList.length]);
+  const live = liveList.length ? liveList[idx % liveList.length] : null;
 
   if (!live) {
     const wa = supportWhatsapp(settings.contactPhone, settings.whatsappCountryCode);
@@ -53,6 +63,24 @@ export default function SponsoredSlot() {
       ? `tel:${live.phone.trim()}`
       : undefined;
 
+  /* نقاط التناوب: كم حملة حية وأيّها معروض الآن */
+  const dots =
+    liveList.length > 1 ? (
+      <div
+        className="absolute inset-x-0 bottom-1.5 flex justify-center gap-1.5"
+        aria-label={`الإعلان ${(idx % liveList.length) + 1} من ${liveList.length}`}
+      >
+        {liveList.map((a, i) => (
+          <span
+            key={a.id}
+            className={`h-1.5 rounded-full transition-all ${
+              i === idx % liveList.length ? "w-4 bg-amberBrand-400" : "w-1.5 bg-white/45"
+            }`}
+          />
+        ))}
+      </div>
+    ) : null;
+
   /* ① التنسيق الأساسي: صورة فقط — البانر كله صورة المعلن (مثل لوحة إعلانية)،
         والنقر كله وجهة واحدة إن وُجدت. العنوان يبقى للإدارة وalt فقط. */
   if (live.imageUrl?.trim()) {
@@ -82,6 +110,7 @@ export default function SponsoredSlot() {
         <span className="absolute top-1.5 left-1.5 rounded bg-navy-950/70 px-1.5 py-0.5 text-[9px] font-extrabold text-amberBrand-300 backdrop-blur-sm">
           إعلان ممول
         </span>
+        {dots}
       </div>
     );
   }
@@ -131,6 +160,7 @@ export default function SponsoredSlot() {
           </a>
         )}
       </div>
+      {dots}
     </div>
   );
 }
