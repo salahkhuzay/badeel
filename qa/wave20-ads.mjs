@@ -103,6 +103,32 @@ let snap = await page.evaluate(() => ({
 ok("حملة حية: وسم «إعلان ممول» + عنوان المعلن + رابطه", snap.label && snap.title && snap.adv && snap.href, JSON.stringify(snap));
 ok("حملة حية: لافتة الحجز تختفي", snap.noPlaceholder);
 
+/* ②-ب حملة بصورة فقط: البانر صورة والنص لا يظهر للزائر */
+const TINY_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+await seedAndOpen([
+  {
+    id: "spn-qa-img",
+    advertiser: "معلن بالصورة",
+    title: "عنوان إداري لا يظهر",
+    imageUrl: TINY_PNG,
+    linkUrl: "https://example.com/img",
+    startsAt: day(-1),
+    endsAt: day(1),
+    enabled: true,
+  },
+]);
+snap = await page.evaluate((src) => {
+  const img = Array.from(document.querySelectorAll("img")).find((i) => i.getAttribute("src") === src);
+  return {
+    img: Boolean(img),
+    wrapped: Boolean(img?.closest("a[href='https://example.com/img']")),
+    label: document.body.innerText.includes("إعلان ممول"),
+    noTitle: !document.body.innerText.includes("عنوان إداري لا يظهر"),
+  };
+}, TINY_PNG);
+ok("حملة بصورة فقط: صورة قابلة للنقر + وسم ممول + بلا نص", snap.img && snap.wrapped && snap.label && snap.noTitle, JSON.stringify(snap));
+
 /* ③ حملة منتهية */
 await seedAndOpen([
   {
@@ -145,6 +171,10 @@ await page2.evaluate(() => {
 });
 await wait(900);
 ok("تبويب «إعلانات مأجورة» موجود ويفتح", await page2.evaluate(() => document.body.innerText.includes("المساحة الإعلانية المأجورة — الشريط أعلى الرئيسية")));
+ok(
+  "حقل رفع صورة البانر من الجهاز موجود",
+  await page2.evaluate(() => Boolean(document.querySelector('input[type="file"][accept="image/*"]')))
+);
 
 /* إدخال حملة جديدة */
 const inputs = await page2.evaluate(() => {

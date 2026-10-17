@@ -16,6 +16,35 @@ import { uid } from "@/lib/currency";
 import { getRateKey } from "@/lib/remote-rate";
 import { publishSponsored } from "@/lib/remote-sponsored";
 
+/* ضغط صورة المعلن: أعرض 1200 بكسل وبجودة متدرجة حتى تبقى تحت ~450KB —
+   حتى تمر عبر جسر النشر KV دون تثقيل صفحة الزوار */
+async function compressToBanner(file: File, maxW = 1200): Promise<string> {
+  const raw: string = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result));
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = raw;
+  });
+  const scale = Math.min(1, maxW / img.width);
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d")?.drawImage(img, 0, 0, w, h);
+  for (const q of [0.72, 0.6, 0.5]) {
+    const out = canvas.toDataURL("image/jpeg", q);
+    if (out.length < 450_000) return out;
+  }
+  return canvas.toDataURL("image/jpeg", 0.5);
+}
+
 const emptyForm = (): SponsoredAd => ({
   id: "",
   advertiser: "",
@@ -137,7 +166,7 @@ export default function SponsoredManager() {
             />
           </label>
           <label className="text-xs font-bold text-navy-600 dark:text-navy-300">
-            صورة خلفية (رابط، اختياري)
+            صورة البانر (رابط، اختياري)
             <input
               className="input mt-1"
               dir="ltr"
@@ -146,6 +175,37 @@ export default function SponsoredManager() {
               placeholder="https://…/banner.jpg"
             />
           </label>
+          <div className="text-xs font-bold text-navy-600 dark:text-navy-300">
+            أو ارفع الصورة من جهازك (تُضغط تلقائياً وتصبح هي الإعلان كاملاً)
+            <input
+              type="file"
+              accept="image/*"
+              className="mt-1 w-full text-[11px] file:me-2 file:rounded-lg file:border-0 file:bg-amberBrand-500 file:px-3 file:py-1.5 file:text-[11px] file:font-extrabold file:text-navy-900"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void compressToBanner(f).then((dataUrl) => set({ imageUrl: dataUrl }));
+              }}
+            />
+            {form.imageUrl?.startsWith("data:") && (
+              <span className="mt-1 flex items-center gap-2">
+                <img
+                  src={form.imageUrl}
+                  alt="معاينة البانر"
+                  className="h-12 w-24 rounded-lg object-cover ring-1 ring-navy-200 dark:ring-navy-700"
+                />
+                <button
+                  type="button"
+                  className="btn-ghost px-2 py-1 text-[10px]"
+                  onClick={() => set({ imageUrl: "" })}
+                >
+                  إزالة الصورة
+                </button>
+                <span className="text-[10px] font-normal text-navy-400">
+                  {(form.imageUrl.length / 1024).toFixed(0)}KB
+                </span>
+              </span>
+            )}
+          </div>
           <label className="text-xs font-bold text-navy-600 dark:text-navy-300">
             من تاريخ
             <input

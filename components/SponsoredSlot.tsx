@@ -53,6 +53,38 @@ export default function SponsoredSlot() {
       ? `tel:${live.phone.trim()}`
       : undefined;
 
+  /* ① التنسيق الأساسي: صورة فقط — البانر كله صورة المعلن (مثل لوحة إعلانية)،
+        والنقر كله وجهة واحدة إن وُجدت. العنوان يبقى للإدارة وalt فقط. */
+  if (live.imageUrl?.trim()) {
+    const img = (
+      <img
+        src={live.imageUrl.trim()}
+        alt={live.title}
+        className="block h-24 w-full rounded-2xl object-cover sm:h-32"
+        loading="eager"
+      />
+    );
+    return (
+      <div className="relative mb-6">
+        {href ? (
+          <a
+            href={href}
+            {...(live.linkUrl?.trim() ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            className="block ring-1 ring-amberBrand-400/40 rounded-2xl"
+          >
+            {img}
+          </a>
+        ) : (
+          img
+        )}
+        <span className="absolute top-1.5 left-1.5 rounded bg-navy-950/70 px-1.5 py-0.5 text-[9px] font-extrabold text-amberBrand-300 backdrop-blur-sm">
+          إعلان ممول
+        </span>
+      </div>
+    );
+  }
+
+  /* ② بلا صورة: بانر نصي احتياطي بنفس الوجهة */
   return (
     <div className="relative mb-6 overflow-hidden rounded-2xl ring-1 ring-amberBrand-400/40">
       {/* صورة الخلفية الاختيارية للمعلن */}

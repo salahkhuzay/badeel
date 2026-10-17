@@ -79,11 +79,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "مخزن KV غير مرتبط بالمنصة" }, { status: 503 });
   }
   try {
-    /* صيغة Upstash REST المعتمدة في المنصة (كما في جسر السعر): القيمة في
-       المسار /set/{key}/{value} — الكتابة بجسم الطلب تُهمَل بصمت */
-    const w = await fetch(`${url}/set/${KV_KEY}/${encodeURIComponent(JSON.stringify(list))}`, {
+    /* صيغة Upstash للقيم الكبيرة (صور البانرات): أمر JSON في جسم الطلب إلى
+       جذر القاعدة —POST ["SET", key, value]— لأن المسار URL لا يتحمل الحجم.
+       (الكتابة السابقة بالمسار تبقى صالحة للصغير فقط) */
+    const w = await fetch(url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(["SET", KV_KEY, JSON.stringify(list)]),
       cache: "no-store",
     });
     if (!w.ok) return NextResponse.json({ error: "تعذّرت الكتابة إلى مخزن KV" }, { status: 502 });
