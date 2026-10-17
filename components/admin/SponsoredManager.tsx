@@ -9,10 +9,12 @@
    ========================================================================== */
 
 import React, { useState } from "react";
-import { Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
+import { Megaphone, Pencil, Plus, Send, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { sponsoredStatus, todayStr, type SponsoredAd } from "@/lib/sponsored";
 import { uid } from "@/lib/currency";
+import { getRateKey } from "@/lib/remote-rate";
+import { publishSponsored } from "@/lib/remote-sponsored";
 
 const emptyForm = (): SponsoredAd => ({
   id: "",
@@ -31,6 +33,19 @@ export default function SponsoredManager() {
   const { sponsored, setSponsored } = useStore();
   const [form, setForm] = useState<SponsoredAd>(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pubState, setPubState] = useState("");
+
+  /* نشر القائمة لكل الزوار عبر KV — بنفس مفتاح نشر السعر (تبويب الإعدادات) */
+  const publish = async () => {
+    const key = getRateKey().trim();
+    if (!key) {
+      setPubState("أدخل «مفتاح النشر» من تبويب الإعدادات والأمان أولاً ثم انشر.");
+      return;
+    }
+    setPubState("جارٍ النشر…");
+    const r = await publishSponsored(sponsored, key);
+    setPubState(r.ok ? `تم النشر لكل الزوار (${r.count} حملة)` : `تعذّر النشر: ${r.error}`);
+  };
 
   const set = (patch: Partial<SponsoredAd>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -174,6 +189,20 @@ export default function SponsoredManager() {
               إلغاء التعديل
             </button>
           )}
+        </div>
+
+        {/* النشر العام: التعديلات محلية حتى تُنشر — كجسر السعر تماماً */}
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-navy-100 pt-4 dark:border-navy-800">
+          <button type="button" className="btn-ghost px-4" onClick={publish}>
+            <Send size={15} /> نشر المساحة لكل الزوار
+          </button>
+          {pubState && (
+            <span className="text-[11px] font-bold text-navy-500 dark:text-navy-300">{pubState}</span>
+          )}
+          <span className="w-full text-[11px] leading-relaxed text-navy-400">
+            التعديلات تبقى في متصفحك حتى تنشرها — وبعدها يراها كل الزوار فوراً عبر المخزن
+            السحابي، بنفس مفتاح نشر سعر الصرف.
+          </span>
         </div>
       </div>
 

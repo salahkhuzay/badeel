@@ -28,6 +28,19 @@ const home = await (await fetch(`${BASE}/`)).text();
 ok("SSR: لافتة بيع المساحة حاضرة افتراضياً", home.includes("مساحتك الإعلانية هنا"));
 ok("SSR: زر الحجز عبر واتساب", home.includes("احجز المساحة عبر واتساب"));
 
+/* جسر النشر /api/sponsored: بلا KV يعلن ذلك صراحةً، والمفتاح الخاطئ مرفوض */
+const g = await fetch(`${BASE}/api/sponsored`);
+const gj = await g.json().catch(() => null);
+ok("جسر GET /api/sponsored: 200 مع kvConfigured:false محلياً", g.status === 200 && gj?.kvConfigured === false && Array.isArray(gj?.list));
+const p = await fetch(`${BASE}/api/sponsored`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ list: [], key: "wrong-key-probe" }),
+});
+/* محلياً بلا RATE_WRITE_KEY ⇒ 503 «غير مضبوط»، ومع المفتاح ⇒ 401 للخاطئ —
+   وكلاهما رفض صحيح؛ مسار 401 الحقيقي يُفحص على المنشور حيث المفتاح مضبوط */
+ok("جسر POST يرفض النشر غير المصرح (401/503)", p.status === 401 || p.status === 503, `HTTP ${p.status}`);
+
 const browser = await puppeteer.launch({
   headless: "new",
   args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],

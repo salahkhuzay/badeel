@@ -17,8 +17,9 @@ import { pickLiveSponsored } from "@/lib/sponsored";
 import { supportWhatsapp, displayPhone } from "@/lib/currency";
 
 export default function SponsoredSlot() {
-  const { sponsored, settings } = useStore();
-  const live = pickLiveSponsored(sponsored);
+  const { sponsored, remoteSponsored, settings } = useStore();
+  /* المنشور في KV أولوية لكل الزوار؛ بلا KV تبقى القائمة المحلية */
+  const live = pickLiveSponsored(remoteSponsored ?? sponsored);
 
   if (!live) {
     const wa = supportWhatsapp(settings.contactPhone, settings.whatsappCountryCode);

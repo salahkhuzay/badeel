@@ -23,6 +23,7 @@ import { contactDigits, migrateContactPhone } from "./contact";
 import type { SponsoredAd } from "./sponsored";
 import { ADMIN_USERNAME, hashPassword, safeEqual } from "./auth";
 import { fetchRemoteRate, type RemoteRate } from "./remote-rate";
+import { fetchRemoteSponsored } from "./remote-sponsored";
 
 /* ==========================================================================
    مخزن الحالة العام — بديل | Badeel
@@ -54,6 +55,8 @@ export interface AppState {
   sponsored: SponsoredAd[];
   /* السعر الرسمي القادم من المخزن السحابي (/api/rate) — null قبل أول جلب */
   remoteRate: RemoteRate | null;
+  /* حملات المساحة المنشورة لكل الزوار عبر KV — null إذا لم يُضبط KV أو فشل الجلب */
+  remoteSponsored: SponsoredAd[] | null;
 }
 
 const initialState: AppState = {
@@ -67,6 +70,7 @@ const initialState: AppState = {
   hydrated: false,
   sponsored: [],
   remoteRate: null,
+  remoteSponsored: null,
 };
 
 type Action =
@@ -80,6 +84,7 @@ type Action =
   | { type: "TOGGLE_CITY"; cityId: string }
   | { type: "UPDATE_SETTINGS"; settings: Partial<Settings> }
   | { type: "SET_SPONSORED"; sponsored: SponsoredAd[] }
+  | { type: "REMOTE_SPONSORED"; list: SponsoredAd[] }
   | { type: "REMOTE_RATE"; rate: RemoteRate }
   | { type: "AUTH_LOGGED_IN"; minutes: number }
   | { type: "AUTH_FAIL"; lockedUntil: string | null; attempts: number }
@@ -262,6 +267,8 @@ function reducer(state: AppState, action: Action): AppState {
     }
     case "SET_SPONSORED":
       return { ...state, sponsored: action.sponsored };
+    case "REMOTE_SPONSORED":
+      return { ...state, remoteSponsored: action.list };
     case "UPDATE_SETTINGS": {
       const nextSettings = { ...state.settings, ...action.settings };
       /* إن ضبط المسؤول الرقم بنفسه ⇒ يُعلَّم «مخصّصاً» فلا يمسّه أي ترحيل تلقائي أبداً */
@@ -437,6 +444,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     let alive = true;
     fetchRemoteRate().then((r) => {
       if (alive && r) dispatch({ type: "REMOTE_RATE", rate: r });
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  /* حملات المساحة المأجورة المنشورة: إن كان KV مضبوطاً فهي المرجع لكل الزوار،
+     وإلا يبقى كل متصفح على قائمته المحلية (توافق رجعي كامل) */
+  useEffect(() => {
+    let alive = true;
+    fetchRemoteSponsored().then((r) => {
+      if (alive && r && r.kvConfigured) dispatch({ type: "REMOTE_SPONSORED", list: r.list });
     });
     return () => {
       alive = false;
