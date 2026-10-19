@@ -1,0 +1,145 @@
+/* ==========================================================================
+   lib/supabase-server.ts — خادم فقط: كلام REST مباشر مع Supabase (موجة 25)
+   --------------------------------------------------------------------------
+   بلا SDK: PostgREST + Storage REST بنفس نمط جسور KV الموجودة.
+   متغيّرات البيئة على Vercel: SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY.
+   بلاتهما: الجسر «غير مضبوط» فتبقى المنصة على وضعها المحلي (توافق رجعي).
+   ========================================================================== */
+
+import type { Ad } from "./types";
+
+export const ADS_BUCKET = "ads";
+
+export function supabaseConfigured(): boolean {
+  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+function headers(json = true): HeadersInit {
+  return {
+    apikey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+    Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""}`,
+    ...(json ? { "Content-Type": "application/json" } : {}),
+  };
+}
+
+const base = () => (process.env.SUPABASE_URL ?? "").replace(/\/$/, "");
+
+/** الإعلانات المنشورة/المApproved + المعلّقة (نطاق المدير) أو العامة فقط */
+export async function sbListAds(adminScope: boolean): Promise<Ad[] | null> {
+  if (!supabaseConfigured()) return null;
+  try {
+    const filter = adminScope
+      ? "order=created_at.desc"
+      : "status=in.(active,sold,rented)&order=created_at.desc";
+    const r = await fetch(`${base()}/rest/v1/ads?select=data&${filter}`, {
+      headers: headers(),
+      cache: "no-store",
+    });
+    if (!r.ok) return null;
+    const rows = (await r.json().catch(() => null)) as { data?: Ad }[] | null;
+    if (!Array.isArray(rows)) return null;
+    return rows.map((x) => x.data).filter((a): a is Ad => Boolean(a && typeof a === "object" && "id" in a));
+  } catch {
+    return null;
+  }
+}
+
+export async function sbInsertAd(ad: Ad): Promise<Ad | null> {
+  if (!supabaseConfigured()) return null;
+  try {
+    const r = await fetch(`${base()}/rest/v1/ads`, {
+      method: "POST",
+      headers: { ...headers(), Prefer: "return=representation" },
+      body: JSON.stringify({ id: ad.id, ref: ad.ref, status: ad.status, created_at: ad.createdAt, data: ad }),
+    });
+    if (!r.ok) return null;
+    const rows = (await r.json().catch(() => null)) as { data?: Ad }[] | null;
+    return rows?.[0]?.data ?? ad;
+  } catch {
+    return null;
+  }
+}
+
+export async function sbUpdateAd(id: string, patch: Partial<Ad>): Promise<Ad | null> {
+  if (!supabaseConfigured()) return null;
+  try {
+    /* نقرأ الصف ثم ندمج ثم نكتب (data jsonb كامل) — أبسط وأأمن من دمج jsonb جزئي */
+    const cur = await sbGetAd(id);
+    if (!cur) return null;
+    const next = { ...cur, ...patch };
+    const r = await fetch(`${base()}/rest/v1/ads?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { ...headers(), Prefer: "return=representation" },
+      body: JSON.stringify({ status: next.status, data: next }),
+    });
+    if (!r.ok) return null;
+    return next;
+  } catch {
+    return null;
+  }
+}
+
+export async function sbGetAd(id: string): Promise<Ad | null> {
+  if (!supabaseConfigured()) return null;
+  try {
+    const r = await fetch(`${base()}/rest/v1/ads?id=eq.${encodeURIComponent(id)}&select=data`, {
+      headers: headers(),
+      cache: "no-store",
+    });
+    if (!r.ok) return null;
+    const rows = (await r.json().catch(() => null)) as { data?: Ad }[] | null;
+    return rows?.[0]?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function sbDeleteAd(id: string): Promise<boolean> {
+  if (!supabaseConfigured()) return false;
+  try {
+    const r = await fetch(`${base()}/rest/v1/ads?id=eq.${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: headers(),
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** رفع صورة (base64 dataUrl) إلى تخزين Supabase وإرجاع رابطها العام */
+export async function sbUploadPhoto(dataUrl: string, path: string): Promise<string | null> {
+  if (!supabaseConfigured()) return null;
+  try {
+    const [meta, b64] = dataUrl.split(",");
+    const mime = /:(.*?);/.exec(meta)?.[1] ?? "image/jpeg";
+    const buf = Buffer.from(b64, "base64");
+    const r = await fetch(`${base()}/storage/v1/object/${ADS_BUCKET}/${path}`, {
+      method: "POST",
+      headers: {
+        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""}`,
+        "Content-Type": mime,
+        "x-upsert": "true",
+      },
+      body: buf,
+    });
+    if (!r.ok) return null;
+    return `${base()}/storage/v1/object/public/${ADS_BUCKET}/${path}`;
+  } catch {
+    return null;
+  }
+}
+
+export async function sbDeletePhotos(paths: string[]): Promise<void> {
+  if (!supabaseConfigured() || !paths.length) return;
+  try {
+    await fetch(`${base()}/storage/v1/object/${ADS_BUCKET}`, {
+      method: "DELETE",
+      headers: headers(),
+      body: JSON.stringify({ prefixes: paths }),
+    });
+  } catch {
+    /* تجاهل: حذف الصورة غير حرج */
+  }
+}

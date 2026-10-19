@@ -32,6 +32,13 @@ import {
   type RemoteSettings,
   type SettingsPayload,
 } from "./remote-settings";
+import {
+  createRemoteAd,
+  deleteRemoteAd,
+  fetchRemoteAds,
+  moderateRemoteAd,
+  patchForAction,
+} from "./remote-ads";
 
 /* موجة 24: طابع زمني لآخر تعديل محلي غير منشور — إن كان تعديل هذا المتصفح
    أحدث من المنشور في KV فلا يُطبق البعيد هنا (يرى المسؤول تعديله فوراً)،
@@ -87,6 +94,9 @@ export interface AppState {
   remoteSponsored: SponsoredAd[] | null;
   /* الإعدادات العامة المنشورة لكل الزوار (موجة 24) — null بلا KV */
   remoteSettings: RemoteSettings | null;
+  /* موجة 25: إعلانات الجسر (Supabase) — null وadsBridge:false بلا جسر مضبوط */
+  remoteAds: Ad[] | null;
+  adsBridge: boolean;
 }
 
 const initialState: AppState = {
@@ -103,6 +113,8 @@ const initialState: AppState = {
   remoteRate: null,
   remoteSponsored: null,
   remoteSettings: null,
+  remoteAds: null,
+  adsBridge: false,
 };
 
 type Action =
@@ -119,6 +131,7 @@ type Action =
   | { type: "SET_SPONSORED"; sponsored: SponsoredAd[] }
   | { type: "REMOTE_SPONSORED"; list: SponsoredAd[] }
   | { type: "REMOTE_SETTINGS"; rs: RemoteSettings }
+  | { type: "REMOTE_ADS"; ads: Ad[]; configured: boolean }
   | { type: "REMOTE_RATE"; rate: RemoteRate }
   | { type: "AUTH_LOGGED_IN"; minutes: number }
   | { type: "AUTH_FAIL"; lockedUntil: string | null; attempts: number }
@@ -315,6 +328,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, remoteSponsored: action.list };
     case "REMOTE_SETTINGS":
       return { ...state, remoteSettings: action.rs };
+    case "REMOTE_ADS":
+      return { ...state, remoteAds: action.ads, adsBridge: action.configured };
     case "UPDATE_SETTINGS": {
       const nextSettings = { ...state.settings, ...action.settings };
       /* إن ضبط المسؤول الرقم بنفسه ⇒ يُعلَّم «مخصّصاً» فلا يمسّه أي ترحيل تلقائي أبداً */
@@ -449,8 +464,10 @@ interface StoreValue extends AppState {
   toSyp: (amount: number, from: Currency) => number;
   setCurrency: (c: Currency) => void;
   toggleTheme: () => void;
-  addAd: (ad: Ad) => void;
-  moderate: (action: ModerationAction) => void;
+  addAd: (ad: Ad) => Promise<{ ok: true } | { ok: false; error: string }>;
+  moderate: (action: ModerationAction) => Promise<void>;
+  /* مزامنة قائمة إعلانات الجسر (نطاق مدير عند الدخول) — موجة 25 */
+  syncAds: () => Promise<{ ok: true; configured: boolean } | { ok: false }>;
   incrementViews: (id: string) => void;
   toggleCity: (cityId: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
@@ -605,6 +622,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  /* موجة 25: إعلانات الجسر العام (Supabase) عند الإقلاع — بلا جسر يبقى المحلي */
+  useEffect(() => {
+    let alive = true;
+    fetchRemoteAds().then((r) => {
+      if (alive && r) dispatch({ type: "REMOTE_ADS", ads: r.ads, configured: r.bridgeConfigured });
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   /* الشريحة الخفيفة: بضعة كيلوبايت — تُكتب فوراً. الدخول/الخروج وتغيير
      الإعدادات لم يعد يكتب صور الإعلانات والبنرات معها (موجة 22) */
   useEffect(() => {
@@ -680,30 +708,70 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       remoteApplies && rs!.payload!.cities.length ? rs!.payload!.cities : state.cities;
 
     const cityById = (id: string) => cities.find((c) => c.id === id);
-    const publicAds = state.ads.filter((a) => ["active", "sold", "rented"].includes(a.status));
+    /* موجة 25: عند ضبط جسر Supabase تكون قائمته هي مصدر الحقيقة لكل الأجهزة؛
+       بلا جسر تبقى قائمة هذا المتصفح المحلية (التوافق الرجعي الكامل) */
+    const ads = state.adsBridge && state.remoteAds ? state.remoteAds : state.ads;
+    const publicAds = ads.filter((a) => ["active", "sold", "rented"].includes(a.status));
 
     const toUsd = (amount: number, from: Currency) =>
       convert(amount, from, "USD", settings.usdToSyp);
     const toSyp = (amount: number, from: Currency) =>
       convert(amount, from, "SYP", settings.usdToSyp);
 
+    /* مزامنة قائمة الجسر: نطاق المدير عند الدخول بمفتاح، وإلا النطاق العام */
+    const syncAds = async () => {
+      const key = getRateKey().trim();
+      const r = await fetchRemoteAds(
+        state.auth.loggedIn && key ? { admin: true, key } : undefined
+      );
+      if (r) dispatch({ type: "REMOTE_ADS", ads: r.ads, configured: r.bridgeConfigured });
+      return r ? { ok: true as const, configured: r.bridgeConfigured } : { ok: false as const };
+    };
+
     return {
       ...state,
       settings,
       cities,
+      ads, /* موجة 25: القائمة الفعّالة (الجسر أو المحلي) لكل المستهلكين */
       publicAds,
-      pendingAds: state.ads.filter((a) => a.status === "pending"),
+      pendingAds: ads.filter((a) => a.status === "pending"),
       featuredAds: publicAds.filter((a) => a.featured && a.status === "active"),
       cityById,
       toUsd,
       toSyp,
+      syncAds,
 
       setCurrency: (currency) => dispatch({ type: "SET_CURRENCY", currency }),
       toggleTheme: () => dispatch({ type: "TOGGLE_THEME" }),
-      addAd: (ad) => dispatch({ type: "ADD_AD", ad }),
-      moderate: (action) =>
-        dispatch({ type: "MODERATE", action, actor: state.settings.adminUsername }),
-      incrementViews: (id) => dispatch({ type: "INC_VIEW", id }),
+      addAd: async (ad) => {
+        if (state.adsBridge) {
+          const r = await createRemoteAd(ad);
+          if (!r.ok) return { ok: false as const, error: r.error };
+          await syncAds();
+          return { ok: true as const };
+        }
+        dispatch({ type: "ADD_AD", ad });
+        return { ok: true as const };
+      },
+      moderate: async (action) => {
+        const actor = state.settings.adminUsername;
+        if (state.adsBridge) {
+          const key = getRateKey().trim();
+          const current =
+            (state.remoteAds ?? []).find((a) => a.id === action.id) ??
+            state.ads.find((a) => a.id === action.id);
+          const p = patchForAction(action, actor, current);
+          if (p === "DELETE") await deleteRemoteAd(action.id, key);
+          else if (p) await moderateRemoteAd(action.id, p, key);
+          await syncAds();
+          return;
+        }
+        dispatch({ type: "MODERATE", action, actor });
+      },
+      incrementViews: (id) => {
+        if (state.adsBridge) return; /* العدّاد يبقى محلياً بلا كتابة خارجية */
+        dispatch({ type: "INC_VIEW", id });
+      },
       toggleCity: (cityId) => {
         markLocalEdit();
         dispatch({ type: "TOGGLE_CITY", cityId });
@@ -740,6 +808,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
         if (userOk && passOk) {
           dispatch({ type: "AUTH_LOGGED_IN", minutes: state.settings.sessionMinutes });
+          void syncAds(); /* موجة 25: نطاق المدير يرى المعلّقة فور الدخول */
           return { ok: true };
         }
 
@@ -756,8 +825,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return { ok: false, reason: "credentials", remaining: state.settings.maxLoginAttempts - attempts };
       },
 
-      logout: () => dispatch({ type: "AUTH_LOGOUT" }),
-      logoutAll: () => dispatch({ type: "AUTH_LOGOUT_ALL" }),
+      logout: () => {
+        dispatch({ type: "AUTH_LOGOUT" });
+        void syncAds();
+      },
+      logoutAll: () => {
+        dispatch({ type: "AUTH_LOGOUT_ALL" });
+        void syncAds();
+      },
       resetLocalLogin: () => dispatch({ type: "AUTH_LOCAL_RESET" }),
       refreshSession: () => dispatch({ type: "AUTH_REFRESH", minutes: state.settings.sessionMinutes }),
 

@@ -34,7 +34,7 @@ const FILTERS: { id: AdStatus | "all"; name: string }[] = [
 
 /** جدول إدارة كل الإعلانات مع إجراءات بضغطة واحدة */
 export default function AdsTable() {
-  const { ads, moderate, cityById } = useStore();
+  const { ads, moderate, cityById, adsBridge, syncAds } = useStore();
   const toast = useToast();
   const [status, setStatus] = useState<AdStatus | "all">("all");
   const [q, setQ] = useState("");
@@ -66,6 +66,17 @@ export default function AdsTable() {
 
   return (
     <div className="space-y-4">
+      {/* موجة 25: حالة جسر الإعلانات — هل القائمة مشتركة بين كل الأجهزة؟ */}
+      <div className="card flex flex-wrap items-center justify-between gap-2 p-3">
+        <div className="text-[11.5px] font-semibold text-navy-600 dark:text-navy-300">
+          {adsBridge
+            ? "جسر الإعلانات (Supabase) موصول — كل إعلان وموافقة تظهر لجميع الزوار فوراً."
+            : "جسر الإعلانات غير مضبوط — القائمة محلية في هذا المتصفح فقط (اضبط SUPABASE في Vercel لتفعيل السوق المشترك)."}
+        </div>
+        <button type="button" onClick={() => syncAds()} className="btn btn-sm">
+          <Undo2 size={13} /> مزامنة الآن
+        </button>
+      </div>
       {/* أدوات */}
       <div className="card flex flex-wrap items-center justify-between gap-3 p-3.5">
         <div className="flex flex-wrap gap-1">

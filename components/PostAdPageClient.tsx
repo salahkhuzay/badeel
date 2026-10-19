@@ -567,11 +567,21 @@ export default function PostAdPage() {
     setShowPreview(true);
   }
 
-  function submit() {
+  async function submit() {
     setShowPreview(false);
     if (!validate()) return;
     const ad = { ...buildAd(), ref: previewRef !== "BD-###" ? previewRef : nextRef(ads) };
-    addAd(ad);
+    /* موجة 25: مع جسر Supabase يصل الإعلان للقاعدة ويظهر لكل الزوار بعد
+       الموافقة؛ بلا جسر يبقى السلوك المحلي كما هو */
+    const r = await addAd(ad);
+    if (!r.ok) {
+      toast({
+        type: "error",
+        title: "تعذّر إرسال الإعلان",
+        desc: `${r.error} — احتفظنا بمدونتك في هذا المتصفح، حاول مجدداً بعد قليل.`,
+      });
+      return;
+    }
     setDone(ad);
     clearDraft(); // نُشر فعلاً — لا حاجة للمسودة
     toast({
