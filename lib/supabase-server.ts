@@ -108,8 +108,26 @@ export async function sbDeleteAd(id: string): Promise<boolean> {
 }
 
 /** رفع صورة (base64 dataUrl) إلى تخزين Supabase وإرجاع رابطها العام */
+let bucketEnsured = false;
+async function ensureBucket() {
+  if (bucketEnsured || !supabaseConfigured()) return;
+  try {
+    /* إنشاء السلة إن غابت (إن وُجدت يعيد 409 ويُتجاهل) — ذاتي الإصلاح إذا
+       لم يُنفَّذ سطر السلة في script SQL عند صاحب المنصة */
+    await fetch(`${base()}/storage/v1/bucket`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ id: ADS_BUCKET, name: ADS_BUCKET, public: true }),
+    });
+  } catch {
+    /* تجاهل */
+  }
+  bucketEnsured = true;
+}
+
 export async function sbUploadPhoto(dataUrl: string, path: string): Promise<string | null> {
   if (!supabaseConfigured()) return null;
+  await ensureBucket();
   try {
     const [meta, b64] = dataUrl.split(",");
     const mime = /:(.*?);/.exec(meta)?.[1] ?? "image/jpeg";
