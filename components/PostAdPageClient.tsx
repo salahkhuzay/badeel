@@ -582,7 +582,8 @@ export default function PostAdPage() {
       });
       return;
     }
-    setDone(ad);
+    /* موجة 25+: شاشة النجاح تعرض نسخة الخادم (رقمه المرجعي الرسمي وروابط صوره) */
+    setDone(r.ad ? { ...ad, ...r.ad } : ad);
     clearDraft(); // نُشر فعلاً — لا حاجة للمسودة
     toast({
       type: "success",

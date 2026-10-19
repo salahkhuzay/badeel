@@ -35,6 +35,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   const safe: Partial<Ad> = {};
   for (const k of [
     "status",
+    "ref",
     "featured",
     "title",
     "description",

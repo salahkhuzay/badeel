@@ -464,7 +464,9 @@ interface StoreValue extends AppState {
   toSyp: (amount: number, from: Currency) => number;
   setCurrency: (c: Currency) => void;
   toggleTheme: () => void;
-  addAd: (ad: Ad) => Promise<{ ok: true } | { ok: false; error: string }>;
+  addAd: (ad: Ad) => Promise<
+    { ok: true; ad?: Ad } | { ok: false; error: string }
+  >;
   moderate: (action: ModerationAction) => Promise<void>;
   /* مزامنة قائمة إعلانات الجسر (نطاق مدير عند الدخول) — موجة 25 */
   syncAds: () => Promise<{ ok: true; configured: boolean } | { ok: false }>;
@@ -748,7 +750,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           const r = await createRemoteAd(ad);
           if (!r.ok) return { ok: false as const, error: r.error };
           await syncAds();
-          return { ok: true as const };
+          return { ok: true as const, ad: r.ad };
         }
         dispatch({ type: "ADD_AD", ad });
         return { ok: true as const };

@@ -50,6 +50,18 @@ export async function sbListAds(adminScope: boolean): Promise<Ad[] | null> {
   }
 }
 
+/** الرقم المرجعي التالي من الخادم نفسه — يمنع تصادم الأرقام بين الأجهزة
+   (القائمة المحلية لا ترى المعلّقة فكان رقمَا إعلانين يتكرران) */
+export async function sbNextRef(): Promise<string> {
+  const list = (await sbListAds(true)) ?? [];
+  let max = 8000;
+  for (const a of list) {
+    const m = /BD-(\d+)/.exec(a.ref ?? "");
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  return `BD-${max + 1}`;
+}
+
 export async function sbInsertAd(ad: Ad): Promise<Ad | null> {
   if (!supabaseConfigured()) return null;
   try {

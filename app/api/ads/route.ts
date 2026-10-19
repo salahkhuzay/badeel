@@ -13,6 +13,7 @@ import type { Ad } from "@/lib/types";
 import {
   sbInsertAd,
   sbListAds,
+  sbNextRef,
   sbUploadPhoto,
   supabaseConfigured,
 } from "@/lib/supabase-server";
@@ -80,9 +81,11 @@ export async function POST(req: Request) {
   const ad = asAd(body.ad);
   if (!ad) return NextResponse.json({ error: "حقول الإعلان ناقصة" }, { status: 400 });
 
-  /* لا ثقة بحالة قادمة من المتصفح: كل إعلان جديد يبدأ «pending» */
+  /* لا ثقة بحالة قادمة من المتصفح: كل إعلان جديد يبدأ «pending»
+     والمرجع التسلسلي يقرره الخادم وحده (موجة 25+) */
   ad.status = "pending";
   ad.views = 0;
+  ad.ref = await sbNextRef();
 
   /* الصور: dataUrl ⇒ تخزين Supabase ⇒ روابط عامة داخل الإعلان */
   const images: string[] = [];
