@@ -26,11 +26,37 @@ export async function GET(req: Request) {
   };
   let table: { ok: boolean; status: number; body: string } | null = null;
   let buckets: { ok: boolean; status: number; body: string } | null = null;
+  let insert: { ok: boolean; status: number; body: string } | null = null;
   try {
     const r = await fetch(`${base}/rest/v1/ads?select=id&limit=1`, { headers, cache: "no-store" });
     table = { ok: r.ok, status: r.status, body: (await r.text()).slice(0, 300) };
   } catch (e) {
     table = { ok: false, status: 0, body: String(e) };
+  }
+  /* مسبار إدخال: صف فحص صغير ثم حذفه — يعيد خطأ Postgres الخام إن وُجد */
+  try {
+    const now = new Date().toISOString();
+    const r = await fetch(`${base}/rest/v1/ads`, {
+      method: "POST",
+      headers: { ...headers, Prefer: "return=representation" },
+      body: JSON.stringify({
+        id: "debug-probe-row",
+        ref: "DBG-0000",
+        status: "pending",
+        created_at: now,
+        data: { id: "debug-probe-row", ref: "DBG-0000", title: "مسبار", status: "pending" },
+      }),
+    });
+    const body = (await r.text()).slice(0, 400);
+    insert = { ok: r.ok, status: r.status, body };
+    if (r.ok) {
+      await fetch(`${base}/rest/v1/ads?id=eq.debug-probe-row`, {
+        method: "DELETE",
+        headers,
+      }).catch(() => {});
+    }
+  } catch (e) {
+    insert = { ok: false, status: 0, body: String(e) };
   }
   try {
     const r = await fetch(`${base}/storage/v1/bucket`, { headers, cache: "no-store" });
@@ -38,5 +64,5 @@ export async function GET(req: Request) {
   } catch (e) {
     buckets = { ok: false, status: 0, body: String(e) };
   }
-  return NextResponse.json({ configured: true, table, buckets });
+  return NextResponse.json({ configured: true, table, insert, buckets });
 }
