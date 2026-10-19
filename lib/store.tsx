@@ -22,8 +22,28 @@ import { convert, safeStorage, uid } from "./currency";
 import { contactDigits, migrateContactPhone } from "./contact";
 import type { SponsoredAd } from "./sponsored";
 import { ADMIN_USERNAME, hashPassword, safeEqual } from "./auth";
-import { fetchRemoteRate, type RemoteRate } from "./remote-rate";
+import { fetchRemoteRate, getRateKey, type RemoteRate } from "./remote-rate";
 import { fetchRemoteSponsored } from "./remote-sponsored";
+import {
+  fetchRemoteSettings,
+  publishSettings,
+  publicSettingsOf,
+  type PublicSettings,
+  type RemoteSettings,
+  type SettingsPayload,
+} from "./remote-settings";
+
+/* موجة 24: طابع زمني لآخر تعديل محلي غير منشور — إن كان تعديل هذا المتصفح
+   أحدث من المنشور في KV فلا يُطبق البعيد هنا (يرى المسؤول تعديله فوراً)،
+   بينما يطبَّق البعيد عند كل الزوار الآخرين الذين لا تعديل لديهم. */
+const LOCAL_EDIT_KEY = "badeel.settings.localEditAt";
+function markLocalEdit() {
+  try {
+    window.localStorage.setItem(LOCAL_EDIT_KEY, String(Date.now()));
+  } catch {
+    /* تخزين معطّل */
+  }
+}
 
 /* ==========================================================================
    مخزن الحالة العام — بديل | Badeel
@@ -65,6 +85,8 @@ export interface AppState {
   remoteRate: RemoteRate | null;
   /* حملات المساحة المنشورة لكل الزوار عبر KV — null إذا لم يُضبط KV أو فشل الجلب */
   remoteSponsored: SponsoredAd[] | null;
+  /* الإعدادات العامة المنشورة لكل الزوار (موجة 24) — null بلا KV */
+  remoteSettings: RemoteSettings | null;
 }
 
 const initialState: AppState = {
@@ -80,6 +102,7 @@ const initialState: AppState = {
   sponsored: [],
   remoteRate: null,
   remoteSponsored: null,
+  remoteSettings: null,
 };
 
 type Action =
@@ -95,6 +118,7 @@ type Action =
   | { type: "UPDATE_SETTINGS"; settings: Partial<Settings> }
   | { type: "SET_SPONSORED"; sponsored: SponsoredAd[] }
   | { type: "REMOTE_SPONSORED"; list: SponsoredAd[] }
+  | { type: "REMOTE_SETTINGS"; rs: RemoteSettings }
   | { type: "REMOTE_RATE"; rate: RemoteRate }
   | { type: "AUTH_LOGGED_IN"; minutes: number }
   | { type: "AUTH_FAIL"; lockedUntil: string | null; attempts: number }
@@ -289,6 +313,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, sponsored: action.sponsored };
     case "REMOTE_SPONSORED":
       return { ...state, remoteSponsored: action.list };
+    case "REMOTE_SETTINGS":
+      return { ...state, remoteSettings: action.rs };
     case "UPDATE_SETTINGS": {
       const nextSettings = { ...state.settings, ...action.settings };
       /* إن ضبط المسؤول الرقم بنفسه ⇒ يُعلَّم «مخصّصاً» فلا يمسّه أي ترحيل تلقائي أبداً */
@@ -428,6 +454,11 @@ interface StoreValue extends AppState {
   incrementViews: (id: string) => void;
   toggleCity: (cityId: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
+  /* نشر الإعدادات العامة والمدن لكل الزوار عبر KV (موجة 24) */
+  publishPublicSettings: (over?: {
+    settings?: Partial<PublicSettings>;
+    cities?: City[];
+  }) => Promise<{ ok: true; updatedAt: string } | { ok: false; error: string }>;
   setSponsored: (list: SponsoredAd[]) => void;
   resetDemo: () => void;
   /* الأمان */
@@ -562,6 +593,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  /* موجة 24: الإعدادات العامة المنشورة (أرقام/شعار/فيسبوك/مدن) مرجع لكل
+     الزوار — بلا KV يبقى كل متصفح على إعداداته المحلية */
+  useEffect(() => {
+    let alive = true;
+    fetchRemoteSettings().then((rs) => {
+      if (alive && rs) dispatch({ type: "REMOTE_SETTINGS", rs });
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   /* الشريحة الخفيفة: بضعة كيلوبايت — تُكتب فوراً. الدخول/الخروج وتغيير
      الإعدادات لم يعد يكتب صور الإعلانات والبنرات معها (موجة 22) */
   useEffect(() => {
@@ -616,16 +659,38 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [state.theme]);
 
   const value = useMemo<StoreValue>(() => {
-    const cityById = (id: string) => state.cities.find((c) => c.id === id);
+    /* الإعدادات والمدن الفعّالة: المنشور في KV يطغى على المحلي لكل الزوار،
+       إلا في متصفح له تعديل محلي أحدث من آخر نشر (فيرى المسؤول تعديله) */
+    const rs = state.remoteSettings;
+    let localEditAt = 0;
+    try {
+      localEditAt = Number(window.localStorage.getItem(LOCAL_EDIT_KEY) ?? "0") || 0;
+    } catch {
+      /* تخزين معطّل */
+    }
+    const remoteApplies = Boolean(
+      rs?.kvConfigured &&
+        rs.payload &&
+        (!localEditAt || new Date(rs.payload.publishedAt).getTime() >= localEditAt)
+    );
+    const settings: Settings = remoteApplies
+      ? { ...state.settings, ...rs!.payload!.settings }
+      : state.settings;
+    const cities: City[] =
+      remoteApplies && rs!.payload!.cities.length ? rs!.payload!.cities : state.cities;
+
+    const cityById = (id: string) => cities.find((c) => c.id === id);
     const publicAds = state.ads.filter((a) => ["active", "sold", "rented"].includes(a.status));
 
     const toUsd = (amount: number, from: Currency) =>
-      convert(amount, from, "USD", state.settings.usdToSyp);
+      convert(amount, from, "USD", settings.usdToSyp);
     const toSyp = (amount: number, from: Currency) =>
-      convert(amount, from, "SYP", state.settings.usdToSyp);
+      convert(amount, from, "SYP", settings.usdToSyp);
 
     return {
       ...state,
+      settings,
+      cities,
       publicAds,
       pendingAds: state.ads.filter((a) => a.status === "pending"),
       featuredAds: publicAds.filter((a) => a.featured && a.status === "active"),
@@ -639,8 +704,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       moderate: (action) =>
         dispatch({ type: "MODERATE", action, actor: state.settings.adminUsername }),
       incrementViews: (id) => dispatch({ type: "INC_VIEW", id }),
-      toggleCity: (cityId) => dispatch({ type: "TOGGLE_CITY", cityId }),
-      updateSettings: (s) => dispatch({ type: "UPDATE_SETTINGS", settings: s }),
+      toggleCity: (cityId) => {
+        markLocalEdit();
+        dispatch({ type: "TOGGLE_CITY", cityId });
+      },
+      updateSettings: (s) => {
+        markLocalEdit();
+        dispatch({ type: "UPDATE_SETTINGS", settings: s });
+      },
+      /* موجة 24: نشر الشريحة العامة + المدن لكل الزوار بنفس مفتاح النشر */
+      publishPublicSettings: async (over) => {
+        const key = getRateKey().trim();
+        if (!key)
+          return { ok: false as const, error: "مفتاح النشر غير مدخل في تبويب الإعدادات بهذا المتصفح" };
+        const payload: SettingsPayload = {
+          settings: { ...publicSettingsOf(state.settings), ...(over?.settings ?? {}) },
+          cities: over?.cities ?? state.cities,
+          publishedAt: new Date().toISOString(),
+        };
+        return publishSettings(payload, key);
+      },
       setSponsored: (list) => dispatch({ type: "SET_SPONSORED", sponsored: list }),
       resetDemo: () => dispatch({ type: "RESET_DEMO" }),
 

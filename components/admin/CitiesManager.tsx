@@ -13,7 +13,28 @@ import { formatNumber, cn } from "@/lib/currency";
    ========================================================================== */
 
 export default function CitiesManager() {
-  const { cities, publicAds, toggleCity, ads } = useStore();
+  const { cities, publicAds, toggleCity, ads, publishPublicSettings } = useStore();
+
+  /* موجة 24: تفعيل/إلغاء مدينة يُنشر فوراً لكل الزوار مع بقية الإعدادات */
+  const flipCity = (id: string, name: string, wasActive: boolean) => {
+    const next = cities.map((c) => (c.id === id ? { ...c, active: !c.active } : c));
+    toggleCity(id);
+    toast({
+      type: "success",
+      title: wasActive ? `أُلغيت مُفعّلة ${name}` : `تم تفعيل ${name}`,
+      desc: wasActive
+        ? "لن تظهر هذه المدينة في نموذج النشر الجديد."
+        : "أصبحت متاحة الآن في نموذج النشر والفلترة.",
+    });
+    publishPublicSettings({ cities: next }).then((r) => {
+      if (!r.ok)
+        toast({
+          type: "info",
+          title: "التغيير محلي حتى الآن",
+          desc: `${r.error} — انشر من تبويب الإعدادات ليصل التغيير إلى كل الزوار.`,
+        });
+    });
+  };
   const toast = useToast();
 
   return (
@@ -96,16 +117,7 @@ export default function CitiesManager() {
 
                 <div className="mt-3 flex gap-2">
                   <button
-                    onClick={() => {
-                      toggleCity(c.id);
-                      toast({
-                        type: "success",
-                        title: c.active ? `أُلغيت مُفعّلة ${c.name}` : `تم تفعيل ${c.name}`,
-                        desc: c.active
-                          ? "لن تظهر هذه المدينة في نموذج النشر الجديد."
-                          : "أصبحت متاحة الآن في نموذج النشر والفلترة.",
-                      });
-                    }}
+                    onClick={() => flipCity(c.id, c.name, c.active)}
                     className={cn(
                       "btn btn-sm w-full justify-center",
                       c.active

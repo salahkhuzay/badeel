@@ -27,7 +27,7 @@ import {
 
 /** إعدادات المنصة: سعر الصرف، بيانات التواصل، وإعادة تعيين بيانات المنصة */
 export default function SettingsPanel() {
-  const { settings, updateSettings, resetDemo, ads, remoteRate } = useStore();
+  const { settings, updateSettings, resetDemo, ads, remoteRate, publishPublicSettings } = useStore();
   const toast = useToast();
 
   const [rate, setRate] = useState(String(settings.usdToSyp));
@@ -73,31 +73,44 @@ export default function SettingsPanel() {
       });
       return;
     }
-    updateSettings({
-      usdToSyp: r,
-      rateUpdatedAt: new Date().toISOString(),
+    const publicPatch = {
       contactPhone: phone.trim(),
       contactPhone2: phone2.trim(),
       whatsappCountryCode: cc.replace(/\D/g, "") || "963",
       siteSlogan: slogan.trim(),
       facebookUrl: facebook.trim() || settings.facebookUrl,
+    };
+    updateSettings({
+      usdToSyp: r,
+      rateUpdatedAt: new Date().toISOString(),
+      ...publicPatch,
     });
-    /* نشر السعر لكل الزوار عبر المخزن السحابي (Upstash KV) */
+    /* نشر السعر والإعدادات العامة معاً لكل الزوار عبر المخزن السحابي (موجة 24) */
     setPublishing(true);
-    const pub = await publishRemoteRate(r, getRateKey());
+    const [pub, pub2] = await Promise.all([
+      publishRemoteRate(r, getRateKey()),
+      publishPublicSettings({ settings: publicPatch }),
+    ]);
     setPublishing(false);
-    if (pub.ok) {
+    const errOf = (p: unknown) => String((p as { error?: string }).error ?? "");
+    if (pub.ok && pub2.ok) {
       setServer({ usdToSyp: r, updatedAt: pub.updatedAt, source: "kv" });
       toast({
         type: "success",
         title: "تم الحفظ والنشر لكل الزوار",
-        desc: `السعر الرسمي الآن 1 $ = ${r.toLocaleString("en-US")} ل.س في كل المنصة.`,
+        desc: `السعر الرسمي 1 $ = ${r.toLocaleString("en-US")} ل.س، وأرقام التواصل والشعار وصلت لكل الأجهزة.`,
+      });
+    } else if (pub2.ok) {
+      toast({
+        type: "success",
+        title: "نُشرت الإعدادات لكل الزوار",
+        desc: `أرقام التواصل والشعار صارت نافذة في كل المنصة — تعذّر نشر السعر: ${errOf(pub)}`,
       });
     } else {
       toast({
         type: "info",
         title: "حُفظ في هذا المتصفح فقط",
-        desc: `${pub.error} — أدخل «مفتاح النشر» أدناه ليصل السعر إلى كل الزوار.`,
+        desc: `${errOf(pub2) || errOf(pub)} — أدخل «مفتاح النشر» أدناه ليصل السعر وأرقام التواصل إلى كل الزوار.`,
       });
     }
   };
