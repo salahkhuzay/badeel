@@ -10,6 +10,12 @@ import type { Ad } from "./types";
 
 export const ADS_BUCKET = "ads";
 
+/* آخر خطأ خام من عمليات الجسر — يقرؤه /api/ads/debug للتشخيص */
+export let lastAdsError: string | null = null;
+function noteErr(msg: string) {
+  lastAdsError = msg;
+}
+
 export function supabaseConfigured(): boolean {
   return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
@@ -52,10 +58,14 @@ export async function sbInsertAd(ad: Ad): Promise<Ad | null> {
       headers: { ...headers(), Prefer: "return=representation" },
       body: JSON.stringify({ id: ad.id, ref: ad.ref, status: ad.status, created_at: ad.createdAt, data: ad }),
     });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      noteErr(`insert ${r.status}: ${(await r.text().catch(() => "")).slice(0, 300)}`);
+      return null;
+    }
     const rows = (await r.json().catch(() => null)) as { data?: Ad }[] | null;
     return rows?.[0]?.data ?? ad;
-  } catch {
+  } catch (e) {
+    noteErr(`insert exception: ${String(e).slice(0, 200)}`);
     return null;
   }
 }
@@ -142,9 +152,13 @@ export async function sbUploadPhoto(dataUrl: string, path: string): Promise<stri
       },
       body: buf,
     });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      noteErr(`upload ${r.status}: ${(await r.text().catch(() => "")).slice(0, 300)}`);
+      return null;
+    }
     return `${base()}/storage/v1/object/public/${ADS_BUCKET}/${path}`;
-  } catch {
+  } catch (e) {
+    noteErr(`upload exception: ${String(e).slice(0, 200)}`);
     return null;
   }
 }

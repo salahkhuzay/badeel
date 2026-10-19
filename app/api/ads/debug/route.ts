@@ -5,6 +5,7 @@
    ========================================================================== */
 
 import { NextResponse } from "next/server";
+import { lastAdsError } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -38,7 +39,7 @@ export async function GET(req: Request) {
     const now = new Date().toISOString();
     const r = await fetch(`${base}/rest/v1/ads`, {
       method: "POST",
-      headers: { ...headers, Prefer: "return=representation" },
+      headers: { ...headers, "Content-Type": "application/json", Prefer: "return=representation" },
       body: JSON.stringify({
         id: "debug-probe-row",
         ref: "DBG-0000",
@@ -64,5 +65,5 @@ export async function GET(req: Request) {
   } catch (e) {
     buckets = { ok: false, status: 0, body: String(e) };
   }
-  return NextResponse.json({ configured: true, table, insert, buckets });
+  return NextResponse.json({ configured: true, table, insert, buckets, lastAdsError });
 }
