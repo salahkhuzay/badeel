@@ -24,6 +24,7 @@ import {
   setRateKey,
   type RemoteRate,
 } from "@/lib/remote-rate";
+import { APP_RELEASE } from "@/lib/pwa";
 
 /** إعدادات المنصة: سعر الصرف، بيانات التواصل، وإعادة تعيين بيانات المنصة */
 export default function SettingsPanel() {
@@ -41,6 +42,53 @@ export default function SettingsPanel() {
   const [server, setServer] = useState<RemoteRate | null>(remoteRate);
   const [refreshing, setRefreshing] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  /* موجة 24+: ما هو منشور فعلاً في المخزن السحابي الآن (تشخيص مباشر) */
+  const [published, setPublished] = useState<{ phone: string; at: string } | null | "loading">(
+    "loading"
+  );
+
+  const loadPublicStatus = async () => {
+    try {
+      const j = await fetch("/api/settings", { cache: "no-store" }).then((r) => r.json());
+      setPublished(
+        j?.payload?.settings
+          ? { phone: String(j.payload.settings.contactPhone ?? ""), at: String(j.payload.publishedAt ?? "") }
+          : null
+      );
+    } catch {
+      setPublished(null);
+    }
+  };
+
+  useEffect(() => {
+    loadPublicStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* زر نشر مستقل عن أي تحقق: ضغطة واحدة توصل الإعدادات لكل الزوار */
+  const publishNow = async () => {
+    setPublishing(true);
+    const r = await publishPublicSettings({
+      settings: {
+        contactPhone: phone.trim(),
+        contactPhone2: phone2.trim(),
+        whatsappCountryCode: cc.replace(/\D/g, "") || "963",
+        siteSlogan: slogan.trim(),
+        facebookUrl: facebook.trim() || settings.facebookUrl,
+      },
+    });
+    setPublishing(false);
+    if (r.ok) {
+      toast({
+        type: "success",
+        title: "نُشرت الإعدادات لكل الزوار",
+        desc: `الرقم ${phone.trim()} والإعدادات المرافقة صارت الظاهرة لكل أجهزة الزوار.`,
+      });
+      await loadPublicStatus();
+    } else {
+      toast({ type: "error", title: "تعذّر النشر لكل الزوار", desc: r.error });
+    }
+  };
 
   useEffect(() => {
     setRateKeyState(getRateKey());
@@ -65,14 +113,7 @@ export default function SettingsPanel() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const r = Number(rate);
-    if (!r || r < 100) {
-      toast({
-        type: "error",
-        title: "سعر صرف غير منطقي",
-        desc: "أدخل سعر صرف صحيحاً (مثال: 13000 ليرة للدولار).",
-      });
-      return;
-    }
+    const rateOk = Boolean(r) && r >= 100;
     const publicPatch = {
       contactPhone: phone.trim(),
       contactPhone2: phone2.trim(),
@@ -80,31 +121,38 @@ export default function SettingsPanel() {
       siteSlogan: slogan.trim(),
       facebookUrl: facebook.trim() || settings.facebookUrl,
     };
-    updateSettings({
-      usdToSyp: r,
-      rateUpdatedAt: new Date().toISOString(),
-      ...publicPatch,
-    });
-    /* نشر السعر والإعدادات العامة معاً لكل الزوار عبر المخزن السحابي (موجة 24) */
+    /* موجة 24+: تحقق السعر لا يمنع نشر الإعدادات — الشكوى كانت «تغيّر عندي
+       فقط» ولا يجوز لحقل سعر أن يقف في طريق وصول الرقم لكل الزوار */
+    updateSettings(
+      rateOk ? { usdToSyp: r, rateUpdatedAt: new Date().toISOString(), ...publicPatch } : publicPatch
+    );
+    if (!rateOk) {
+      toast({
+        type: "info",
+        title: "سعر الصرف لم يُنشَر",
+        desc: "أدخل سعر صرف منطقيّاً (100 فأكثر) ليُنشر — بقية الإعدادات تُنشر الآن.",
+      });
+    }
     setPublishing(true);
-    const [pub, pub2] = await Promise.all([
-      publishRemoteRate(r, getRateKey()),
-      publishPublicSettings({ settings: publicPatch }),
-    ]);
+    const pub2 = await publishPublicSettings({ settings: publicPatch });
+    const pub = rateOk ? await publishRemoteRate(r, getRateKey()) : null;
     setPublishing(false);
     const errOf = (p: unknown) => String((p as { error?: string }).error ?? "");
-    if (pub.ok && pub2.ok) {
-      setServer({ usdToSyp: r, updatedAt: pub.updatedAt, source: "kv" });
+    if (pub2.ok) {
+      if (pub && pub.ok) setServer({ usdToSyp: r, updatedAt: pub.updatedAt, source: "kv" });
+      await loadPublicStatus();
       toast({
         type: "success",
         title: "تم الحفظ والنشر لكل الزوار",
-        desc: `السعر الرسمي 1 $ = ${r.toLocaleString("en-US")} ل.س، وأرقام التواصل والشعار وصلت لكل الأجهزة.`,
+        desc:
+          `الرقم ${publicPatch.contactPhone} وصل لكل الأجهزة` +
+          (pub?.ok ? `، والسعر الرسمي 1 $ = ${r.toLocaleString("en-US")} ل.س.` : pub ? ` — تعذّر نشر السعر: ${errOf(pub)}` : "."),
       });
-    } else if (pub2.ok) {
+    } else if (pub2.ok === false && pub?.ok) {
       toast({
         type: "success",
-        title: "نُشرت الإعدادات لكل الزوار",
-        desc: `أرقام التواصل والشعار صارت نافذة في كل المنصة — تعذّر نشر السعر: ${errOf(pub)}`,
+        title: "نُشر السعر لكل الزوار",
+        desc: `تعذّر نشر الإعدادات: ${errOf(pub2)}`,
       });
     } else {
       toast({
@@ -119,6 +167,40 @@ export default function SettingsPanel() {
 
   return (
     <div className="space-y-4">
+      {/* موجة 24+: بطاقة حالة النشر — ترى بعينك ما هو منشور فعلاً لكل الزوار،
+          وزر نشر مستقل لا يعتمد على صلاحية أي حقل آخر */}
+      <div className="card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[13px] font-extrabold text-navy-900 dark:text-white">
+              المنشور الآن لكل الزوار من المخزن السحابي
+            </div>
+            <div className="mt-0.5 text-[11.5px] font-semibold text-navy-500 dark:text-navy-300">
+              {published === "loading"
+                ? "جارٍ قراءة المخزن…"
+                : published
+                  ? `الرقم المنشور: ${published.phone} · آخر نشر: ${new Date(published.at).toLocaleString("ar")}`
+                  : "لا شيء منشور بعد — كل زائر يرى إعداداته المحلية. اضغط «نشر الإعدادات الآن» ليصل رقمك للجميع."}
+            </div>
+            <div className="mt-0.5 text-[10px] text-navy-400">
+              إصدار هذه الواجهة: {APP_RELEASE} — إن ضغطت حفظ/نشر ولم يتغيّر شيء فأعد تحميل اللوحة تحميلًا كاملاً.
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button type="button" onClick={loadPublicStatus} className="btn btn-sm">
+              <RefreshCw size={14} /> قراءة
+            </button>
+            <button
+              type="button"
+              onClick={publishNow}
+              disabled={publishing}
+              className="btn btn-sm btn-primary"
+            >
+              <Wifi size={14} /> {publishing ? "جارٍ النشر…" : "نشر الإعدادات الآن لكل الزوار"}
+            </button>
+          </div>
+        </div>
+      </div>
       <div className="grid gap-4 lg:grid-cols-2">
       <form onSubmit={save} className="card p-5">
         <h3 className="flex items-center gap-2 text-[14px] font-extrabold text-navy-900 dark:text-white">

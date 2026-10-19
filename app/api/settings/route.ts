@@ -16,6 +16,11 @@ export const revalidate = 0;
 
 const KV_KEY = "site:settings";
 
+/* ذاكرة تطويرية محلية (اختبارات محلية فقط — تُفعَّل بـ RATE_DEV_MEMORY=1؛
+   في Vercel لا يُضبط هذا المتغيّر إطلاقاً فيصير KV إلزامياً، كما في جسر السعر) */
+const USE_DEV_MEMORY = process.env.RATE_DEV_MEMORY === "1";
+let devPayload: SettingsPayload | null = null;
+
 function kvEnv(readOnly: boolean): { url: string; token: string } {
   const url = process.env.KV_REST_API_URL ?? process.env.KV_URL ?? "";
   const token = readOnly
@@ -37,6 +42,9 @@ const asPayload = (v: unknown): SettingsPayload | null => {
 };
 
 export async function GET() {
+  if (USE_DEV_MEMORY) {
+    return NextResponse.json({ payload: devPayload, kvConfigured: true });
+  }
   const { url, token } = kvEnv(true);
   if (!url || !token) {
     return NextResponse.json({ payload: null, kvConfigured: false });
@@ -86,6 +94,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "حمولة الإعدادات غير صالحة" }, { status: 400 });
   }
 
+  if (USE_DEV_MEMORY) {
+    devPayload = payload;
+    return NextResponse.json({ ok: true, updatedAt: payload.publishedAt });
+  }
+
   const { url, token } = kvEnv(false);
   if (!url || !token) {
     return NextResponse.json({ error: "مخزن KV غير مرتبط بالمنصة" }, { status: 503 });
@@ -119,6 +132,10 @@ export async function DELETE(req: Request) {
   const serverKey = process.env.RATE_WRITE_KEY;
   if (!serverKey || typeof body.key !== "string" || body.key !== serverKey) {
     return NextResponse.json({ error: "مفتاح النشر غير صحيح" }, { status: 401 });
+  }
+  if (USE_DEV_MEMORY) {
+    devPayload = null;
+    return NextResponse.json({ ok: true });
   }
   const { url, token } = kvEnv(false);
   if (!url || !token) {

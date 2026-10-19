@@ -186,7 +186,8 @@ await wait(300);
 
 /* التحقق من القيم المرفوضة — طبقتان:
    أ) قيمة 50: الحقل type=number min=100 فالمتصفح يمنع الإرسال أصلاً (لا يُحفظ شيء)
-   ب) حقل فارغ: يصل إلى save() فيظهر تنبيه «سعر صرف غير منطقي» */
+   ب) حقل فارغ: يصل إلى save() — منذ موجة 24+ السعر لا يُنشَر (تنبيه
+      «سعر الصرف لم يُنشَر») لكن الإعدادات العامة تُنشر ولا يُحفظ سعر باطل */
 const activeRate = () =>
   page.evaluate(() => document.body.innerText.match(/1 \$ = ([\d,]+) ل\.س/)?.[1] ?? "");
 const activeBefore = await activeRate();
@@ -230,11 +231,11 @@ await page.evaluate(() => {
 await wait(900);
 const emptyRejected = await page.evaluate(() => ({
   toast: Array.from(document.querySelectorAll('[role="status"]')).some((t) =>
-    /غير منطقي/.test(t.textContent)
+    /سعر الصرف لم يُنشَر/.test(t.textContent)
   ),
   active: document.body.innerText.match(/1 \$ = ([\d,]+) ل\.س/)?.[1] ?? "",
 }));
-ok("حقل سعر فارغ → تنبيه «سعر صرف غير منطقي» ولا يُحفظ", emptyRejected.toast);
+ok("حقل سعر فارغ → تنبيه «سعر الصرف لم يُنشَر» ولا يُحفظ سعر باطل", emptyRejected.toast);
 ok("السعر النشط يبقى كما كان بعد الرفض", emptyRejected.active === activeBefore, emptyRejected.active);
 
 await setRate(newRate);
