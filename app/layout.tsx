@@ -29,6 +29,8 @@ export const metadata: Metadata = {
   applicationName: "بديل أونلاين - Badeel Online",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "بديل أونلاين" },
+  /* مراجعة 2026-10-19: أيقونات PNG حقيقية لتثبيت PWA على أندرويد وآيفون */
+  icons: { icon: [{ url: "/favicon.svg", type: "image/svg+xml" }, { url: "/icon-192.png", sizes: "192x192", type: "image/png" }, { url: "/icon-512.png", sizes: "512x512", type: "image/png" }], apple: ["/icon-192.png"] },
   formatDetection: { telephone: true },
   metadataBase: new URL(SITE_URL),
   /* موجة 23: أُزيل canonical العام من هنا — كان يُسنَد لكل صفحة فيدمج جوجل
