@@ -9,7 +9,12 @@
 import puppeteer from "puppeteer";
 
 const BASE = process.argv[2] || "https://badeel-online.vercel.app";
-const KEY = process.env.PUBLISH_KEY || "b263ba5ccade219d0e18cc16c72889268319";
+/* المفتاح لا يُكتب في المستودع — يُمرَّر وقت التشغيل: PUBLISH_KEY=… node qa/wave24-settings.mjs */
+const KEY = process.env.PUBLISH_KEY || "";
+if (!KEY) {
+  console.log("مرّر مفتاح النشر: PUBLISH_KEY=… node qa/wave24-settings.mjs");
+  process.exit(1);
+}
 const TEST_PHONE = "0999887766";
 let pass = 0;
 let fail = 0;
