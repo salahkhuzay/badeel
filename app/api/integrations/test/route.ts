@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   const channel = String(body.channel ?? "");
 
   if (channel === "ai") {
-    if (!aiConfigured()) {
+    if (!(await aiConfigured())) {
       return NextResponse.json({ ok: false, error: "لا يوجد مفتاح دماغ (AI_KEY أو GROQ_KEY)" });
     }
     const r = await aiComplete(
@@ -51,12 +51,13 @@ export async function POST(req: Request) {
   }
 
   if (channel === "whatsapp") {
-    if (!waConfigured()) {
-      return NextResponse.json({ ok: false, error: "WA_TOKEN/WA_PHONE_NUMBER_ID غير مضبوطة" });
+    if (!(await waConfigured())) {
+      return NextResponse.json({ ok: false, error: "اربط واتساب من بطاقته (توكن + معرّف الخط)" });
     }
-    const to = (process.env.WA_NOTIFY_TO ?? "").replace(/\D/g, "");
+    const { waSettings } = await import("@/lib/agent/config");
+    const to = (await waSettings()).notifyTo;
     if (!to) {
-      return NextResponse.json({ ok: false, error: "رقم الإشعارات WA_NOTIFY_TO غير مضبوط" });
+      return NextResponse.json({ ok: false, error: "رقم الإشعارات غير مضبوط — عبّئه في بطاقة واتساب" });
     }
     const sent = await waSendText(to, "✅ اختبار وكيل بديل أونلاين — قناة واتساب تعمل.");
     return sent

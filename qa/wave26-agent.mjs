@@ -112,7 +112,54 @@ const tst = await fetch(`${BASE}/api/integrations/test`, {
 }).then((r) => r.json());
 ok("زر اختبار AI بلا مفتاح ⇒ ok:false مع سبب", tst.ok === false && String(tst.error || "").includes("مفتاح"), JSON.stringify(tst));
 
-/* ⑩ الودجت في المتصفح: يفتح ويرد محلياً بالقواعد */
+/* ⑪ حفظ الربط محمي بالمفتاح */
+const c401 = await fetch(`${BASE}/api/integrations/config`, {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ key: "wrong", patch: { fbPageId: "1" } }),
+});
+ok("حفظ الربط: مفتاح خاطئ ⇒ 401", c401.status === 401, `HTTP ${c401.status}`);
+
+/* ⑫ ربط فيسبوك من اللوحة ⇒ مفعّل فوراً مع تمويه السر */
+const cfb = await fetch(`${BASE}/api/integrations/config`, {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ key: KEY, patch: { fbPageId: "12345", fbPageToken: "fbtok-abcd" } }),
+}).then((r) => r.json());
+const st2 = await fetch(`${BASE}/api/integrations/status?key=${KEY}`, { cache: "no-store" }).then((r) => r.json());
+ok(
+  "ربط فيسبوك من اللوحة ⇒ facebook:true ومصدر panel وتمويه ••••abcd",
+  cfb.ok === true && st2.facebook === true && st2.fbSource === "panel" && st2.fbPageId === "12345" && st2.fbTokenMasked === "••••abcd",
+  JSON.stringify(st2).slice(0, 160)
+);
+
+/* ⑬ ربط الدماغ من اللوحة ⇒ ai:true ولا يظهر المفتاح كاملاً */
+await fetch(`${BASE}/api/integrations/config`, {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ key: KEY, patch: { aiKey: "AIZA-testkey123" } }),
+}).then((r) => r.json());
+const st3 = await fetch(`${BASE}/api/integrations/status?key=${KEY}`, { cache: "no-store" }).then((r) => r.json());
+ok(
+  "ربط الدماغ من اللوحة ⇒ ai:true ومموه",
+  st3.ai === true && st3.aiSource === "panel" && st3.aiKeyMasked === "••••y123",
+  JSON.stringify({ ai: st3.ai, m: st3.aiKeyMasked })
+);
+
+/* ⑭ ربط واتساب من اللوحة ⇒ رمز تحقق اللوحة يُقبل في الـwebhook */
+await fetch(`${BASE}/api/integrations/config`, {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ key: KEY, patch: { waToken: "watok", waPhoneId: "105", waVerifyToken: "ptok", waNotifyTo: "963933177597" } }),
+}).then((r) => r.json());
+const wa2 = await fetch(
+  `${BASE}/api/integrations/whatsapp?hub.mode=subscribe&hub.verify_token=ptok&hub.challenge=777`,
+  { cache: "no-store" }
+);
+const st4 = await fetch(`${BASE}/api/integrations/status?key=${KEY}`, { cache: "no-store" }).then((r) => r.json());
+ok(
+  "ربط واتساب من اللوحة ⇒ webhook يقبل رمز اللوحة والحالة مفعّلة",
+  wa2.status === 200 && (await wa2.text()) === "777" && st4.whatsapp === true && st4.waNotifyTo === "963933177597",
+  `HTTP ${wa2.status}`
+);
+
+/* ⑮ الودجت في المتصفح: يفتح ويرد محلياً بالقواعد */
 const browser = await puppeteer.launch({ headless: "new", args: ["--no-sandbox"] });
 try {
   const page = await browser.newPage();

@@ -18,7 +18,7 @@ export const maxDuration = 30;
 
 export async function GET(req: Request) {
   const u = new URL(req.url);
-  const challenge = waVerifyWebhook(
+  const challenge = await waVerifyWebhook(
     u.searchParams.get("hub.mode"),
     u.searchParams.get("hub.verify_token"),
     u.searchParams.get("hub.challenge")
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!waConfigured()) {
+  if (!(await waConfigured())) {
     return NextResponse.json({ ok: true }); /* غير مفعّل — نبتلع الحدث بأدب */
   }
   let body: unknown = null;

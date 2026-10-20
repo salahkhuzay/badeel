@@ -59,7 +59,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   if (!next) return NextResponse.json({ error: "الإعلان غير موجود" }, { status: 404 });
 
   /* ---- موجة 26: انتقال إلى active ⇒ نشر تلقائي على صفحة فيسبوك ---- */
-  if (prev && prev.status !== "active" && next.status === "active" && fbConfigured()) {
+  if (prev && prev.status !== "active" && next.status === "active" && (await fbConfigured())) {
     const city = await cityNameOf(next.cityId);
     const fb = await fbPublishAd(next, city ?? undefined);
     await agentLog(

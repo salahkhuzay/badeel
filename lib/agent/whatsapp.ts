@@ -11,21 +11,25 @@
 
 import { aiComplete } from "./ai";
 import { agentLog } from "./log";
+import { waSettings } from "./config";
 
 const GRAPH = "https://graph.facebook.com/v19.0";
 
-export function waConfigured(): boolean {
-  return Boolean(process.env.WA_TOKEN && process.env.WA_PHONE_NUMBER_ID);
+/** هل قناة واتساب مربوطة (بيئة أو لوحة) — 26.1 */
+export async function waConfigured(): Promise<boolean> {
+  const s = await waSettings();
+  return Boolean(s.token && s.phoneId);
 }
 
 /** إرسال رسالة نصية إلى رقم بصيغة دولية أرقام فقط (مثل 963933177597) */
 export async function waSendText(to: string, text: string): Promise<boolean> {
-  if (!waConfigured() || !to) return false;
+  const cfg = await waSettings();
+  if (!cfg.token || !cfg.phoneId || !to) return false;
   try {
-    const r = await fetch(`${GRAPH}/${process.env.WA_PHONE_NUMBER_ID}/messages`, {
+    const r = await fetch(`${GRAPH}/${cfg.phoneId}/messages`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.WA_TOKEN}`,
+        Authorization: `Bearer ${cfg.token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -44,20 +48,21 @@ export async function waSendText(to: string, text: string): Promise<boolean> {
 
 /** إشعار المسؤول بإعلان جديد (يُستدعى من POST /api/ads) */
 export async function waNotifyAdmin(message: string): Promise<boolean> {
-  const to = (process.env.WA_NOTIFY_TO ?? "").replace(/\D/g, "");
-  if (!to) return false;
-  return waSendText(to, message);
+  const cfg = await waSettings();
+  if (!cfg.notifyTo) return false;
+  return waSendText(cfg.notifyTo, message);
 }
 
 /* --------------------------- webhook العملاء --------------------------- */
 
 /** تحقق Meta من رابط الـwebhook (GET) */
-export function waVerifyWebhook(
+export async function waVerifyWebhook(
   mode: string | null,
   token: string | null,
   challenge: string | null
-): string | null {
-  const verify = process.env.WA_VERIFY_TOKEN;
+): Promise<string | null> {
+  const cfg = await waSettings();
+  const verify = cfg.verifyToken || process.env.WA_VERIFY_TOKEN;
   if (mode === "subscribe" && verify && token === verify && challenge) return challenge;
   return null;
 }

@@ -9,11 +9,13 @@
 
 import type { Ad } from "@/lib/types";
 import { SITE_URL } from "@/lib/site";
+import { fbSettings } from "./config";
 
 const GRAPH = "https://graph.facebook.com/v19.0";
 
-export function fbConfigured(): boolean {
-  return Boolean(process.env.FB_PAGE_ID && process.env.FB_PAGE_TOKEN);
+/** هل قناة فيسبوك مربوطة (بيئة أو لوحة) — 26.1 */
+export async function fbConfigured(): Promise<boolean> {
+  return (await fbSettings()).source !== null;
 }
 
 /** رابط الإعلان العام على الموقع */
@@ -58,9 +60,10 @@ export interface FbResult {
 
 /** نشر إعلان على الصفحة: مع صورة ⇒ /photos، بلا صور ⇒ /feed */
 export async function fbPublishAd(ad: Ad, cityName?: string): Promise<FbResult> {
-  if (!fbConfigured()) return { ok: false, error: "غير مضبوط" };
-  const pageId = process.env.FB_PAGE_ID!;
-  const token = process.env.FB_PAGE_TOKEN!;
+  const cfg = await fbSettings();
+  if (!cfg.source) return { ok: false, error: "غير مضبوط" };
+  const pageId = cfg.pageId;
+  const token = cfg.token;
   const caption = fbCaption(ad, cityName);
   const image = (ad.images ?? [])[0];
   try {
@@ -92,10 +95,11 @@ export async function fbPublishAd(ad: Ad, cityName?: string): Promise<FbResult> 
 
 /** فحص صلاحية التوكن: يعيد اسم الصفحة أو رسالة الخطأ (زر «اختبار» في اللوحة) */
 export async function fbTest(): Promise<{ ok: boolean; name?: string; error?: string }> {
-  if (!fbConfigured()) return { ok: false, error: "FB_PAGE_ID/FB_PAGE_TOKEN غير مضبوطة" };
+  const cfg = await fbSettings();
+  if (!cfg.source) return { ok: false, error: "اربط الصفحة من بطاقة فيسبوك (معرّف + توكن)" };
   try {
     const r = await fetch(
-      `${GRAPH}/${process.env.FB_PAGE_ID}?fields=name&access_token=${process.env.FB_PAGE_TOKEN}`,
+      `${GRAPH}/${cfg.pageId}?fields=name&access_token=${cfg.token}`,
       { cache: "no-store" }
     );
     const j = (await r.json().catch(() => null)) as

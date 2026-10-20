@@ -66,7 +66,7 @@ export async function POST(req: Request) {
   const message = typeof body.message === "string" ? body.message.trim().slice(0, 600) : "";
   if (!message) return NextResponse.json({ error: "الرسالة فارغة" }, { status: 400 });
 
-  if (!aiConfigured()) {
+  if (!(await aiConfigured())) {
     /* بلا دماغ — الودجت سيتكفل بردود القواعد المحلية */
     return NextResponse.json({ reply: null, ai: false });
   }

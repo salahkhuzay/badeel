@@ -8,16 +8,17 @@
    (يبقى الموقع والمحادثات الاحتياطية بالقواعد تعمل تماماً كما قبل).
    ========================================================================== */
 
+import { aiSettings } from "./config";
+
 export type AiProvider = "gemini" | "groq";
 
-export function aiProvider(): AiProvider | null {
-  if (process.env.AI_KEY) return "gemini";
-  if (process.env.GROQ_KEY) return "groq";
-  return null;
+/** المزوّد الفعّال: متغيرات البيئة أولاً ثم الربط المحفوظ من اللوحة (26.1) */
+export async function aiProvider(): Promise<AiProvider | null> {
+  return (await aiSettings()).provider;
 }
 
-export function aiConfigured(): boolean {
-  return aiProvider() !== null;
+export async function aiConfigured(): Promise<boolean> {
+  return (await aiProvider()) !== null;
 }
 
 export interface AiMessage {
@@ -31,7 +32,8 @@ export async function aiComplete(
   messages: AiMessage[],
   opts: { maxTokens?: number; timeoutMs?: number } = {}
 ): Promise<string | null> {
-  const provider = aiProvider();
+  const s0 = await aiSettings();
+  const provider = s0.provider;
   if (!provider) return null;
   const maxTokens = opts.maxTokens ?? 700;
   const timeoutMs = opts.timeoutMs ?? 15000;
@@ -40,7 +42,7 @@ export async function aiComplete(
   try {
     if (provider === "gemini") {
       const model = process.env.AI_MODEL || "gemini-2.0-flash";
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.AI_KEY}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${s0.key}`;
       const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,7 +70,7 @@ export async function aiComplete(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GROQ_KEY}`,
+        Authorization: `Bearer ${s0.key}`,
       },
       signal: ctl.signal,
       body: JSON.stringify({

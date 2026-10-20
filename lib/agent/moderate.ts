@@ -14,6 +14,7 @@
 import type { Ad } from "@/lib/types";
 import { aiComplete, aiConfigured, parseJsonReply } from "./ai";
 import { agentLog } from "./log";
+import { autoApproveOn } from "./config";
 
 export type ModDecision = "approve" | "review" | "reject";
 
@@ -23,8 +24,9 @@ export interface ModResult {
   byAi: boolean;
 }
 
-export function autoApproveEnabled(): boolean {
-  return process.env.AUTO_APPROVE === "1";
+/** الموافقة التلقائية: متغير البيئة أو مفتاح اللوحة (26.1) */
+export async function autoApproveEnabled(): Promise<boolean> {
+  return autoApproveOn();
 }
 
 const MOD_SYSTEM = `أنت منقّح إعلانات في منصة «بديل أونلاين» السورية للإعلانات المبوبة (عقارات، مركبات، أثاث، أجهزة، هواتف، ملابس، وظائف).
@@ -48,7 +50,7 @@ function adSummary(ad: Ad): string {
 }
 
 export async function moderateAd(ad: Ad): Promise<ModResult> {
-  if (!aiConfigured()) {
+  if (!(await aiConfigured())) {
     return { decision: "review", reason: "بلا دماغ — مراجعة بشرية اعتيادية", byAi: false };
   }
   const raw = await aiComplete(

@@ -118,7 +118,7 @@ export async function POST(req: Request) {
       moderatedBy: "agent",
     });
     if (upd) finalAd = upd;
-  } else if (mod.decision === "approve" && autoApproveEnabled()) {
+  } else if (mod.decision === "approve" && (await autoApproveEnabled())) {
     const upd = await sbUpdateAd(inserted.id, {
       status: "active",
       publishedAt: new Date().toISOString(),
