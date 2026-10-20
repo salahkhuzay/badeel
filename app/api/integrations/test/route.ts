@@ -17,6 +17,7 @@ import { agentLog } from "@/lib/agent/log";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   let body: { key?: unknown; channel?: unknown } = {};
@@ -57,16 +58,62 @@ export async function POST(req: Request) {
           error: `المفتاح مرفوض — HTTP ${pr.status}: ${raw.slice(0, 220)}`,
         });
       }
-      /* ③ المفتاح صالح — جرّب توليداً قصيراً */
-      const r = await aiComplete("أجب بكلمة واحدة فقط.", [{ role: "user", text: "قل: جاهز" }], {
-        maxTokens: 10,
-        timeoutMs: 12000,
+      /* ② المفتاح صالح — جرّب كل نموذج على حدة وأعد تقريراً كاملاً */
+      if (s0.provider !== "gemini") {
+        const r = await aiComplete("أجب بكلمة واحدة فقط.", [{ role: "user", text: "قل: جاهز" }], {
+          maxTokens: 10,
+          timeoutMs: 15000,
+        });
+        return NextResponse.json(
+          r
+            ? { ok: true, name: `المفتاح صالح وردّ في ${Date.now() - t0}ms — ${r.slice(0, 20)}` }
+            : { ok: false, error: `المفتاح صالح لكن التوليد فشل: ${lastAiError ?? "غير معروف"}` }
+        );
+      }
+      const models = [
+        process.env.AI_MODEL || "gemini-2.0-flash",
+        "gemini-2.5-flash",
+        "gemini-flash-latest",
+      ].filter((m, i, arr) => arr.indexOf(m) === i);
+      const report: string[] = [];
+      for (const model of models) {
+        const c2 = new AbortController();
+        const t2 = setTimeout(() => c2.abort(), 12000);
+        const m0 = Date.now();
+        try {
+          const gr = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(s0.key)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              signal: c2.signal,
+              cache: "no-store",
+              body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: "قل: جاهز" }] }],
+                generationConfig: { maxOutputTokens: 10 },
+              }),
+            }
+          );
+          const graw = await gr.text().catch(() => "");
+          if (gr.ok) {
+            report.push(`${model}: ✅ ${Date.now() - m0}ms`);
+            return NextResponse.json({
+              ok: true,
+              name: `يعمل على ${model} (${Date.now() - m0}ms) — ${report.join(" | ")}`,
+            });
+          }
+          const msg = /"message":\s*"([^"]{0,140})/.exec(graw)?.[1] ?? graw.slice(0, 120);
+          report.push(`${model}: HTTP ${gr.status} ${msg}`);
+        } catch {
+          report.push(`${model}: انقطع بعد ${Date.now() - m0}ms (تعليق)`);
+        } finally {
+          clearTimeout(t2);
+        }
+      }
+      return NextResponse.json({
+        ok: false,
+        error: `المفتاح صالح لكن لا نموذج أجاب — ${report.join(" | ")}`,
       });
-      return NextResponse.json(
-        r
-          ? { ok: true, name: `المفتاح صالح وردّ في ${Date.now() - t0}ms — ${r.slice(0, 20)}` }
-          : { ok: false, error: `المفتاح صالح لكن التوليد فشل: ${lastAiError ?? "غير معروف"}` }
-      );
     } catch (e) {
       return NextResponse.json({
         ok: false,

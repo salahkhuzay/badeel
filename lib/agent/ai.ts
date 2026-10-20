@@ -45,7 +45,12 @@ export async function aiComplete(
   try {
     if (provider === "gemini") {
       /* تتابع النماذج: المطلوب ثم الأحدث ثم المستقر — ينجو من إيقاف نموذج */
-      const models = [process.env.AI_MODEL || "gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"];
+      const models = [
+        process.env.AI_MODEL || "gemini-2.0-flash",
+        "gemini-2.5-flash",
+        "gemini-flash-latest",
+        "gemini-1.5-flash",
+      ];
       const body = JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: messages.map((m) => ({

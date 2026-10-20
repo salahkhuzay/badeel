@@ -15,6 +15,7 @@ import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const maxDuration = 60; /* الحصة المجانية قد تصفّ الطلبات — نعطيها مهلة */
 
 /* خنق بسيط: 30 رسالة لكل IP في الساعة */
 const chatLog = new Map<string, number[]>();
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
   const ctx = await agentContext();
   const reply = await aiComplete(systemPrompt(ctx), [...history, { role: "user", text: message }], {
     maxTokens: 500,
+    timeoutMs: 45000,
   });
   if (!reply) {
     return NextResponse.json({ reply: null, ai: false });
