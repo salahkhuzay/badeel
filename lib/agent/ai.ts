@@ -45,12 +45,12 @@ export async function aiComplete(
   try {
     if (provider === "gemini") {
       /* تتابع النماذج: المطلوب ثم الأحدث ثم المستقر — ينجو من إيقاف نموذج */
+      /* 2026: أوقفت جوجل 2.0/2.5 للمفاتيح الجديدة — الافتراضي 3.8-flash */
       const models = [
-        process.env.AI_MODEL || "gemini-2.0-flash",
-        "gemini-2.5-flash",
+        process.env.AI_MODEL || "gemini-3.8-flash",
         "gemini-flash-latest",
-        "gemini-1.5-flash",
-      ];
+        "gemini-2.5-flash",
+      ].filter((m, i, arr) => arr.indexOf(m) === i);
       const body = JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: messages.map((m) => ({

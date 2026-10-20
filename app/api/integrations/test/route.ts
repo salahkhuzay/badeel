@@ -71,8 +71,7 @@ export async function POST(req: Request) {
         );
       }
       const models = [
-        process.env.AI_MODEL || "gemini-2.0-flash",
-        "gemini-2.5-flash",
+        process.env.AI_MODEL || "gemini-3.8-flash",
         "gemini-flash-latest",
       ].filter((m, i, arr) => arr.indexOf(m) === i);
       const report: string[] = [];
