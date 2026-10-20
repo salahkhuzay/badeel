@@ -176,8 +176,10 @@ export interface AiSettings {
   source: "env" | "panel" | null;
 }
 export async function aiSettings(): Promise<AiSettings> {
-  if (process.env.AI_KEY) return { provider: "gemini", key: process.env.AI_KEY, source: "env" };
-  if (process.env.GROQ_KEY) return { provider: "groq", key: process.env.GROQ_KEY, source: "env" };
+  const envAi = (process.env.AI_KEY ?? "").trim();
+  const envGroq = (process.env.GROQ_KEY ?? "").trim();
+  if (envAi) return { provider: "gemini", key: envAi, source: "env" };
+  if (envGroq) return { provider: "groq", key: envGroq, source: "env" };
   const cfg = await agentConfigRead();
   if (cfg.aiKey) return { provider: "gemini", key: cfg.aiKey, source: "panel" };
   if (cfg.groqKey) return { provider: "groq", key: cfg.groqKey, source: "panel" };

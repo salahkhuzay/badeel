@@ -9,7 +9,7 @@
    ========================================================================== */
 
 import { NextResponse } from "next/server";
-import { aiComplete, aiConfigured } from "@/lib/agent/ai";
+import { aiComplete, aiConfigured, lastAiError } from "@/lib/agent/ai";
 import { fbTest } from "@/lib/agent/facebook";
 import { waConfigured, waSendText } from "@/lib/agent/whatsapp";
 import { agentLog } from "@/lib/agent/log";
@@ -40,7 +40,9 @@ export async function POST(req: Request) {
       { maxTokens: 10 }
     );
     return NextResponse.json(
-      r ? { ok: true, name: r.slice(0, 40) } : { ok: false, error: "الدماغ لم يستجب" }
+      r
+        ? { ok: true, name: r.slice(0, 40) }
+        : { ok: false, error: lastAiError ?? "الدماغ لم يستجب" }
     );
   }
 

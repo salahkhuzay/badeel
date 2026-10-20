@@ -12,6 +12,9 @@ import { aiSettings } from "./config";
 
 export type AiProvider = "gemini" | "groq";
 
+/** آخر خطأ خام من المزوّد — تقرأه لوحة الوكيل وزر الاختبار للتشخيص */
+export let lastAiError: string | null = null;
+
 /** المزوّد الفعّال: متغيرات البيئة أولاً ثم الربط المحفوظ من اللوحة (26.1) */
 export async function aiProvider(): Promise<AiProvider | null> {
   return (await aiSettings()).provider;
@@ -41,28 +44,43 @@ export async function aiComplete(
   const t = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     if (provider === "gemini") {
-      const model = process.env.AI_MODEL || "gemini-2.0-flash";
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${s0.key}`;
-      const r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: ctl.signal,
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: messages.map((m) => ({
-            role: m.role === "assistant" ? "model" : "user",
-            parts: [{ text: m.text }],
-          })),
-          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 },
-          /* أمان أعلى: نخفض حساسية الفلاتر للمحتوى التجاري المشروع */
-        }),
+      /* تتابع النماذج: المطلوب ثم الأحدث ثم المستقر — ينجو من إيقاف نموذج */
+      const models = [process.env.AI_MODEL || "gemini-2.0-flash", "gemini-flash-latest", "gemini-1.5-flash"];
+      const body = JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.text }],
+        })),
+        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 },
       });
-      if (!r.ok) return null;
-      const j = (await r.json()) as {
-        candidates?: { content?: { parts?: { text?: string }[] } }[];
-      };
-      const text = j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-      return text.trim() || null;
+      for (const model of models) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${s0.key}`;
+        const r = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: ctl.signal,
+          body,
+        });
+        if (!r.ok) {
+          const raw = await r.text().catch(() => "");
+          lastAiError = `Gemini ${model}: HTTP ${r.status} — ${raw.slice(0, 280)}`;
+          /* خطأ مفتاح/حصة لا يصلحه نموذج آخر — نكتفي */
+          if (r.status === 400 || r.status === 401 || r.status === 403 || r.status === 429) return null;
+          continue; /* 404 نموذج متقاعد ⇒ جرّب التالي */
+        }
+        const j = (await r.json()) as {
+          candidates?: { content?: { parts?: { text?: string }[] } }[];
+        };
+        const text = j.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+        if (text.trim()) {
+          lastAiError = null;
+          return text.trim();
+        }
+        lastAiError = `Gemini ${model}: رد فارغ (ربما فلترة أمان)`;
+        return null;
+      }
+      return null;
     }
     /* Groq — واجهة متوافقة مع OpenAI */
     const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
@@ -83,10 +101,17 @@ export async function aiComplete(
         ],
       }),
     });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      const raw = await r.text().catch(() => "");
+      lastAiError = `Groq: HTTP ${r.status} — ${raw.slice(0, 280)}`;
+      return null;
+    }
     const j = (await r.json()) as { choices?: { message?: { content?: string } }[] };
-    return j.choices?.[0]?.message?.content?.trim() || null;
-  } catch {
+    const out = j.choices?.[0]?.message?.content?.trim() || null;
+    lastAiError = out ? null : "Groq: رد فارغ";
+    return out;
+  } catch (e) {
+    lastAiError = `استثناء: ${String(e).slice(0, 200)}`;
     return null;
   } finally {
     clearTimeout(t);
