@@ -6,6 +6,7 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { ToastProvider } from "./Toast";
 import ContactBar from "./ContactBar";
+import AgentChat from "./AgentChat";
 import { purgeAndReload, registerSW, APP_VERSION } from "@/lib/pwa";
 
 /* ==========================================================================
@@ -71,6 +72,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* مساحة سفلية حتى لا يغطي شريط التواصل آخر المحتوى على الجوال */}
         {!hideFooter && <div className="h-[68px] sm:hidden" aria-hidden="true" />}
         <ContactBar />
+        {/* وكيل المحادثة للزوار — موجة 26 (يختفي داخل لوحة الإدارة) */}
+        {!hideFooter && <AgentChat />}
         <ScrollTop />
       </div>
       <PwaUpdater />

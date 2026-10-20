@@ -14,9 +14,12 @@ import {
   sbInsertAd,
   sbListAds,
   sbNextRef,
+  sbUpdateAd,
   sbUploadPhoto,
   supabaseConfigured,
 } from "@/lib/supabase-server";
+import { autoApproveEnabled, moderateAd } from "@/lib/agent/moderate";
+import { waNotifyAdmin } from "@/lib/agent/whatsapp";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -104,5 +107,32 @@ export async function POST(req: Request) {
   if (!inserted) {
     return NextResponse.json({ error: "تعذّر حفظ الإعلان في قاعدة البيانات" }, { status: 502 });
   }
-  return NextResponse.json({ ok: true, ad: inserted });
+
+  /* ---- موجة 26: الوكيل يفحص الإعلان الجديد ثم يُشعر المسؤول ---- */
+  let finalAd = inserted;
+  const mod = await moderateAd(inserted);
+  if (mod.decision === "reject") {
+    const upd = await sbUpdateAd(inserted.id, {
+      status: "rejected",
+      rejectionReason: mod.reason,
+      moderatedBy: "agent",
+    });
+    if (upd) finalAd = upd;
+  } else if (mod.decision === "approve" && autoApproveEnabled()) {
+    const upd = await sbUpdateAd(inserted.id, {
+      status: "active",
+      publishedAt: new Date().toISOString(),
+      moderatedBy: "agent",
+    });
+    if (upd) finalAd = upd;
+  }
+  /* إشعار واتساب للمسؤول (يتجاهل نفسه تلقائياً بلا إعداد) */
+  await waNotifyAdmin(
+    finalAd.status === "active"
+      ? `🤖 إعلان ${finalAd.ref} «${finalAd.title}» وافق عليه الوكيل ونُشر تلقائياً`
+      : finalAd.status === "rejected"
+        ? `🤖 الوكيل رفض الإعلان ${finalAd.ref}: ${mod.reason}`
+        : `🔔 إعلان جديد ${finalAd.ref} «${finalAd.title}» بانتظار موافقتك في اللوحة`
+  );
+  return NextResponse.json({ ok: true, ad: finalAd });
 }

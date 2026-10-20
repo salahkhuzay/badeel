@@ -8,6 +8,9 @@
 import { NextResponse } from "next/server";
 import type { Ad } from "@/lib/types";
 import { sbDeleteAd, sbGetAd, sbUpdateAd, supabaseConfigured } from "@/lib/supabase-server";
+import { fbConfigured, fbPublishAd } from "@/lib/agent/facebook";
+import { cityNameOf } from "@/lib/agent/context";
+import { agentLog } from "@/lib/agent/log";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -50,8 +53,22 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   ] as (keyof Ad)[]) {
     if (k in patch) (safe as Record<string, unknown>)[k] = patch[k];
   }
+  /* الحالة السابقة: لنعرف أن هذه موافقة «جديدة» تستحق النشر على فيسبوك */
+  const prev = await sbGetAd(ctx.params.id);
   const next = await sbUpdateAd(ctx.params.id, safe);
   if (!next) return NextResponse.json({ error: "الإعلان غير موجود" }, { status: 404 });
+
+  /* ---- موجة 26: انتقال إلى active ⇒ نشر تلقائي على صفحة فيسبوك ---- */
+  if (prev && prev.status !== "active" && next.status === "active" && fbConfigured()) {
+    const city = await cityNameOf(next.cityId);
+    const fb = await fbPublishAd(next, city ?? undefined);
+    await agentLog(
+      "facebook",
+      fb.ok
+        ? `نُشر ${next.ref} «${(next.title ?? "").slice(0, 30)}» على الصفحة`
+        : `فشل نشر ${next.ref} على فيسبوك: ${fb.error ?? "خطأ غير معروف"}`
+    );
+  }
   return NextResponse.json({ ok: true, ad: next });
 }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   AlertTriangle,
   BarChart3,
+  Bot,
   Clock3,
   Eye,
   EyeOff,
@@ -42,10 +43,11 @@ const CitiesManager = dynamic(() => import("@/components/admin/CitiesManager"), 
 const SettingsPanel = dynamic(() => import("@/components/admin/SettingsPanel"), { ssr: false });
 const SponsoredManager = dynamic(() => import("@/components/admin/SponsoredManager"), { ssr: false });
 const AuditLog = dynamic(() => import("@/components/admin/AuditLog"), { ssr: false });
+const AgentPanel = dynamic(() => import("@/components/admin/AgentPanel"), { ssr: false });
 import { cn, formatNumber } from "@/lib/currency";
 import { formatDuration } from "@/lib/auth";
 
-type Tab = "overview" | "moderation" | "ads" | "sponsored" | "geo" | "settings" | "audit";
+type Tab = "overview" | "moderation" | "ads" | "sponsored" | "agent" | "geo" | "settings" | "audit";
 
 export default function AdminPage() {
   const {
@@ -123,6 +125,7 @@ export default function AdminPage() {
     },
     { id: "ads", name: "إدارة الإعلانات", icon: <Table2 size={16} /> },
     { id: "sponsored", name: "إعلانات مأجورة", icon: <Megaphone size={16} /> },
+    { id: "agent", name: "الوكيل الذكي", icon: <Bot size={16} /> },
     { id: "geo", name: "المدن", icon: <Map size={16} /> },
     { id: "settings", name: "الإعدادات والأمان", icon: <SettingsIcon size={16} /> },
     { id: "audit", name: "سجل العمليات", icon: <History size={16} /> },
@@ -306,6 +309,8 @@ export default function AdminPage() {
           )}
 
           {tab === "sponsored" && <SponsoredManager />}
+
+          {tab === "agent" && <AgentPanel />}
         {tab === "geo" && (
             <>
               <SectionTitle
