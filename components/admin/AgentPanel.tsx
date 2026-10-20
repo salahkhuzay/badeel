@@ -287,9 +287,15 @@ export default function AgentPanel() {
           fields={[
             {
               key: "aiKey",
-              label: "مفتاح Gemini المجاني",
+              label: "مفتاح Gemini (aistudio.google.com)",
               secret: true,
-              current: status?.aiKeyMasked,
+              current: status?.aiProvider === "gemini" ? status?.aiKeyMasked : null,
+            },
+            {
+              key: "groqKey",
+              label: "أو مفتاح Groq بديل (console.groq.com — سريع ومجرب من الخوادم)",
+              secret: true,
+              current: status?.aiProvider === "groq" ? status?.aiKeyMasked : null,
             },
           ]}
           extra={
@@ -305,9 +311,10 @@ export default function AgentPanel() {
             </label>
           }
           steps={[
-            "افتح aistudio.google.com بحساب جوجل ← Get API key ← Create API key (مجاني بلا بطاقة).",
-            "انسخ المفتاح (يبدأ بـ AIza…) والصقه هنا ثم «حفظ الربط».",
-            "اضغط «اختبار القناة» — إن رد «جاهز» فالدماغ موصول.",
+            "الخيار الأول Gemini: افتح aistudio.google.com ← Get API key ← Create API key والصقه في حقل Gemini.",
+            "الخيار البديل Groq (إن علّق Gemini): افتح console.groq.com ← Keys ← Create API Key والصقه في حقل Groq — يعمل فوراً من الخوادم مجاناً.",
+            "احفظ واحداً منهما فقط (Groq يُستخدم إذا لم يوجد Gemini… والأولوية لـGemini إن كان صالحاً).",
+            "اضغط «اختبار القناة» — الأخضر يعني أن الدماغ يرد فعلاً.",
           ]}
           onTest={() => test("ai")}
           testing={testing === "ai"}
