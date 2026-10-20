@@ -10,6 +10,7 @@
 
 import { NextResponse } from "next/server";
 import { aiComplete, aiConfigured, lastAiError } from "@/lib/agent/ai";
+import { aiSettings } from "@/lib/agent/config";
 import { fbTest } from "@/lib/agent/facebook";
 import { waConfigured, waSendText } from "@/lib/agent/whatsapp";
 import { agentLog } from "@/lib/agent/log";
@@ -31,19 +32,49 @@ export async function POST(req: Request) {
   const channel = String(body.channel ?? "");
 
   if (channel === "ai") {
-    if (!(await aiConfigured())) {
-      return NextResponse.json({ ok: false, error: "لا يوجد مفتاح دماغ (AI_KEY أو GROQ_KEY)" });
+    const s0 = await aiSettings();
+    if (!s0.provider) {
+      return NextResponse.json({ ok: false, error: "لا يوجد مفتاح دماغ — الصقه في بطاقة الدماغ" });
     }
-    const r = await aiComplete(
-      "أجب بكلمة واحدة فقط.",
-      [{ role: "user", text: "قل: جاهز" }],
-      { maxTokens: 10 }
-    );
-    return NextResponse.json(
-      r
-        ? { ok: true, name: r.slice(0, 40) }
-        : { ok: false, error: lastAiError ?? "الدماغ لم يستجب" }
-    );
+    /* ① مسبار خفيف: هل المفتاح صالح وهل المزوّد قابل للوصول أصلاً؟ */
+    const t0 = Date.now();
+    const probeUrl =
+      s0.provider === "gemini"
+        ? `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(s0.key)}&pageSize=1`
+        : "https://api.groq.com/openai/v1/models";
+    const ctl = new AbortController();
+    const tm = setTimeout(() => ctl.abort(), 9000);
+    try {
+      const pr = await fetch(probeUrl, {
+        signal: ctl.signal,
+        cache: "no-store",
+        headers: s0.provider === "groq" ? { Authorization: `Bearer ${s0.key}` } : {},
+      });
+      const raw = await pr.text().catch(() => "");
+      if (!pr.ok) {
+        return NextResponse.json({
+          ok: false,
+          error: `المفتاح مرفوض — HTTP ${pr.status}: ${raw.slice(0, 220)}`,
+        });
+      }
+      /* ③ المفتاح صالح — جرّب توليداً قصيراً */
+      const r = await aiComplete("أجب بكلمة واحدة فقط.", [{ role: "user", text: "قل: جاهز" }], {
+        maxTokens: 10,
+        timeoutMs: 12000,
+      });
+      return NextResponse.json(
+        r
+          ? { ok: true, name: `المفتاح صالح وردّ في ${Date.now() - t0}ms — ${r.slice(0, 20)}` }
+          : { ok: false, error: `المفتاح صالح لكن التوليد فشل: ${lastAiError ?? "غير معروف"}` }
+      );
+    } catch (e) {
+      return NextResponse.json({
+        ok: false,
+        error: `تعذّر الوصول إلى ${s0.provider === "gemini" ? "Google" : "Groq"} خلال 9 ثوانٍ (${String(e).slice(0, 100)}) — تحقق أن المفتاح من aistudio.google.com وليس من خدمة أخرى`,
+      });
+    } finally {
+      clearTimeout(tm);
+    }
   }
 
   if (channel === "facebook") {
