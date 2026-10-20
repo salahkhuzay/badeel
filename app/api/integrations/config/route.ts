@@ -2,7 +2,7 @@
    app/api/integrations/config/route.ts — حفظ ربط القنوات من اللوحة (26.1)
    --------------------------------------------------------------------------
    POST {key, patch:{fbPageId?, fbPageToken?, waToken?, waPhoneId?,
-   waVerifyToken?, waNotifyTo?, aiKey?, groqKey?, autoApprove?}}
+   waVerifyToken?, waNotifyTo?, aiKey?, groqKey?, openrouterKey?, mistralKey?, autoApprove?}}
    ⇒ يُخزَّن في KV (site:agentconfig) ويُسجَّل حدث في سجل الوكيل.
    سلسلة فارغة تمسح الحقل. الأسرار لا تُعاد في أي استجابة.
    محمي بمفتاح النشر كبقية نقاط الإدارة.
@@ -24,6 +24,8 @@ const ALLOWED = new Set([
   "waNotifyTo",
   "aiKey",
   "groqKey",
+  "openrouterKey",
+  "mistralKey",
   "autoApprove",
 ]);
 

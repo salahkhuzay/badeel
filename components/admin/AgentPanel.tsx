@@ -14,7 +14,7 @@ import { getRateKey } from "@/lib/remote-rate";
 
 interface AgentStatus {
   ai: boolean;
-  aiProvider: "gemini" | "groq" | null;
+  aiProvider: "gemini" | "groq" | "openrouter" | "mistral" | null;
   aiSource: "env" | "panel" | null;
   aiKeyMasked: string | null;
   facebook: boolean;
@@ -58,6 +58,7 @@ function ChannelCard(props: {
   icon: string;
   on: boolean;
   source?: "env" | "panel" | null;
+  onText?: string;
   offLabel: string;
   steps: string[];
   fields: FieldDef[];
@@ -104,7 +105,9 @@ function ChannelCard(props: {
                 props.on ? "text-emerald-600 dark:text-emerald-400" : "text-slate-500"
               }`}
             >
-              {props.on ? `مفعّل — ${SOURCE_LABEL[props.source ?? "panel"]}` : props.offLabel}
+              {props.on
+                ? props.onText ?? `مفعّل — ${SOURCE_LABEL[props.source ?? "panel"]}`
+                : props.offLabel}
             </p>
           </div>
         </div>
@@ -283,6 +286,11 @@ export default function AgentPanel() {
           icon="🧠"
           on={Boolean(status?.ai)}
           source={status?.aiSource}
+          onText={
+            status?.ai
+              ? `مفعّل عبر ${status.aiProvider} — ${SOURCE_LABEL[status.aiSource ?? "panel"]}`
+              : undefined
+          }
           offLabel="غير مربوط — الودجت يرد بقواعد محلية"
           fields={[
             {
@@ -293,9 +301,21 @@ export default function AgentPanel() {
             },
             {
               key: "groqKey",
-              label: "أو مفتاح Groq بديل (console.groq.com — سريع ومجرب من الخوادم)",
+              label: "أو مفتاح Groq (console.groq.com — سريع ومجرب من الخوادم)",
               secret: true,
               current: status?.aiProvider === "groq" ? status?.aiKeyMasked : null,
+            },
+            {
+              key: "openrouterKey",
+              label: "أو مفتاح OpenRouter (openrouter.ai — مجمّع نماذج، تسجيل بالبريد فقط)",
+              secret: true,
+              current: status?.aiProvider === "openrouter" ? status?.aiKeyMasked : null,
+            },
+            {
+              key: "mistralKey",
+              label: "أو مفتاح Mistral (console.mistral.ai — بديل أوروبي)",
+              secret: true,
+              current: status?.aiProvider === "mistral" ? status?.aiKeyMasked : null,
             },
           ]}
           extra={

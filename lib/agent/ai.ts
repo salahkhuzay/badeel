@@ -10,7 +10,29 @@
 
 import { aiSettings } from "./config";
 
-export type AiProvider = "gemini" | "groq";
+export type AiProvider = "gemini" | "groq" | "openrouter" | "mistral";
+
+/* المزودات المتوافقة مع واجهة OpenAI — نقطة واحدة و3 خدمات */
+const OPENAI_LIKE: Record<
+  Exclude<AiProvider, "gemini">,
+  { base: string; modelEnv: string; defModel: string }
+> = {
+  groq: {
+    base: "https://api.groq.com/openai/v1",
+    modelEnv: "GROQ_MODEL",
+    defModel: "llama-3.3-70b-versatile",
+  },
+  openrouter: {
+    base: "https://openrouter.ai/api/v1",
+    modelEnv: "OPENROUTER_MODEL",
+    defModel: "openrouter/auto",
+  },
+  mistral: {
+    base: "https://api.mistral.ai/v1",
+    modelEnv: "MISTRAL_MODEL",
+    defModel: "mistral-small-latest",
+  },
+};
 
 /** آخر خطأ خام من المزوّد — تقرأه لوحة الوكيل وزر الاختبار للتشخيص */
 export let lastAiError: string | null = null;
@@ -87,15 +109,22 @@ export async function aiComplete(
       }
       return null;
     }
-    /* Groq — واجهة متوافقة مع OpenAI */
-    const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
-    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    /* المزودات المتوافقة مع OpenAI: Groq / OpenRouter / Mistral */
+    const like = OPENAI_LIKE[provider as Exclude<AiProvider, "gemini">];
+    const model = process.env[like.modelEnv] || like.defModel;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${s0.key}`,
+    };
+    if (provider === "openrouter") {
+      headers["HTTP-Referer"] = "https://badeel-online.vercel.app";
+      headers["X-Title"] = "Badeel Online Agent";
+    }
+    const r = await fetch(`${like.base}/chat/completions`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${s0.key}`,
-      },
+      headers,
       signal: ctl.signal,
+      cache: "no-store",
       body: JSON.stringify({
         model,
         max_tokens: maxTokens,
@@ -108,12 +137,12 @@ export async function aiComplete(
     });
     if (!r.ok) {
       const raw = await r.text().catch(() => "");
-      lastAiError = `Groq: HTTP ${r.status} — ${raw.slice(0, 280)}`;
+      lastAiError = `${provider} ${model}: HTTP ${r.status} — ${raw.slice(0, 280)}`;
       return null;
     }
     const j = (await r.json()) as { choices?: { message?: { content?: string } }[] };
     const out = j.choices?.[0]?.message?.content?.trim() || null;
-    lastAiError = out ? null : "Groq: رد فارغ";
+    lastAiError = out ? null : `${provider}: رد فارغ`;
     return out;
   } catch (e) {
     lastAiError = `استثناء: ${String(e).slice(0, 200)}`;

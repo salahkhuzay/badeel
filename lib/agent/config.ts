@@ -20,6 +20,8 @@ export interface AgentConfig {
   /* الدماغ */
   aiKey?: string; // Gemini
   groqKey?: string; // Groq (بديل)
+  openrouterKey?: string; // OpenRouter (مجمّع نماذج — بديل عند الحظر الجغرافي)
+  mistralKey?: string; // Mistral (بديل أوروبي)
   /* سلوك */
   autoApprove?: boolean;
 }
@@ -37,6 +39,8 @@ const FIELDS: (keyof AgentConfig)[] = [
   "waNotifyTo",
   "aiKey",
   "groqKey",
+  "openrouterKey",
+  "mistralKey",
   "autoApprove",
 ];
 
@@ -170,19 +174,27 @@ export async function waSettings(): Promise<WaSettings> {
   return { token: "", phoneId: "", verifyToken: cfg.waVerifyToken ?? "", notifyTo: (cfg.waNotifyTo ?? "").replace(/\D/g, ""), source: null };
 }
 
+export type AiProviderName = "gemini" | "groq" | "openrouter" | "mistral";
+
 export interface AiSettings {
-  provider: "gemini" | "groq" | null;
+  provider: AiProviderName | null;
   key: string;
   source: "env" | "panel" | null;
 }
 export async function aiSettings(): Promise<AiSettings> {
   const envAi = (process.env.AI_KEY ?? "").trim();
   const envGroq = (process.env.GROQ_KEY ?? "").trim();
+  const envOr = (process.env.OPENROUTER_KEY ?? "").trim();
+  const envMi = (process.env.MISTRAL_KEY ?? "").trim();
   if (envAi) return { provider: "gemini", key: envAi, source: "env" };
   if (envGroq) return { provider: "groq", key: envGroq, source: "env" };
+  if (envOr) return { provider: "openrouter", key: envOr, source: "env" };
+  if (envMi) return { provider: "mistral", key: envMi, source: "env" };
   const cfg = await agentConfigRead();
   if (cfg.aiKey) return { provider: "gemini", key: cfg.aiKey, source: "panel" };
   if (cfg.groqKey) return { provider: "groq", key: cfg.groqKey, source: "panel" };
+  if (cfg.openrouterKey) return { provider: "openrouter", key: cfg.openrouterKey, source: "panel" };
+  if (cfg.mistralKey) return { provider: "mistral", key: cfg.mistralKey, source: "panel" };
   return { provider: null, key: "", source: null };
 }
 

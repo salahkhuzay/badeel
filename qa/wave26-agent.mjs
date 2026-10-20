@@ -106,7 +106,15 @@ const pat = await fetch(`${BASE}/api/ads/ad-agent-1`, {
 }).then((r) => r.json());
 ok("موافقة بلا FB مضبوط ⇒ ok وتفعيل", pat.ok === true && pat.ad.status === "active", JSON.stringify(pat).slice(0, 140));
 
-/* ⑨ اختبار قناة بلا إعداد ⇒ رسالة عربية واضحة لا انهيار */
+/* ⑨تلقيم RSS: الإعلان المفعّل يظهر فوراً بصورته ورابطه */
+const feed = await fetch(`${BASE}/feed.xml`, { cache: "no-store" }).then((r) => r.text());
+ok(
+  "تلقيم RSS: صالح وفيه الإعلان المفعّل ورابطه",
+  feed.includes("<rss") && feed.includes("BD-8001") && feed.includes("/ad/BD-8001") && feed.includes("media:content"),
+  feed.slice(0, 120)
+);
+
+/* ⑩ اختبار قناة بلا إعداد ⇒ رسالة عربية واضحة لا انهيار */
 const tst = await fetch(`${BASE}/api/integrations/test`, {
   method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: KEY, channel: "ai" }),
 }).then((r) => r.json());
@@ -159,7 +167,19 @@ ok(
   `HTTP ${wa2.status}`
 );
 
-/* ⑮ الودجت في المتصفح: يفتح ويرد محلياً بالقواعد */
+/* ⑯ تبديل الدماغ: مسح Gemini وربط OpenRouter من اللوحة */
+await fetch(`${BASE}/api/integrations/config`, {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ key: KEY, patch: { aiKey: "", openrouterKey: "or-key-1234" } }),
+}).then((r) => r.json());
+const st5 = await fetch(`${BASE}/api/integrations/status?key=${KEY}`, { cache: "no-store" }).then((r) => r.json());
+ok(
+  "تبديل المزوّد: Gemini يُمسح وOpenRouter يحل محله",
+  st5.ai === true && st5.aiProvider === "openrouter" && st5.aiSource === "panel",
+  JSON.stringify({ ai: st5.ai, p: st5.aiProvider })
+);
+
+/* ⑰ الودجت في المتصفح: يفتح ويرد محلياً بالقواعد */
 const browser = await puppeteer.launch({ headless: "new", args: ["--no-sandbox"] });
 try {
   const page = await browser.newPage();
