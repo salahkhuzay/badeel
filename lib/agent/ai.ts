@@ -25,7 +25,8 @@ const OPENAI_LIKE: Record<
   openrouter: {
     base: "https://openrouter.ai/api/v1",
     modelEnv: "OPENROUTER_MODEL",
-    defModel: "openrouter/auto",
+    /* سلسلة مجانية مؤكدة 2026 (17 نموذج :free حياً) — auto في النهاية لمن لديه رصيد */
+    defModel: "minimax/minimax-m3.1-flash:free",
   },
   mistral: {
     base: "https://api.mistral.ai/v1",
@@ -111,7 +112,15 @@ export async function aiComplete(
     }
     /* المزودات المتوافقة مع OpenAI: Groq / OpenRouter / Mistral */
     const like = OPENAI_LIKE[provider as Exclude<AiProvider, "gemini">];
-    const model = process.env[like.modelEnv] || like.defModel;
+    /* سلسلة النماذج: المطلوب ثم بدائل مجانية مؤكدة (openrouter) */
+    const chain =
+      provider === "openrouter"
+        ? [
+            process.env[like.modelEnv] || like.defModel,
+            "nvidia/nemotron-3.5-lightning:free",
+            "openrouter/auto",
+          ].filter((m, i, arr) => arr.indexOf(m) === i)
+        : [process.env[like.modelEnv] || like.defModel];
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${s0.key}`,
@@ -120,30 +129,39 @@ export async function aiComplete(
       headers["HTTP-Referer"] = "https://badeel-online.vercel.app";
       headers["X-Title"] = "Badeel Online Agent";
     }
-    const r = await fetch(`${like.base}/chat/completions`, {
-      method: "POST",
-      headers,
-      signal: ctl.signal,
-      cache: "no-store",
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        temperature: 0.4,
-        messages: [
-          { role: "system", content: system },
-          ...messages.map((m) => ({ role: m.role, content: m.text })),
-        ],
-      }),
-    });
-    if (!r.ok) {
-      const raw = await r.text().catch(() => "");
-      lastAiError = `${provider} ${model}: HTTP ${r.status} — ${raw.slice(0, 280)}`;
+    for (const model of chain) {
+      const r = await fetch(`${like.base}/chat/completions`, {
+        method: "POST",
+        headers,
+        signal: ctl.signal,
+        cache: "no-store",
+        body: JSON.stringify({
+          model,
+          max_tokens: maxTokens,
+          temperature: 0.4,
+          messages: [
+            { role: "system", content: system },
+            ...messages.map((m) => ({ role: m.role, content: m.text })),
+          ],
+        }),
+      });
+      if (!r.ok) {
+        const raw = await r.text().catch(() => "");
+        lastAiError = `${provider} ${model}: HTTP ${r.status} — ${raw.slice(0, 240)}`;
+        /* 402 بلا رصيد / 404 نموذج متقاعد ⇒ جرّب التالي في السلسلة */
+        if (r.status === 402 || r.status === 404) continue;
+        return null;
+      }
+      const j = (await r.json()) as { choices?: { message?: { content?: string } }[] };
+      const out = j.choices?.[0]?.message?.content?.trim() || null;
+      if (out) {
+        lastAiError = null;
+        return out;
+      }
+      lastAiError = `${provider} ${model}: رد فارغ`;
       return null;
     }
-    const j = (await r.json()) as { choices?: { message?: { content?: string } }[] };
-    const out = j.choices?.[0]?.message?.content?.trim() || null;
-    lastAiError = out ? null : `${provider}: رد فارغ`;
-    return out;
+    return null;
   } catch (e) {
     lastAiError = `استثناء: ${String(e).slice(0, 200)}`;
     return null;
