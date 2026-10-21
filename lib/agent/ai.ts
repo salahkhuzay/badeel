@@ -168,7 +168,7 @@ export async function aiComplete(
       if (!contentStr && j.choices?.[0]?.message?.reasoning) {
         contentStr = String(j.choices[0].message.reasoning);
       }
-      const out = contentStr.trim() || null;
+      const out = cleanAiOutput(contentStr) || null;
       if (out) {
         lastAiError = null;
         return out;
@@ -183,6 +183,28 @@ export async function aiComplete(
   } finally {
     clearTimeout(t);
   }
+}
+
+/** تنظيف الرد من وسوم التفكير أو الديباجات الإنجليزية للنماذج التي تسربها */
+export function cleanAiOutput(text: string): string {
+  if (!text) return "";
+  let s = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  /* إذا أخرج النموذج خطوات تفكير بالإنجليزية قبل الرد العربي */
+  if (/^Here'?s a thinking process/i.test(s) || /^Thinking Process:/i.test(s)) {
+    const draftMatch = s.match(
+      /(?:Draft Response|Final Response|Direct Response|Response|الرد المباشر|الرد النهائي|الرد|الجواب)[\s\S]*?:\s*\n*([\s\S]+)$/i
+    );
+    if (draftMatch && draftMatch[1]?.trim()) {
+      s = draftMatch[1].trim();
+    } else {
+      const paras = s.split(/\n\s*\n/).map((p) => p.trim()).filter((p) => /[\u0600-\u06FF]/.test(p));
+      if (paras.length > 0) {
+        s = paras[paras.length - 1];
+      }
+    }
+  }
+  s = s.replace(/^["'«]([\s\S]+)["'»]$/, "$1").trim();
+  return s;
 }
 
 /** هل يطلب النموذج جواباً منظماً (JSON) — helper لقراءة JSON من رد نصي */
