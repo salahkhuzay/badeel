@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   BadgeCheck,
@@ -42,6 +42,15 @@ export default function AdsTable() {
   const toast = useToast();
   const [status, setStatus] = useState<AdStatus | "all">("all");
   const [q, setQ] = useState("");
+
+  /* مزامنة تلقائية دورية كل 25 ثانية لجلب الإعلانات الجديدة دون الحاجة لضغط الزر يدوياً */
+  useEffect(() => {
+    if (!adsBridge) return;
+    const timer = setInterval(() => {
+      void syncAds();
+    }, 25000);
+    return () => clearInterval(timer);
+  }, [adsBridge, syncAds]);
 
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
   const [editForm, setEditForm] = useState<Partial<Ad>>({});
@@ -132,7 +141,7 @@ export default function AdsTable() {
       <div className="card flex flex-wrap items-center justify-between gap-2 p-3">
         <div className="text-[11.5px] font-semibold text-navy-600 dark:text-navy-300">
           {adsBridge
-            ? "جسر الإعلانات (Supabase) موصول — كل إعلان وموافقة تظهر لجميع الزوار فوراً."
+            ? "جسر الإعلانات موصول — تتم المزامنة تلقائياً كل 25 ثانية لجلب أي إعلانات جديدة، ويمكنك المزامنة فوراً بالزر."
             : "جسر الإعلانات غير مضبوط — القائمة محلية في هذا المتصفح فقط (اضبط SUPABASE في Vercel لتفعيل السوق المشترك)."}
         </div>
         <button type="button" onClick={() => syncAds()} className="btn btn-sm">

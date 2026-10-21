@@ -64,6 +64,7 @@ function ChannelCard(props: {
   fields: FieldDef[];
   extra?: React.ReactNode;
   onSave?: (patch: Record<string, unknown>) => Promise<boolean>;
+  onClear?: () => Promise<boolean>;
   onTest?: () => void;
   testing?: boolean;
   testResult?: string | null;
@@ -151,6 +152,21 @@ function ChannelCard(props: {
           >
             {saving ? "…يحفظ" : "حفظ الربط"}
           </button>
+          {props.fields.some((f) => Boolean(f.current)) && props.onClear && (
+            <button
+              type="button"
+              onClick={async () => {
+                setSaving(true);
+                const ok = await props.onClear?.();
+                setSavedMsg(ok ? "✅ تم مسح الربط بنجاح" : "⛔ تعذّر المسح");
+                setSaving(false);
+              }}
+              disabled={saving}
+              className="btn-ghost btn-sm text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+            >
+              مسح الربط
+            </button>
+          )}
           {props.onTest && (
             <button
               onClick={props.onTest}
@@ -354,22 +370,28 @@ export default function AgentPanel() {
           icon="📘"
           on={Boolean(status?.facebook)}
           source={status?.fbSource}
-          offLabel="غير مربوط عبر Graph API — النشر عبر IFTTT يعمل تلقائياً"
+          offLabel="غير مربوط عبر Graph API — (النشر التلقائي عبر خلاصة RSS / dlvr.it متاح)"
           fields={[
             { key: "fbPageId", label: "معرّف الصفحة Page ID (للربط المباشر فقط)", current: status?.fbPageId },
             { key: "fbPageToken", label: "توكن الصفحة Page Access Token (للربط المباشر فقط)", secret: true, current: status?.fbTokenMasked },
           ]}
+          onClear={() => saveConfig({ fbPageId: "", fbPageToken: "" })}
           extra={
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-xs leading-5 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">
-              <span className="font-bold">✨ النشر التلقائي عبر IFTTT يعمل بنجاح:</span> إذا قمت بربط خلاصة الموقع{" "}
-              <a href="/feed.xml" target="_blank" rel="noopener noreferrer" className="font-mono font-bold underline text-emerald-700 dark:text-emerald-300">
-                /feed.xml
-              </a>{" "}
-              في تطبيق IFTTT، فالإعلانات المعتمدة تُنشر على صفحتك في فيسبوك تلقائياً ولا داعي إطلاقاً لأي توكن هنا!
+            <div className="rounded-lg border border-slate-200 bg-slate-50/90 p-3 text-xs leading-5 text-slate-800 dark:border-slate-800 dark:bg-navy-950/40 dark:text-slate-200">
+              <span className="font-bold text-navy-900 dark:text-white">📡 النشر التلقائي عبر خلاصة الإعلانات (RSS Feed):</span>
+              <p className="mt-1">
+                تلقيم الإعلانات المعتمدة متاح ومحدث لحظياً على الرابط:{" "}
+                <a href="/feed.xml" target="_blank" rel="noopener noreferrer" className="font-mono font-bold underline text-emerald-700 dark:text-emerald-400" dir="ltr">
+                  /feed.xml
+                </a>
+              </p>
+              <p className="mt-1 text-slate-600 dark:text-slate-400">
+                يمكنك ربط هذا الرابط بخدمة <strong>dlvr.it</strong> (أو أي خدمة تغذية تفضلها) لتقوم بنشر كل إعلان جديد فور موافقتك عليه إلى صفحة فيسبوك تلقائياً وبشكل مجاني، دون الحاجة لتوكن Meta أو إنشاء تطبيق مطورين.
+              </p>
             </div>
           }
           steps={[
-            "⭐ تنبيه لسوريا: موقع مطوري فيسبوك (developers.facebook.com) محظور جغرافياً في سوريا. لذلك اعتمدنا النشر التلقائي عبر تطبيق IFTTT باستخدام رابط الخلاصة (/feed.xml) وهو الحل الرسمي ولا يتطلب أي توكن هنا.",
+            "⭐ تنبيه لسوريا: موقع مطوري فيسبوك (developers.facebook.com) محظور جغرافياً في سوريا. لذلك نعتمد النشر التلقائي عبر خدمة dlvr.it باستخدام رابط الخلاصة (/feed.xml) وهو الحل الرسمي ولا يتطلب أي توكن هنا.",
             "إذا كان لديك شريك خارج سوريا وأنشأ تطبيقاً رسمياً على developers.facebook.com:",
             "1) افتح developers.facebook.com ← My Apps ← Create App نوع Business.",
             "2) من Tools ← Graph API Explorer صرّح pages_manage_posts وpages_read_engagement.",
