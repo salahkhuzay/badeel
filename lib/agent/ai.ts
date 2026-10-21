@@ -201,7 +201,7 @@ export function cleanAiOutput(text: string): string {
       }
       const arCount = (l.match(/[\u0600-\u06FF]/g) || []).length;
       const enCount = (l.match(/[a-zA-Z]/g) || []).length;
-      return arCount >= 6 && arCount > enCount;
+      return arCount >= 2 && arCount > enCount;
     });
 
   if (
