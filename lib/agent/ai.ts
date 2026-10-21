@@ -25,8 +25,8 @@ const OPENAI_LIKE: Record<
   openrouter: {
     base: "https://openrouter.ai/api/v1",
     modelEnv: "OPENROUTER_MODEL",
-    /* سلسلة مجانية مؤكدة 2026 — gemma ثم nemotron ثم minimax ثم auto */
-    defModel: "google/gemma-4-26b-a4b-it:free",
+    /* سلسلة مجانية مؤكدة 2026 — nemotron ثم gemma ثم minimax ثم auto */
+    defModel: "nvidia/nemotron-3.5-lightning:free",
   },
   mistral: {
     base: "https://api.mistral.ai/v1",
@@ -117,8 +117,8 @@ export async function aiComplete(
       provider === "openrouter"
         ? [
             process.env[like.modelEnv] || like.defModel,
+            "google/gemma-4-26b-a4b-it:free",
             "google/gemma-4-31b-it:free",
-            "nvidia/nemotron-3.5-lightning:free",
             "minimax/minimax-m3.1-flash:free",
             "openrouter/auto",
           ].filter((m, i, arr) => arr.indexOf(m) === i)
@@ -189,22 +189,32 @@ export async function aiComplete(
 export function cleanAiOutput(text: string): string {
   if (!text) return "";
   let s = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-  /* إذا أخرج النموذج خطوات تفكير بالإنجليزية قبل الرد العربي */
-  if (/^Here'?s a thinking process/i.test(s) || /^Thinking Process:/i.test(s)) {
-    const draftMatch = s.match(
-      /(?:Draft Response|Final Response|Direct Response|Response|الرد المباشر|الرد النهائي|الرد|الجواب)[\s\S]*?:\s*\n*([\s\S]+)$/i
-    );
-    if (draftMatch && draftMatch[1]?.trim()) {
-      s = draftMatch[1].trim();
-    } else {
-      const paras = s.split(/\n\s*\n/).map((p) => p.trim()).filter((p) => /[\u0600-\u06FF]/.test(p));
-      if (paras.length > 0) {
-        s = paras[paras.length - 1];
-      }
-    }
+
+  /* استخراج الفقرات العربية وتصفية أي تحليل بالإنجليزية تسربه نماذج التفكير */
+  const arabicParagraphs = s
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter((l) => {
+      const arCount = (l.match(/[\u0600-\u06FF]/g) || []).length;
+      const enCount = (l.match(/[a-zA-Z]/g) || []).length;
+      return arCount >= 6 && arCount > enCount;
+    });
+
+  if (
+    arabicParagraphs.length > 0 &&
+    (s.includes("thinking process") ||
+      s.includes("Check against constraints") ||
+      s.includes("Draft") ||
+      s.includes("Analyze User") ||
+      s.includes("Formulate Response"))
+  ) {
+    return arabicParagraphs
+      .join("\n")
+      .replace(/^["'«]([\s\S]+)["'»]$/, "$1")
+      .trim();
   }
-  s = s.replace(/^["'«]([\s\S]+)["'»]$/, "$1").trim();
-  return s;
+
+  return s.replace(/^["'«]([\s\S]+)["'»]$/, "$1").trim();
 }
 
 /** هل يطلب النموذج جواباً منظماً (JSON) — helper لقراءة JSON من رد نصي */
