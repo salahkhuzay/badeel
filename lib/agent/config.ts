@@ -182,19 +182,23 @@ export interface AiSettings {
   source: "env" | "panel" | null;
 }
 export async function aiSettings(): Promise<AiSettings> {
-  const envAi = (process.env.AI_KEY ?? "").trim();
-  const envGroq = (process.env.GROQ_KEY ?? "").trim();
-  const envOr = (process.env.OPENROUTER_KEY ?? "").trim();
-  const envMi = (process.env.MISTRAL_KEY ?? "").trim();
-  if (envAi) return { provider: "gemini", key: envAi, source: "env" };
-  if (envGroq) return { provider: "groq", key: envGroq, source: "env" };
-  if (envOr) return { provider: "openrouter", key: envOr, source: "env" };
-  if (envMi) return { provider: "mistral", key: envMi, source: "env" };
+  /* أولوية أولى: المفاتيح المحفوظة مباشرة من اللوحة (لتجاوز أي متغير بيئة معلّق فوراً) */
   const cfg = await agentConfigRead();
-  if (cfg.aiKey) return { provider: "gemini", key: cfg.aiKey, source: "panel" };
-  if (cfg.groqKey) return { provider: "groq", key: cfg.groqKey, source: "panel" };
   if (cfg.openrouterKey) return { provider: "openrouter", key: cfg.openrouterKey, source: "panel" };
+  if (cfg.groqKey) return { provider: "groq", key: cfg.groqKey, source: "panel" };
   if (cfg.mistralKey) return { provider: "mistral", key: cfg.mistralKey, source: "panel" };
+  if (cfg.aiKey) return { provider: "gemini", key: cfg.aiKey, source: "panel" };
+
+  /* أولوية ثانية: متغيرات بيئة الاستضافة Vercel */
+  const envOr = (process.env.OPENROUTER_KEY ?? "").trim();
+  const envGroq = (process.env.GROQ_KEY ?? "").trim();
+  const envMi = (process.env.MISTRAL_KEY ?? "").trim();
+  const envAi = (process.env.AI_KEY ?? "").trim();
+  if (envOr) return { provider: "openrouter", key: envOr, source: "env" };
+  if (envGroq) return { provider: "groq", key: envGroq, source: "env" };
+  if (envMi) return { provider: "mistral", key: envMi, source: "env" };
+  if (envAi) return { provider: "gemini", key: envAi, source: "env" };
+
   return { provider: null, key: "", source: null };
 }
 

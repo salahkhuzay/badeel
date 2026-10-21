@@ -5,8 +5,8 @@
    - purgeAndReload: حذف كل الكاشات وإلغاء تسجيل العاملين ثم إعادة تحميل بلا كاش وسيط.
    ========================================================================== */
 
-export const APP_VERSION = "3.8.0";
-export const APP_BUILD = "2026-10-19";
+export const APP_VERSION = "3.8.1";
+export const APP_BUILD = "2026-10-21";
 export const APP_RELEASE = `${APP_VERSION} · ${APP_BUILD}`;
 
 const RELOAD_FLAG = "badeel.sw.reloaded";

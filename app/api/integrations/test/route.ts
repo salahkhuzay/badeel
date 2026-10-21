@@ -39,23 +39,36 @@ export async function POST(req: Request) {
     }
     /* ① مسبار خفيف: هل المفتاح صالح وهل المزوّد قابل للوصول أصلاً؟ */
     const t0 = Date.now();
-    const probeUrl =
-      s0.provider === "gemini"
-        ? `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(s0.key)}&pageSize=1`
-        : "https://api.groq.com/openai/v1/models";
+    let probeUrl = "";
+    const probeHeaders: Record<string, string> = {};
+    if (s0.provider === "gemini") {
+      probeUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(s0.key)}&pageSize=1`;
+    } else if (s0.provider === "openrouter") {
+      probeUrl = "https://openrouter.ai/api/v1/auth/key";
+      probeHeaders.Authorization = `Bearer ${s0.key}`;
+      probeHeaders["HTTP-Referer"] = "https://badeel-online.vercel.app";
+      probeHeaders["X-Title"] = "Badeel Online Agent";
+    } else if (s0.provider === "groq") {
+      probeUrl = "https://api.groq.com/openai/v1/models";
+      probeHeaders.Authorization = `Bearer ${s0.key}`;
+    } else if (s0.provider === "mistral") {
+      probeUrl = "https://api.mistral.ai/v1/models";
+      probeHeaders.Authorization = `Bearer ${s0.key}`;
+    }
+
     const ctl = new AbortController();
     const tm = setTimeout(() => ctl.abort(), 9000);
     try {
       const pr = await fetch(probeUrl, {
         signal: ctl.signal,
         cache: "no-store",
-        headers: s0.provider === "groq" ? { Authorization: `Bearer ${s0.key}` } : {},
+        headers: probeHeaders,
       });
       const raw = await pr.text().catch(() => "");
       if (!pr.ok) {
         return NextResponse.json({
           ok: false,
-          error: `المفتاح مرفوض — HTTP ${pr.status}: ${raw.slice(0, 220)}`,
+          error: `مفتاح ${s0.provider} مرفوض — HTTP ${pr.status}: ${raw.slice(0, 220)}`,
         });
       }
       /* ② المفتاح صالح — جرّب كل نموذج على حدة وأعد تقريراً كاملاً */
@@ -66,8 +79,8 @@ export async function POST(req: Request) {
         });
         return NextResponse.json(
           r
-            ? { ok: true, name: `المفتاح صالح وردّ في ${Date.now() - t0}ms — ${r.slice(0, 20)}` }
-            : { ok: false, error: `المفتاح صالح لكن التوليد فشل: ${lastAiError ?? "غير معروف"}` }
+            ? { ok: true, name: `المفتاح صالح عبر ${s0.provider} وردّ في ${Date.now() - t0}ms — «${r.slice(0, 30)}»` }
+            : { ok: false, error: `المفتاح صالح عبر ${s0.provider} لكن التوليد فشل: ${lastAiError ?? "غير معروف"}` }
         );
       }
       const models = [

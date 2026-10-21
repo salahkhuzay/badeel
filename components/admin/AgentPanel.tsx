@@ -319,22 +319,29 @@ export default function AgentPanel() {
             },
           ]}
           extra={
-            <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-              <input
-                type="checkbox"
-                defaultChecked={Boolean(status?.autoApprove)}
-                onChange={(e) => {
-                  void saveConfig({ autoApprove: e.target.checked });
-                }}
-              />
-              الموافقة التلقائية (الإعلانات الموثوقة تُنشر فوراً بلا انتظار موافقتك)
-            </label>
+            <div className="space-y-2">
+              {status?.aiProvider === "gemini" && status?.aiSource === "env" && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/90 p-2.5 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+                  ⚠️ <span className="font-bold">تنبيه حصة Gemini:</span> المفتاح الظاهر أعلاه مسجّل في Vercel، لكن نماذج Gemini المجانية تعلّق حالياً من الخوادم. لحل المشكلة فوراً: الصق مفتاحك من <strong>OpenRouter</strong> أو <strong>Groq</strong> في الحقول أدناه واضغط «حفظ الربط» ليعمل الدماغ مباشرة.
+                </div>
+              )}
+              <label className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  defaultChecked={Boolean(status?.autoApprove)}
+                  onChange={(e) => {
+                    void saveConfig({ autoApprove: e.target.checked });
+                  }}
+                />
+                الموافقة التلقائية (الإعلانات الموثوقة تُنشر فوراً بلا انتظار موافقتك)
+              </label>
+            </div>
           }
           steps={[
-            "الخيار الأول Gemini: افتح aistudio.google.com ← Get API key ← Create API key والصقه في حقل Gemini.",
-            "الخيار البديل Groq (إن علّق Gemini): افتح console.groq.com ← Keys ← Create API Key والصقه في حقل Groq — يعمل فوراً من الخوادم مجاناً.",
-            "احفظ واحداً منهما فقط (Groq يُستخدم إذا لم يوجد Gemini… والأولوية لـGemini إن كان صالحاً).",
-            "اضغط «اختبار القناة» — الأخضر يعني أن الدماغ يرد فعلاً.",
+            "⭐ الخيار الأول والموصى به (OpenRouter — مجاني بالكامل ويعمل في سوريا): افتح openrouter.ai ← سجّل ببريدك الإلكتروني (Google أو أي بريد) ← من القائمة اختر Keys ← Create API Key (يبدأ بـ sk-or-v1-…) والصقه في حقل OpenRouter أدناه.",
+            "الخيار الثاني البديل (Groq): افتح console.groq.com ← سجّل مجاناً ← Keys ← Create API Key (يبدأ بـ gsk_…) والصقه في حقل Groq.",
+            "الخيار الثالث (Gemini): افتح aistudio.google.com ← Get API key (قد يعلّق من خوادم الاستضافة).",
+            "يكفي ملء مفتاح واحد فقط ← اضغط «حفظ الربط» ← اضغط «اختبار القناة» للتأكد من عمل الدماغ فوراً.",
           ]}
           onTest={() => test("ai")}
           testing={testing === "ai"}
@@ -347,19 +354,26 @@ export default function AgentPanel() {
           icon="📘"
           on={Boolean(status?.facebook)}
           source={status?.fbSource}
-          offLabel="غير مربوط — الموافقة تعمل بلا نشر تلقائي"
+          offLabel="غير مربوط عبر Graph API — النشر عبر IFTTT يعمل تلقائياً"
           fields={[
-            { key: "fbPageId", label: "معرّف الصفحة Page ID", current: status?.fbPageId },
-            { key: "fbPageToken", label: "توكن الصفحة Page Access Token", secret: true, current: status?.fbTokenMasked },
+            { key: "fbPageId", label: "معرّف الصفحة Page ID (للربط المباشر فقط)", current: status?.fbPageId },
+            { key: "fbPageToken", label: "توكن الصفحة Page Access Token (للربط المباشر فقط)", secret: true, current: status?.fbTokenMasked },
           ]}
+          extra={
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-xs leading-5 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300">
+              <span className="font-bold">✨ النشر التلقائي عبر IFTTT يعمل بنجاح:</span> إذا قمت بربط خلاصة الموقع{" "}
+              <a href="/feed.xml" target="_blank" rel="noopener noreferrer" className="font-mono font-bold underline text-emerald-700 dark:text-emerald-300">
+                /feed.xml
+              </a>{" "}
+              في تطبيق IFTTT، فالإعلانات المعتمدة تُنشر على صفحتك في فيسبوك تلقائياً ولا داعي إطلاقاً لأي توكن هنا!
+            </div>
+          }
           steps={[
-            "افتح developers.facebook.com ← My Apps ← Create App ← نوع Business (بحسابك الذي يدير الصفحة).",
-            "من القائمة: Tools ← Graph API Explorer ← اختر تطبيقك الجديد.",
-            "اضغط Add Permissions وابحث عن: pages_show_list وpages_manage_posts وpages_read_engagement وpages_manage_metadata ← علّمها.",
-            "اضغط Generate Access Token ← وافق ← ثم من القائمة المنسدلة بجانب Page اختر «Get Page Access Token» واختر صفحة بديل.",
-            "انسخ التوكن الطويل في حقل التوكن هنا.",
-            "معرّف الصفحة: في Graph API Explorer نفسه اكتب me/accounts?access_token=التوكن ← Submit ← انسخ قيمة id.",
-            "الصق القيمتين هنا ← «حفظ الربط» ← «اختبار القناة» يجب أن يعيد اسم صفحتك.",
+            "⭐ تنبيه لسوريا: موقع مطوري فيسبوك (developers.facebook.com) محظور جغرافياً في سوريا. لذلك اعتمدنا النشر التلقائي عبر تطبيق IFTTT باستخدام رابط الخلاصة (/feed.xml) وهو الحل الرسمي ولا يتطلب أي توكن هنا.",
+            "إذا كان لديك شريك خارج سوريا وأنشأ تطبيقاً رسمياً على developers.facebook.com:",
+            "1) افتح developers.facebook.com ← My Apps ← Create App نوع Business.",
+            "2) من Tools ← Graph API Explorer صرّح pages_manage_posts وpages_read_engagement.",
+            "3) انسخ Page Access Token ومعرّف الصفحة Page ID والصقهما هنا.",
           ]}
           onTest={() => test("facebook")}
           testing={testing === "facebook"}
