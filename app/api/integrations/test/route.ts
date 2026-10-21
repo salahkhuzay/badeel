@@ -74,8 +74,8 @@ export async function POST(req: Request) {
       /* ② المفتاح صالح — جرّب كل نموذج على حدة وأعد تقريراً كاملاً */
       if (s0.provider !== "gemini") {
         const r = await aiComplete("أجب بكلمة واحدة فقط.", [{ role: "user", text: "قل: جاهز" }], {
-          maxTokens: 10,
-          timeoutMs: 15000,
+          maxTokens: 60,
+          timeoutMs: 18000,
         });
         return NextResponse.json(
           r
