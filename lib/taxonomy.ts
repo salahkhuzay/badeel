@@ -75,6 +75,13 @@ export const MAIN_CATEGORIES: {
     tagline: "عرض وظائف وطلب عمل — دوام كامل، جزئي، مؤقت أو باليومية",
     accent: "navy",
   },
+  {
+    id: "other",
+    name: "أخرى",
+    icon: "Package",
+    tagline: "أصناف ومنتجات وبضائع متنوعة — يصف المعلن منتجه وسعره وتفاصيله",
+    accent: "emerald",
+  },
 ];
 
 export const categoryName = (id: MainCategory) =>
@@ -201,6 +208,16 @@ export const SUBTYPES: Record<MainCategory, { id: string; name: string }[]> = {
     { id: "crafts", name: "مهن وحرف (كهرباء، صيانة، خياطة)" },
     { id: "other-job", name: "مجالات أخرى" },
   ],
+  other: [
+    { id: "general", name: "منتجات وبضائع عامة" },
+    { id: "food-crops", name: "أغذية ومحاصيل ومؤونة" },
+    { id: "livestock", name: "مواشي وحيوانات وطيور" },
+    { id: "tools-equipment", name: "معدات وعدة وعدد يدوية" },
+    { id: "sports-hobbies", name: "رياضة وألعاب وهوايات" },
+    { id: "books-stationery", name: "كتب وقرطاسية ومطبوعات" },
+    { id: "services", name: "خدمات متنوعة" },
+    { id: "misc-other", name: "أصناف أخرى" },
+  ],
 };
 
 export const subtypeName = (category: MainCategory, id?: string) =>
@@ -269,6 +286,7 @@ export const DEAL_TYPES_BY_CATEGORY: Record<MainCategory, DealType[]> = {
   clothing: ["sale"],
   phones: ["sale"],
   jobs: ["sale"], // الراتب — يُعرض كقيمة دورية حسب نوع الدوام
+  other: ["sale", "rent-monthly"],
 };
 
 export const dealTypesFor = (c: MainCategory) =>
@@ -366,6 +384,7 @@ export const CONDITION_CATEGORIES: MainCategory[] = [
   "appliances",
   "clothing",
   "phones",
+  "other",
 ];
 
 /** التصنيفات ذات الأنواع الفرعية العامة */
@@ -374,6 +393,7 @@ export const SUBTYPE_CATEGORIES: MainCategory[] = [
   "appliances",
   "clothing",
   "jobs",
+  "other",
 ];
 
 /** روابط التصنيفات للقوائم (التذييل/الخرائط) */
@@ -397,5 +417,7 @@ export const categoryShort = (c: MainCategory) => {
       return "هاتف";
     case "jobs":
       return "وظيفة";
+    case "other":
+      return "أخرى";
   }
 };

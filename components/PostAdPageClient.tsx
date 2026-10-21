@@ -28,6 +28,7 @@ import {
   Layers,
   MapPin,
   MessageCircle,
+  Package,
   Phone,
   Plug,
   Ruler,
@@ -108,6 +109,7 @@ const CATEGORY_ICON: Record<MainCategory, React.ReactNode> = {
   clothing: <Shirt size={22} />,
   phones: <Smartphone size={22} />,
   jobs: <Briefcase size={22} />,
+  other: <Package size={22} />,
 };
 
 const CATEGORY_TONE: Record<MainCategory, string> = {
@@ -118,6 +120,7 @@ const CATEGORY_TONE: Record<MainCategory, string> = {
   clothing: "from-violet-500 to-violet-700",
   phones: "from-indigo-500 to-indigo-700",
   jobs: "from-navy-600 to-navy-900",
+  other: "from-teal-500 to-teal-700",
 };
 
 const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
@@ -704,6 +707,7 @@ export default function PostAdPage() {
                   "clothing",
                   "phones",
                   "jobs",
+                  "other",
                 ] as MainCategory[]
               ).map((c) => {
                 const meta = { name: categoryName(c) };

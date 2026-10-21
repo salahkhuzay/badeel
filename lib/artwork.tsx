@@ -28,6 +28,7 @@ const PALETTES_BY_CATEGORY: Record<string, number[]> = {
   appliances: [4, 0, 3],
   clothing: [5, 3, 2],
   jobs: [1, 0, 4],
+  other: [1, 2, 0],
 };
 
 
@@ -301,6 +302,7 @@ function sceneKind(ad: Ad): string {
   if (ad.category === "appliances") return "fridge";
   if (ad.category === "clothing") return "shirt";
   if (ad.category === "jobs") return "briefcase";
+  if (ad.category === "other") return "shop";
   return "house";
 }
 

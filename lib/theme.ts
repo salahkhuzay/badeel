@@ -58,6 +58,12 @@ export const CATEGORY_THEME: Record<MainCategory, CategoryTheme> = {
     text: "text-navy-700 dark:text-navy-100",
     border: "border-navy-300 dark:border-navy-700",
   },
+  other: {
+    grad: "from-teal-500 to-teal-700",
+    soft: "bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400",
+    text: "text-teal-600 dark:text-teal-400",
+    border: "border-teal-300 dark:border-teal-500/40",
+  },
 };
 
 export const themeOf = (c: MainCategory) => CATEGORY_THEME[c];

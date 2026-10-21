@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Filter,
   Home,
+  Package,
   Smartphone,
   Loader2,
   Plug,
@@ -84,6 +85,7 @@ const CATEGORY_ICON: Record<MainCategory, React.ReactNode> = {
   clothing: <Shirt size={13} />,
   phones: <Smartphone size={13} />,
   jobs: <Briefcase size={13} />,
+  other: <Package size={13} />,
 };
 
 export default function ListingsBrowser({

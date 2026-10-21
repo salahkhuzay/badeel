@@ -147,6 +147,17 @@ export function adSpecs(ad: Ad): Spec[] {
         S("الأجر", ad.priceOnRequest || !ad.price ? "يُتفق عليه" : "مذكور بالتفاوض", <Banknote size={14} />),
       ];
 
+    case "other":
+      return [
+        S(
+          "الصنف",
+          ad.subtypeLabel || subtypeName("other", ad.subtypeId) || "صنف متنوع",
+          <Package size={14} />
+        ),
+        S("الحالة", conditionName(ad.condition) || "غير محددة", <CheckCircle2 size={14} />),
+        S("التفاوض", YES_NO(ad.negotiable), <Tag size={14} />),
+      ].filter((s) => Boolean(s.value));
+
     default:
       return [];
   }
