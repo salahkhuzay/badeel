@@ -195,6 +195,10 @@ export function cleanAiOutput(text: string): string {
     .split(/\n+/)
     .map((l) => l.trim())
     .filter((l) => {
+      /* استبعاد أسطر تحليل النموذج الداخلية حتى لو اقتبست رسالة المستخدم */
+      if (/^[*-]?\s*(?:User|Prompt|Input|Step|Rule|Constraint|Language|Task|Role|Draft)/i.test(l)) {
+        return false;
+      }
       const arCount = (l.match(/[\u0600-\u06FF]/g) || []).length;
       const enCount = (l.match(/[a-zA-Z]/g) || []).length;
       return arCount >= 6 && arCount > enCount;
