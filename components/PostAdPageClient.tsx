@@ -56,7 +56,7 @@ import AdPreviewModal from "@/components/AdPreviewModal";
 import BrandSelector from "@/components/BrandSelector";
 import { bodyTypeOfAd, type BodyTypeId } from "@/lib/vehicleBodies";
 import VehicleBodyIcon from "@/components/VehicleBodyIcon";
-import { cn, formatMoney, nextRef, uid } from "@/lib/currency";
+import { cn, formatMoney, nextRef, supportWhatsapp, uid } from "@/lib/currency";
 import {
   compressPhotoBatch,
   MAX_AD_PHOTOS,
@@ -198,6 +198,7 @@ interface FormState {
   description: string;
   price: string;
   currency: Currency;
+  priceOnRequest: boolean;
   negotiable: boolean;
   cityId: string;
   images: string[];
@@ -236,6 +237,7 @@ const INITIAL: FormState = {
   description: "",
   price: "",
   currency: "USD",
+  priceOnRequest: false,
   negotiable: true,
   cityId: "manbij",
   images: [],
@@ -425,11 +427,11 @@ export default function PostAdPage() {
   /* ------------------------------- التحقق ------------------------------- */
   function validate(): boolean {
     const e: Record<string, string> = {};
-    if (form.title.trim().length < 10) e.title = "أدخل عنواناً واضحاً لا يقل عن 10 أحرف.";
-    if (form.description.trim().length < 30)
-      e.description = "اكتب وصفاً مفصّلاً لا يقل عن 30 حرفاً.";
-    if (!isJob && (!priceNumber || priceNumber <= 0)) e.price = "أدخل سعراً صحيحاً أكبر من صفر.";
-    if (form.sellerName.trim().length < 3) e.sellerName = "أدخل اسمك أو اسم المكتب.";
+    if (form.title.trim().length < 4) e.title = "أدخل عنواناً واضحاً للإعلان (4 أحرف على الأقل).";
+    if (form.description.trim().length < 10)
+      e.description = "اكتب وصفاً أو تفاصيل مختصرة (10 أحرف على الأقل).";
+    if (!isJob && (!priceNumber || priceNumber <= 0) && !form.priceOnRequest) e.price = "أدخل السعر أو اختر «السعر عند الطلب».";
+    if (form.sellerName.trim().length < 2) e.sellerName = "أدخل اسمك أو اسم المكتب.";
     if (form.sellerPhone.replace(/\D/g, "").length < 8)
       e.sellerPhone = "أدخل رقم هاتف صحيح (مثال: 0955123456).";
     if (!form.sameWhatsapp && form.sellerWhatsapp.replace(/\D/g, "").length < 8)
@@ -477,6 +479,61 @@ export default function PostAdPage() {
       return false;
     }
     return true;
+  }
+
+  /* صياغة وصف ذكي مقترح بنقرة واحدة لتسهيل النشر على المستخدم */
+  function handleSmartDescription() {
+    const parts: string[] = [];
+    if (form.title.trim()) {
+      parts.push(form.title.trim());
+    }
+    if (cat === "real-estate") {
+      const propName = PROPERTY_TYPES.find((p) => p.id === form.propertyType)?.name || "عقار";
+      const dealName = form.dealType === "sale" ? "للبيع" : "للإيجار";
+      parts.push(`${propName} ${dealName} في مدينة منبج.`);
+      if (form.areaSize) parts.push(`المساحة: ${form.areaSize} ${form.areaUnit === "donum" ? "دونم" : "م²"}.`);
+      if (form.ownership) {
+        const own = OWNERSHIP_TYPES.find((o) => o.id === form.ownership)?.name;
+        if (own) parts.push(`نوع الملكية: ${own}.`);
+      }
+      parts.push("العقار بموقع مميز ومكتمل الخدمات وجاهز للمعاينة والتسليم المباشر.");
+    } else if (cat === "vehicles") {
+      const vTypeName = VEHICLE_TYPES.find((v) => v.id === form.vehicleType)?.name || "مركبة";
+      parts.push(`${vTypeName} بحالة ممتازة وخالية من الأعطال.`);
+      if (form.year) parts.push(`سنة الصنع: ${form.year}.`);
+      if (form.plateRegion) parts.push(`النمرة: ${form.plateRegion}.`);
+      parts.push("جاهزة للفحص والمعاينة والفراغ الفوري.");
+    } else if (cat === "furniture" || cat === "appliances" || cat === "clothing") {
+      const subName = subtypeList.find((s) => s.id === form.subtypeId)?.name;
+      if (subName) parts.push(`المعروض: ${subName}.`);
+      parts.push("الحالة نظيفة وممتازة واستعمال راقٍ، جاهز للتسليم الفوري.");
+    } else if (cat === "phones") {
+      parts.push("هاتف بحالة ممتازة وكامل الملحقات، فحص مضمون.");
+    } else if (cat === "jobs") {
+      const subName = subtypeList.find((s) => s.id === form.subtypeId)?.name;
+      if (form.jobKind === "seek") {
+        parts.push(`أبحث عن فرصة عمل في مجال ${subName || "المحدد"}. لدي الخبرة والالتزام التام بالعمل.`);
+      } else {
+        parts.push(`مطلوب موظف/عامل للعمل في مجال ${subName || "المحدد"}.`);
+        if (form.employmentType) parts.push(`الدوام: ${form.employmentType === "full-time" ? "كامل" : "جزئي"}.`);
+        parts.push("للمهتمين يرجى التواصل عبر الرقم المرفق لمعرفة بقية التفاصيل.");
+      }
+    }
+    const generated = parts.join(" ");
+    if (generated.length >= 10) {
+      set("description", form.description.trim() ? form.description.trim() + "\n" + generated : generated);
+      toast({
+        type: "success",
+        title: "تمت صياغة وصف مقترح تلقائياً",
+        desc: "يمكنك قراءته وتعديل أي جزء منه بحرية.",
+      });
+    } else {
+      toast({
+        type: "info",
+        title: "اختر بعض خيارات الإعلان أولاً",
+        desc: "حدّد نوع العقار أو المركبة لإنشاء وصف دقيق مناسب.",
+      });
+    }
   }
 
   /* ------------------------------ البناء/الإرسال ------------------------------ */
@@ -543,7 +600,7 @@ export default function PostAdPage() {
       currency: form.currency,
       priceUsd: form.currency === "USD" ? price : toUsd(price, "SYP"),
       priceSyp: form.currency === "SYP" ? price : toSyp(price, "USD"),
-      priceOnRequest: isJob && !price,
+      priceOnRequest: Boolean(form.priceOnRequest || (isJob && !price)),
       negotiable: isJob ? form.negotiable : form.negotiable,
 
       cityId: form.cityId,
@@ -670,6 +727,14 @@ export default function PostAdPage() {
           : form.subtypeId,
   ].filter(Boolean).length;
 
+  const step1Done = Boolean(cat && (cat !== "real-estate" || form.propertyType) && (cat !== "vehicles" || form.vehicleType));
+  const step2Done = Boolean(form.title.trim().length >= 4 && form.description.trim().length >= 10);
+  const step3Done = Boolean(isJob || (priceNumber && priceNumber > 0) || form.priceOnRequest);
+  const step4Done = Boolean(form.sellerName.trim().length >= 2 && form.sellerPhone.replace(/\D/g, "").length >= 8);
+
+  const completedSteps = [step1Done, step2Done, step3Done, step4Done].filter(Boolean).length;
+  const progressPercent = Math.round((completedSteps / 4) * 100);
+
   const previewData: Ad = { ...buildAd(), ref: previewRef };
 
   return (
@@ -679,12 +744,93 @@ export default function PostAdPage() {
           أضف إعلانك مجاناً
         </h1>
         <p className="mt-1 text-[12.5px] text-navy-500 dark:text-navy-300">
-          ستّة تصنيفات: عقارات · سيارات ومركبات · أثاث منزلي · أدوات كهربائية · ملابس · وظائف.
+          خطوات بسيطة ومرنة: اختر القسم، اكتب ما تريد بيعه بسعرك وتفاصيلك، وانشره فوراً للجميع.
         </p>
-        <p className="mt-3 inline-flex items-start gap-2 rounded-xl border border-amberBrand-200 bg-amberBrand-50/70 px-3.5 py-2.5 text-[12px] font-semibold leading-relaxed text-navy-700 dark:border-amberBrand-500/30 dark:bg-amberBrand-500/10 dark:text-navy-100">
-          <Eye size={15} className="mt-0.5 shrink-0 text-amberBrand-600" />
-          خطوة المعاينة إلزامية: ستظهر لك شاشة معاينة كاملة قبل إرسال أي بيانات للمراجعة.
-        </p>
+      </div>
+
+      {/* مساعدة سريعة عبر واتساب */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emeraldBrand-200 bg-emeraldBrand-50/80 p-4 text-xs leading-5 text-emeraldBrand-900 dark:border-emeraldBrand-900/40 dark:bg-emeraldBrand-950/30 dark:text-emeraldBrand-200">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emeraldBrand-600 text-white shadow-sm">
+            <MessageCircle size={20} />
+          </span>
+          <div>
+            <p className="text-[13.5px] font-extrabold text-emeraldBrand-950 dark:text-emeraldBrand-100">
+              صعب عليك ملء النموذج؟ أرسله لنا عبر واتساب وننشره لك مجاناً!
+            </p>
+            <p className="text-[11.5px] text-emeraldBrand-800 dark:text-emeraldBrand-300">
+              أرسل صورك وتفاصيل ما تريد بيعه مباشرة وسيقوم فريق بديل أونلاين بصياغته ونشره لك فوراً.
+            </p>
+          </div>
+        </div>
+        <a
+          href={supportWhatsapp(
+            settings.contactPhone,
+            settings.whatsappCountryCode,
+            "مرحباً إدارة بديل أونلاين، أرغب بنشر إعلان وهذه تفاصيله وصوره:"
+          )}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-emerald btn-sm inline-flex items-center gap-1.5 font-bold shadow-sm"
+        >
+          <MessageCircle size={14} /> إرسال عبر واتساب 0986801032
+        </a>
+      </div>
+
+      {/* شريط خطوات ذكي ومؤشر إنجاز */}
+      <div className="mb-6 rounded-2xl border border-navy-100 bg-white p-4 shadow-sm dark:border-navy-800 dark:bg-navy-900">
+        <div className="mb-2.5 flex items-center justify-between">
+          <span className="text-xs font-extrabold text-navy-800 dark:text-navy-100">
+            خطوات الإعلان ({completedSteps} من 4 مكتملة)
+          </span>
+          <span className="font-mono text-xs font-bold text-emeraldBrand-600 dark:text-emeraldBrand-400">
+            {progressPercent}%
+          </span>
+        </div>
+
+        {/* شريط التقدم */}
+        <div className="mb-3.5 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-navy-800">
+          <div
+            className="h-full bg-gradient-to-r from-emeraldBrand-500 to-emeraldBrand-600 transition-all duration-300"
+            style={{ width: `${Math.max(progressPercent, 12)}%` }}
+          />
+        </div>
+
+        {/* أزرار الخطوات */}
+        <div className="grid grid-cols-4 gap-2 text-center">
+          {[
+            { id: "step-1", num: "1", label: "القسم", done: step1Done },
+            { id: "step-2", num: "2", label: "التفاصيل", done: step2Done },
+            { id: "step-3", num: "3", label: "السعر والصور", done: step3Done },
+            { id: "step-4", num: "4", label: "التواصل", done: step4Done },
+          ].map((st) => (
+            <button
+              type="button"
+              key={st.id}
+              onClick={() => {
+                document.getElementById(st.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-xl p-2 transition",
+                st.done
+                  ? "bg-emeraldBrand-50 font-bold text-emeraldBrand-700 dark:bg-emeraldBrand-500/10 dark:text-emeraldBrand-400"
+                  : "bg-slate-50 text-slate-500 hover:bg-slate-100 dark:bg-navy-800/60 dark:text-slate-400"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full text-xs font-mono font-bold",
+                  st.done
+                    ? "bg-emeraldBrand-600 text-white"
+                    : "bg-slate-200 text-slate-700 dark:bg-navy-700 dark:text-slate-200"
+                )}
+              >
+                {st.done ? "✓" : st.num}
+              </span>
+              <span className="line-clamp-1 text-[11px]">{st.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <form
@@ -696,7 +842,7 @@ export default function PostAdPage() {
       >
         <div className="space-y-5">
           {/* ============================ 1) التصنيف ============================ */}
-          <Section step="1" title="نوع الإعلان" desc="اختر التصنيف، ثم ستظهر الحقول المناسبة له تلقائياً">
+          <Section id="step-1" step="1" title="نوع الإعلان" desc="اختر القسم الذي يناسب ما تريد عرضه">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {(
                 [
@@ -745,11 +891,23 @@ export default function PostAdPage() {
                 );
               })}
             </div>
+            <div className="mt-4 flex justify-end border-t border-navy-100 pt-3 dark:border-navy-800">
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById("step-2")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="btn-navy btn-sm inline-flex items-center gap-1.5"
+              >
+                <span>الانتقال لكتابة التفاصيل</span>
+                <span dir="ltr">↓</span>
+              </button>
+            </div>
           </Section>
 
           {/* ====================== 2) التفاصيل حسب التصنيف ====================== */}
           {cat === "real-estate" && (
-            <Section step="2" title="تفاصيل العقار" desc="نوع العقار، نوع التعامل (بيع أو إيجار)، المساحة والأوراق">
+            <Section id="step-2" step="2" title="تفاصيل العقار" desc="نوع العقار، نوع التعامل (بيع أو إيجار)، المساحة والأوراق">
               <div data-error={Boolean(errors.propertyType)}>
                 <label className="label">نوع العقار *</label>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -872,7 +1030,7 @@ export default function PostAdPage() {
           )}
 
           {cat === "vehicles" && (
-            <Section step="2" title="تفاصيل المركبة" desc="النوع، الماركة والموديل، سنة الصنع، الحالة والنمرة">
+            <Section id="step-2" step="2" title="تفاصيل المركبة" desc="النوع، الماركة والموديل، سنة الصنع، الحالة والنمرة">
               <div data-error={Boolean(errors.vehicleType)}>
                 <label className="label">نوع المركبة *</label>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -1020,6 +1178,7 @@ export default function PostAdPage() {
 
           {(cat === "furniture" || cat === "appliances" || cat === "clothing") && (
             <Section
+              id="step-2"
               step="2"
               title={cat === "furniture" ? "تفاصيل الأثاث" : cat === "appliances" ? "تفاصيل الجهاز" : "تفاصيل الملابس"}
               desc="النوع والحالة — إضافة الماركة أو المقاس عند الحاجة"
@@ -1098,6 +1257,7 @@ export default function PostAdPage() {
 
           {cat === "phones" && (
             <Section
+              id="step-2"
               step="2"
               title="تفاصيل الهاتف"
               desc="الماركة والموديل بالأيقونات الرسمية + الحالة + سعة التخزين"
@@ -1173,7 +1333,7 @@ export default function PostAdPage() {
           )}
 
           {cat === "jobs" && (
-            <Section step="2" title="تفاصيل الوظيفة" desc="عرض وظيفة (تبحث عن موظف) أو طلب عمل (تبحث عن عمل)">
+            <Section id="step-2" step="2" title="تفاصيل الوظيفة" desc="عرض وظيفة (تبحث عن موظف) أو طلب عمل (تبحث عن عمل)">
               <div>
                 <label className="label">نوع الإعلان *</label>
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -1252,7 +1412,7 @@ export default function PostAdPage() {
           )}
 
           {/* ============================== 3) المدينة ============================== */}
-          <Section step="3" title="المدينة" desc="اختر المدينة التي يقع فيها ما تعرضه">
+          <Section step="2" title="المدينة والموقع" desc="اختر المدينة التي يقع فيها ما تعرضه">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="label">المدينة</label>
@@ -1275,7 +1435,7 @@ export default function PostAdPage() {
           </Section>
 
           {/* ============================== 4) المحتوى ============================== */}
-          <Section step="4" title="عنوان الإعلان والوصف" desc="عنوان واضح ووصف دقيق يزيدان فرص البيع أو التوظيف">
+          <Section step="2" title="عنوان الإعلان ووصفه" desc="عنوان واضح ووصف دقيق يزيدان فرص البيع أو التوظيف">
             <div data-error={Boolean(errors.title)}>
               <label className="label">عنوان الإعلان *</label>
               <input
@@ -1297,16 +1457,26 @@ export default function PostAdPage() {
                 }
                 className="input"
               />
-              <p className="hint">{form.title.length}/90 حرفاً</p>
+              <p className="hint">{form.title.length}/90 حرفاً (يكفي 4 أحرف كحد أدنى)</p>
               {errors.title && <p className="error-text">{errors.title}</p>}
             </div>
 
             <div className="mt-4" data-error={Boolean(errors.description)}>
-              <label className="label">الوصف التفصيلي *</label>
+              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                <label className="label mb-0">الوصف التفصيلي *</label>
+                <button
+                  type="button"
+                  onClick={handleSmartDescription}
+                  className="inline-flex items-center gap-1 rounded-lg border border-amberBrand-300 bg-amberBrand-50 px-2.5 py-1 text-[11.5px] font-bold text-amberBrand-800 transition hover:bg-amberBrand-100 dark:border-amberBrand-600/40 dark:bg-amberBrand-500/10 dark:text-amberBrand-300"
+                >
+                  <Sparkles size={13} className="text-amberBrand-600" />
+                  صياغة وصف مقترح تلقائياً
+                </button>
+              </div>
               <textarea
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
-                rows={6}
+                rows={5}
                 maxLength={1500}
                 placeholder={
                   cat === "jobs"
@@ -1315,14 +1485,28 @@ export default function PostAdPage() {
                 }
                 className="input resize-y leading-7"
               />
-              <p className="hint">{form.description.length}/1500 حرفاً</p>
+              <p className="hint">{form.description.length}/1500 حرفاً (يكفي 10 أحرف كحد أدنى)</p>
               {errors.description && <p className="error-text">{errors.description}</p>}
+            </div>
+
+            <div className="mt-4 flex justify-end border-t border-navy-100 pt-3 dark:border-navy-800">
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById("step-3")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="btn-navy btn-sm inline-flex items-center gap-1.5"
+              >
+                <span>الانتقال للسعر والصور</span>
+                <span dir="ltr">↓</span>
+              </button>
             </div>
           </Section>
 
           {/* ============================== 5) السعر ============================== */}
           <Section
-            step="5"
+            id="step-3"
+            step="3"
             title={isJob ? "الأجر (اختياري)" : "السعر والعملة"}
             desc="يُحوَّل السعر تلقائياً ويُعرض بالعملتين معاً"
           >
@@ -1344,10 +1528,14 @@ export default function PostAdPage() {
                     type="number"
                     inputMode="numeric"
                     min={0}
+                    disabled={form.priceOnRequest}
                     value={form.price}
                     onChange={(e) => set("price", e.target.value)}
-                    placeholder={form.currency === "USD" ? "38000" : "494000000"}
-                    className="input pr-9 text-lg font-bold"
+                    placeholder={form.priceOnRequest ? "السعر عند الطلب" : form.currency === "USD" ? "38000" : "494000000"}
+                    className={cn(
+                      "input pr-9 text-lg font-bold",
+                      form.priceOnRequest && "cursor-not-allowed opacity-50"
+                    )}
                   />
                 </div>
                 {errors.price && <p className="error-text">{errors.price}</p>}
@@ -1360,12 +1548,14 @@ export default function PostAdPage() {
                     <button
                       type="button"
                       key={c}
+                      disabled={form.priceOnRequest}
                       onClick={() => set("currency", c)}
                       className={cn(
                         "rounded-lg px-4 py-2 text-[12.5px] font-bold transition",
                         form.currency === c
                           ? "bg-white text-navy-900 shadow-sm dark:bg-navy-900 dark:text-white"
-                          : "text-navy-500 dark:text-navy-200"
+                          : "text-navy-500 dark:text-navy-200",
+                        form.priceOnRequest && "cursor-not-allowed opacity-50"
                       )}
                     >
                       {c === "USD" ? "$ دولار" : "ل.س ليرة"}
@@ -1374,6 +1564,29 @@ export default function PostAdPage() {
                 </div>
               </div>
             </div>
+
+            {!isJob && (
+              <label className="mt-3 flex cursor-pointer select-none items-center gap-2 text-xs font-semibold text-navy-700 dark:text-navy-200">
+                <input
+                  type="checkbox"
+                  checked={form.priceOnRequest}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    set("priceOnRequest", checked);
+                    if (checked) {
+                      set("price", "");
+                      setErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.price;
+                        return copy;
+                      });
+                    }
+                  }}
+                  className="h-4 w-4 rounded border-navy-300 text-amberBrand-500 focus:ring-amberBrand-400"
+                />
+                <span>السعر عند الطلب / بالاتفاق (لا أرغب في تحديد رقم الآن)</span>
+              </label>
+            )}
 
             {converted && (
               <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-emeraldBrand-200 bg-emeraldBrand-50/70 p-3.5 dark:border-emeraldBrand-500/30 dark:bg-emeraldBrand-500/10">
@@ -1411,7 +1624,7 @@ export default function PostAdPage() {
 
           {/* ============================== 6) الصور ============================== */}
           <Section
-            step="6"
+            step="3"
             title="صور الإعلان"
             desc={`أضف صوراً حقيقية من جوالك — تُضغط تلقائياً. الصورة الأولى هي الغلاف (اختياري، حتى ${MAX_AD_PHOTOS} صور)`}
           >
@@ -1550,10 +1763,23 @@ export default function PostAdPage() {
                 </button>
               )}
             </div>
+
+            <div className="mt-4 flex justify-end border-t border-navy-100 pt-3 dark:border-navy-800">
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById("step-4")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="btn-navy btn-sm inline-flex items-center gap-1.5"
+              >
+                <span>الانتقال لبيانات التواصل والنشر</span>
+                <span dir="ltr">↓</span>
+              </button>
+            </div>
           </Section>
 
           {/* =========================== 7) بيانات التواصل =========================== */}
-          <Section step="7" title="بيانات التواصل" desc="لن تُعرض بياناتك علناً إلا بعد نشر الإعلان">
+          <Section id="step-4" step="4" title="بيانات التواصل" desc="لن تُعرض بياناتك علناً إلا بعد نشر الإعلان">
             <div className="grid gap-4 sm:grid-cols-2">
               <div data-error={Boolean(errors.sellerName)}>
                 <label className="label">الاسم أو اسم المكتب *</label>
@@ -1692,18 +1918,20 @@ export default function PostAdPage() {
 /* ---------------------------- مكوّنات مساعدة ---------------------------- */
 
 function Section({
+  id,
   step,
   title,
   desc,
   children,
 }: {
+  id?: string;
   step: string;
   title: string;
   desc?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="card p-5">
+    <section id={id} className="card p-5 scroll-mt-20">
       <header className="mb-4 flex items-start gap-3">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-navy-900 text-[13px] font-extrabold text-amberBrand-400 dark:bg-white dark:text-navy-900">
           {step}
