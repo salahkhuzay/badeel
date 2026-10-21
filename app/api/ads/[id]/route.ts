@@ -34,7 +34,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   if (!patch || typeof patch !== "object") {
     return NextResponse.json({ error: "لا يوجد patch" }, { status: 400 });
   }
-  /* حقول قابلة للتعديل من اللوحة فقط — لا يُسمح بتغيير id/ref عبر هنا */
+  /* حقول قابلة للتعديل من اللوحة فقط — لا يُسمح بتغيير id عبر هنا */
   const safe: Partial<Ad> = {};
   for (const k of [
     "status",
@@ -44,8 +44,15 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     "description",
     "price",
     "currency",
+    "priceUsd",
+    "priceSyp",
+    "priceOnRequest",
+    "negotiable",
     "category",
     "cityId",
+    "sellerName",
+    "sellerPhone",
+    "sellerWhatsapp",
     "rejectionReason",
     "publishedAt",
     "soldAt",

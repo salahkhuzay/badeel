@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   BadgeCheck,
   CheckCircle2,
+  Edit3,
   ExternalLink,
   Eye,
   Search,
@@ -13,15 +14,18 @@ import {
   Tag,
   Trash2,
   Undo2,
+  X,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/Toast";
 import StatusBadge from "@/components/StatusBadge";
 import { InlinePrice } from "@/components/Price";
 import { formatDate, timeAgo } from "@/lib/currency";
-import { STATUS_META, categoryName, categoryShort, plateRegionName } from "@/lib/taxonomy";
-import type { Ad, AdStatus } from "@/lib/types";
+import { STATUS_META, MAIN_CATEGORIES, categoryName, categoryShort, plateRegionName } from "@/lib/taxonomy";
+import type { Ad, AdStatus, MainCategory } from "@/lib/types";
 import AdArtwork from "@/lib/artwork";
+import { getRateKey } from "@/lib/remote-rate";
+import { moderateRemoteAd } from "@/lib/remote-ads";
 
 const FILTERS: { id: AdStatus | "all"; name: string }[] = [
   { id: "all", name: "الكل" },
@@ -34,10 +38,68 @@ const FILTERS: { id: AdStatus | "all"; name: string }[] = [
 
 /** جدول إدارة كل الإعلانات مع إجراءات بضغطة واحدة */
 export default function AdsTable() {
-  const { ads, moderate, cityById, adsBridge, syncAds } = useStore();
+  const { ads, settings, cities, moderate, cityById, adsBridge, syncAds } = useStore();
   const toast = useToast();
   const [status, setStatus] = useState<AdStatus | "all">("all");
   const [q, setQ] = useState("");
+
+  const [editingAd, setEditingAd] = useState<Ad | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Ad>>({});
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const openEditModal = (ad: Ad) => {
+    setEditingAd(ad);
+    setEditForm({
+      title: ad.title,
+      price: ad.price,
+      currency: ad.currency,
+      priceOnRequest: ad.priceOnRequest,
+      negotiable: ad.negotiable,
+      category: ad.category,
+      cityId: ad.cityId,
+      description: ad.description ?? "",
+      sellerName: ad.sellerName ?? "",
+      sellerPhone: ad.sellerPhone ?? "",
+      sellerWhatsapp: ad.sellerWhatsapp ?? "",
+      status: ad.status,
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAd) return;
+    setSavingEdit(true);
+    try {
+      const key = getRateKey().trim();
+      const rate = settings.usdToSyp || 14500;
+      const price = Number(editForm.price ?? editingAd.price);
+      const curr = editForm.currency ?? editingAd.currency;
+      const priceUsd = curr === "USD" ? price : Math.round(price / rate);
+      const priceSyp = curr === "SYP" ? price : Math.round(price * rate);
+      const patch = {
+        ...editForm,
+        price,
+        currency: curr,
+        priceUsd,
+        priceSyp,
+      };
+      const res = await moderateRemoteAd(editingAd.id, patch, key);
+      if (res.ok) {
+        toast({
+          type: "success",
+          title: "تم حفظ التعديلات بنجاح",
+          desc: `تم تحديث الإعلان ${editingAd.ref} ونُشر فوراً`,
+        });
+        await syncAds();
+        setEditingAd(null);
+      } else {
+        toast({ type: "error", title: "تعذّر حفظ التعديل", desc: res.error });
+      }
+    } catch (e) {
+      toast({ type: "error", title: "خطأ في الاتصال", desc: String(e) });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const rows = useMemo(() => {
     const needle = q.trim();
@@ -254,6 +316,14 @@ export default function AdsTable() {
                       </IconBtn>
                     )}
 
+                    <IconBtn
+                      title="تعديل تفاصيل الإعلان"
+                      tone="navy"
+                      onClick={() => openEditModal(ad)}
+                    >
+                      <Edit3 size={14} />
+                    </IconBtn>
+
                     <a href={`/ad/${ad.ref}`} target="_blank" rel="noreferrer">
                       <IconBtn title="فتح الإعلان" tone="plain" as="span">
                         <ExternalLink size={14} />
@@ -292,9 +362,179 @@ export default function AdsTable() {
       </div>
 
       <p className="text-[11.5px] leading-relaxed text-navy-400">
-        ملاحظة: كل إجراء (موافقة / رفض / تعليم كمُباع أو مؤجَّر / تمييز / حذف) يُسجَّل فوراً في «سجل
-        العمليات» وينعكس مباشرة على الواجهة العامة وعدّادات البحث.
+        ملاحظة: كل إجراء (تعديل / موافقة / رفض / تعليم كمُباع أو مؤجَّر / تمييز / حذف) يُسجَّل فوراً في «سجل
+        العمليات» وينعكس مباشرة على الواجهة العامة وتلقيم فيسبوك.
       </p>
+
+      {/* نافذة تعديل الإعلان */}
+      {editingAd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/70 p-4 backdrop-blur-sm">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl dark:bg-navy-900">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-navy-700">
+              <div>
+                <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">
+                  تعديل الإعلان: <span className="font-mono text-emerald-600 dark:text-emerald-400">{editingAd.ref}</span>
+                </h3>
+                <p className="text-xs text-slate-500">عدّل البيانات وسيتم حفظها ونشرها فوراً لكل الزوار وتلقيم فيسبوك</p>
+              </div>
+              <button
+                onClick={() => setEditingAd(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-navy-800"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4 text-xs font-bold text-slate-700 dark:text-slate-200">
+              <div>
+                <label className="mb-1 block">عنوان الإعلان</label>
+                <input
+                  type="text"
+                  value={editForm.title ?? ""}
+                  onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-800 outline-none focus:border-emerald-600 dark:border-navy-700 dark:bg-navy-800 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block">القسم</label>
+                  <select
+                    value={editForm.category ?? "real-estate"}
+                    onChange={(e) => setEditForm((p) => ({ ...p, category: e.target.value as any }))}
+                    className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-800 outline-none focus:border-emerald-600 dark:border-navy-700 dark:bg-navy-800 dark:text-slate-100"
+                  >
+                    {MAIN_CATEGORIES.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block">المدينة</label>
+                  <select
+                    value={editForm.cityId ?? "manbij"}
+                    onChange={(e) => setEditForm((p) => ({ ...p, cityId: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-800 outline-none focus:border-emerald-600 dark:border-navy-700 dark:bg-navy-800 dark:text-slate-100"
+                  >
+                    {cities.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block">السعر</label>
+                  <input
+                    type="number"
+                    disabled={Boolean(editForm.priceOnRequest)}
+                    value={editForm.price ?? 0}
+                    onChange={(e) => setEditForm((p) => ({ ...p, price: Number(e.target.value) }))}
+                    className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-800 outline-none focus:border-emerald-600 dark:border-navy-700 dark:bg-navy-800 dark:text-slate-100 disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block">العملة</label>
+                  <select
+                    disabled={Boolean(editForm.priceOnRequest)}
+                    value={editForm.currency ?? "USD"}
+                    onChange={(e) => setEditForm((p) => ({ ...p, currency: e.target.value as any }))}
+                    className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-800 outline-none focus:border-emerald-600 dark:border-navy-700 dark:bg-navy-800 dark:text-slate-100 disabled:opacity-50"
+                  >
+                    <option value="USD">دولار أمريكي ($)</option>
+                    <option value="SYP">ليرة سورية (ل.س)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 pt-1">
+                <label className="flex cursor-pointer items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editForm.priceOnRequest)}
+                    onChange={(e) => setEditForm((p) => ({ ...p, priceOnRequest: e.target.checked }))}
+                  />
+                  السعر عند الطلب
+                </label>
+                <label className="flex cursor-pointer items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editForm.negotiable)}
+                    onChange={(e) => setEditForm((p) => ({ ...p, negotiable: e.target.checked }))}
+                  />
+                  قابل للتفاوض
+                </label>
+              </div>
+
+              <div>
+                <label className="mb-1 block">تفاصيل / وصف الإعلان</label>
+                <textarea
+                  rows={4}
+                  value={editForm.description ?? ""}
+                  onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-800 outline-none focus:border-emerald-600 dark:border-navy-700 dark:bg-navy-800 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block">رقم الهاتف (اتصال)</label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={editForm.sellerPhone ?? ""}
+                    onChange={(e) => setEditForm((p) => ({ ...p, sellerPhone: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-800 outline-none focus:border-emerald-600 dark:border-navy-700 dark:bg-navy-800 dark:text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block">رقم الواتساب</label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={editForm.sellerWhatsapp ?? ""}
+                    onChange={(e) => setEditForm((p) => ({ ...p, sellerWhatsapp: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-800 outline-none focus:border-emerald-600 dark:border-navy-700 dark:bg-navy-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block">حالة الإعلان</label>
+                <select
+                  value={editForm.status ?? "active"}
+                  onChange={(e) => setEditForm((p) => ({ ...p, status: e.target.value as any }))}
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-800 outline-none focus:border-emerald-600 dark:border-navy-700 dark:bg-navy-800 dark:text-slate-100"
+                >
+                  <option value="active">منشور (نشط)</option>
+                  <option value="pending">قيد المراجعة</option>
+                  <option value="sold">تم البيع</option>
+                  <option value="rented">تم التأجير</option>
+                  <option value="rejected">مرفوض</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-200 pt-3 dark:border-navy-700">
+              <button
+                onClick={() => setEditingAd(null)}
+                className="btn-ghost btn-sm"
+                disabled={savingEdit}
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={savingEdit}
+                className="btn-emerald btn-sm"
+              >
+                {savingEdit ? "جارٍ الحفظ..." : "حفظ التعديلات"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
