@@ -3,8 +3,9 @@
 /* ==========================================================================
    AgentChat.tsx — ودجت «وكيل بديل» التفاعلي فائق السرعة
    --------------------------------------------------------------------------
-   - أكورديون تفاعلي: جواب كل سؤال يظهر تحته مباشرة بسهم ينزلق للأسفل.
-   - عند الضغط مرة أخرى يعود السهم أفقياً ويخفي الجواب بسلاسة بين طيات الأسئلة.
+   - أكورديون تفاعلي مباشر: جواب كل سؤال يظهر تحته مباشرة.
+   - سهم ينزلق للأسفل (↓) عند الضغط على السؤال لفتح الإجابة.
+   - عند الضغط عليه مرة أخرى يعود أفقياً (←) ويخفي الجواب بين طيات الأسئلة.
    - إجابات فورية دقيقة مع أزرار الإجراءات السريعة (واتساب، إضافة إعلان...).
    - خيار الرجوع والاستعادة التامة بعد الضغط على ✕ (مسح المحادثة/إغلاق).
    - خانة استفسارات حرة مع مطابقة ذكية وتدهور آمن كامل.
@@ -313,8 +314,10 @@ export default function AgentChat() {
   const usdToSyp = settings.usdToSyp || 15000;
 
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [msgs, busy, open]);
+    if (msgs.length > 1) {
+      listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [msgs, busy]);
 
   /* تصفية الأسئلة حسب الفئة المختارة */
   const filteredFaqs = useMemo(() => {
@@ -433,7 +436,7 @@ export default function AgentChat() {
               </span>
               <div>
                 <p className="text-sm font-extrabold leading-tight">وكيل بديل الذكي</p>
-                <p className="text-[11px] opacity-85 leading-tight">يجيبك فوراً وبدقة — 24/7</p>
+                <p className="text-[11px] opacity-85 leading-tight">إجابات فورية دقيقة — 24/7</p>
               </div>
             </div>
 
@@ -477,49 +480,23 @@ export default function AgentChat() {
 
           {/* المحتوى الرئيسي القابل للتمرير */}
           <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto p-3.5">
-            {/* الرسائل المتبادلة */}
-            {msgs.map((m, i) => (
+            {/* الرسالة الترحيبية الأولى */}
+            {msgs.slice(0, 1).map((m, i) => (
               <div
                 key={i}
-                className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed shadow-sm ${
-                  m.me
-                    ? "mr-auto bg-emerald-600 text-white rounded-br-sm"
-                    : "ml-auto bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-bl-sm"
-                }`}
-                data-qa={m.me ? "agent-msg-user" : "agent-msg-bot"}
+                className="max-w-[95%] rounded-2xl bg-emerald-50 border border-emerald-200/80 p-3 text-[12.5px] leading-relaxed text-emerald-950 shadow-sm dark:bg-emerald-950/40 dark:border-emerald-900/60 dark:text-emerald-100"
+                data-qa="agent-msg-bot"
               >
-                <p className="whitespace-pre-line">{m.text}</p>
-
-                {/* أزرار الإجراءات السريعة إن وُجدت */}
-                {!m.me && m.actionUrl && (
-                  <div className="mt-2.5 pt-2 border-t border-slate-200/70 dark:border-slate-700/70">
-                    <a
-                      href={m.actionUrl}
-                      target={m.actionUrl.startsWith("http") ? "_blank" : undefined}
-                      rel={m.actionUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-                      className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-500"
-                    >
-                      <span>{m.actionText || "زيارة الرابط"}</span>
-                      <ExternalLink size={10} />
-                    </a>
-                  </div>
-                )}
+                <p className="whitespace-pre-line font-medium">{m.text}</p>
               </div>
             ))}
 
-            {busy && (
-              <div className="ml-auto flex items-center gap-2 rounded-2xl bg-slate-100 px-3.5 py-2 text-[12.5px] text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                <span className="h-2 w-2 animate-ping rounded-full bg-emerald-500" />
-                <span>…يكتب الوكيل الذكي</span>
-              </div>
-            )}
-
             {/* ====================================================================
                 أكورديون الأسئلة الشائعة:
-                - جواب كل سؤال ينزلق تحته مباشرة بسهم يتجه للأسفل.
-                - عند الضغط عليه مرة أخرى يعود السهم أفقياً ويخفي الجواب بين طيات الأسئلة.
+                - جواب كل سؤال ينزلق تحته مباشرة بسهم يتجه للأسفل (↓).
+                - عند الضغط عليه مرة أخرى يعود السهم أفقياً (←) ويخفي الجواب بين طيات الأسئلة.
                ==================================================================== */}
-            <div className="mt-4 rounded-2xl border border-slate-200/90 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-navy-800/40">
+            <div className="rounded-2xl border border-slate-200/90 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-navy-800/40">
               <div className="mb-2.5 flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-navy-900 dark:text-white">
                   <Sparkles size={13} className="text-amberBrand-500" />
@@ -590,63 +567,97 @@ export default function AgentChat() {
                           </span>
                         </div>
 
-                        {/* السهم:
-                            - عند الإغلاق: يعود أفقياً (rotate-0) باتجاه اليسار ←.
-                            - عند الفتح: ينزلق للأسفل (-rotate-90) باتجاه الأسفل ↓. */}
+                        {/* السهم التفاعلي:
+                            - عند الإغلاق: يعود أفقياً (rotate(0deg)) باتجاه اليسار ←.
+                            - عند الفتح: ينزلق للأسفل (rotate(-90deg)) متجهاً للأسفل ↓. */}
                         <span
-                          className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all duration-300 ${
-                            isExpanded
-                              ? "-rotate-90 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400"
-                              : "rotate-0 bg-slate-100 text-slate-500 dark:bg-navy-800 dark:text-slate-400"
-                          }`}
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all duration-300"
+                          style={{
+                            transform: isExpanded ? "rotate(-90deg)" : "rotate(0deg)",
+                            backgroundColor: isExpanded ? "rgba(5, 150, 105, 0.15)" : "rgba(241, 245, 249, 1)",
+                            color: isExpanded ? "#059669" : "#64748B",
+                          }}
                           title={isExpanded ? "طي الإجابة (عودة أفقياً)" : "فتح الإجابة (انزلاق للأسفل)"}
                         >
-                          <ArrowLeft size={13} />
+                          <ArrowLeft size={14} />
                         </span>
                       </button>
 
-                      {/* لوحة الإجابة: تنزلق للأسفل بسلاسة وتختفي بين طيات الأسئلة عند الإغلاق */}
-                      <div
-                        className={`grid transition-all duration-300 ease-in-out ${
-                          isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                        }`}
-                      >
-                        <div className="overflow-hidden">
-                          <div className="border-t border-slate-100 bg-slate-50/90 p-3.5 text-[12.5px] leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-navy-950/60 dark:text-slate-200">
-                            <p className="whitespace-pre-line">{replyData.text}</p>
+                      {/* لوحة الإجابة: تنزلق للأسفل مباشرة تحت السؤال وتختفي عند الضغط مرة أخرى */}
+                      {isExpanded && (
+                        <div className="border-t border-slate-100 bg-slate-50/90 p-3.5 text-[12.5px] leading-relaxed text-slate-700 animate-fade-up dark:border-slate-800 dark:bg-navy-950/60 dark:text-slate-200">
+                          <p className="whitespace-pre-line">{replyData.text}</p>
 
-                            {/* أزرار الإجراءات السريعة داخل الجواب المنزلق */}
-                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/70 pt-2.5 dark:border-slate-800/80">
-                              {replyData.actionUrl && (
-                                <a
-                                  href={replyData.actionUrl}
-                                  target={replyData.actionUrl.startsWith("http") ? "_blank" : undefined}
-                                  rel={replyData.actionUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-                                  className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-500"
-                                >
-                                  <span>{replyData.actionText || "زيارة الرابط"}</span>
-                                  <ExternalLink size={10} />
-                                </a>
-                              )}
-
-                              {/* زر طي الإجابة بالأسفل لإخفائها فوراً */}
-                              <button
-                                type="button"
-                                onClick={() => toggleFaq(faq.id)}
-                                className="mr-auto inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-300 dark:bg-navy-800 dark:text-slate-300 dark:hover:bg-navy-700"
+                          {/* أزرار الإجراءات السريعة داخل الجواب المنزلق */}
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/70 pt-2.5 dark:border-slate-800/80">
+                            {replyData.actionUrl && (
+                              <a
+                                href={replyData.actionUrl}
+                                target={replyData.actionUrl.startsWith("http") ? "_blank" : undefined}
+                                rel={replyData.actionUrl.startsWith("http") ? "noopener noreferrer" : undefined}
+                                className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-500"
                               >
-                                <span>طي الإجابة</span>
-                                <ChevronUp size={11} />
-                              </button>
-                            </div>
+                                <span>{replyData.actionText || "زيارة الرابط"}</span>
+                                <ExternalLink size={11} />
+                              </a>
+                            )}
+
+                            {/* زر طي الإجابة لإخفائها والعودة أفقياً */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFaq(faq.id);
+                              }}
+                              className="mr-auto inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-300 dark:bg-navy-800 dark:text-slate-300 dark:hover:bg-navy-700"
+                            >
+                              <span>طي الإجابة</span>
+                              <ChevronUp size={11} />
+                            </button>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
+
+            {/* الرسائل المتبادلة في حال أرسل المستخدم استفساراً حراً */}
+            {msgs.slice(1).map((m, i) => (
+              <div
+                key={i}
+                className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed shadow-sm ${
+                  m.me
+                    ? "mr-auto bg-emerald-600 text-white rounded-br-sm"
+                    : "ml-auto bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-bl-sm"
+                }`}
+                data-qa={m.me ? "agent-msg-user" : "agent-msg-bot"}
+              >
+                <p className="whitespace-pre-line">{m.text}</p>
+
+                {!m.me && m.actionUrl && (
+                  <div className="mt-2.5 pt-2 border-t border-slate-200/70 dark:border-slate-700/70">
+                    <a
+                      href={m.actionUrl}
+                      target={m.actionUrl.startsWith("http") ? "_blank" : undefined}
+                      rel={m.actionUrl.startsWith("http") ? "noopener noreferrer" : undefined}
+                      className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-500"
+                    >
+                      <span>{m.actionText || "زيارة الرابط"}</span>
+                      <ExternalLink size={10} />
+                    </a>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {busy && (
+              <div className="ml-auto flex items-center gap-2 rounded-2xl bg-slate-100 px-3.5 py-2 text-[12.5px] text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                <span className="h-2 w-2 animate-ping rounded-full bg-emerald-500" />
+                <span>…يكتب الوكيل الذكي</span>
+              </div>
+            )}
           </div>
 
           {/* شريط الإدخال للأسئلة المخصصة */}
