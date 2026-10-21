@@ -93,7 +93,7 @@ export default function AdDetailPage() {
   const city = cityById(ad.cityId);
   const cc = settings.whatsappCountryCode;
   const wa = `https://wa.me/${normalizePhone(ad.sellerWhatsapp, cc)}?text=${encodeURIComponent(
-    `مرحباً، أنا مهتم بإعلانك على منصة بديل: ${ad.title}`
+    `مرحباً، أنا مهتم بإعلانك على منصة بديل أونلاين: ${ad.title} (رمز الإعلان: ${ad.ref})`
   )}`;
   const tel = `tel:+${normalizePhone(ad.sellerPhone, cc)}`;
 
