@@ -11,7 +11,7 @@ import {
   migrateContactPhone,
 } from "../lib/contact.ts";
 
-const DEFAULT = "0933177597";
+const DEFAULT = "0986801032";
 let pass = 0;
 let fail = 0;
 
@@ -34,6 +34,7 @@ eq("فراغ", contactDigits(""), "");
 console.log("\n── ② الترحيل الآمن (migrateContactPhone) ──");
 /* الأرقام الافتراضية القديمة → تُحدَّث تلقائياً */
 eq("القديم 0993177597", migrateContactPhone("0993177597", undefined, DEFAULT), DEFAULT);
+eq("القديم 0933177597", migrateContactPhone("0933177597", undefined, DEFAULT), DEFAULT);
 eq("القديم +963993…", migrateContactPhone("+963993177597", undefined, DEFAULT), DEFAULT);
 eq("القديم 00963993…", migrateContactPhone("00963993177597", undefined, DEFAULT), DEFAULT);
 eq("القديم 963993…", migrateContactPhone("963993177597", undefined, DEFAULT), DEFAULT);
@@ -42,7 +43,7 @@ eq("الخاطئ 0933177595", migrateContactPhone("0933177595", undefined, DEFAU
 
 /* الرقم الصحيح والأرقام المخصّصة → لا تُمسّ أبداً */
 eq("الصحيح يبقى", migrateContactPhone(DEFAULT, "default", DEFAULT), DEFAULT);
-eq("الصحيح بصيغة دولية يبقى", migrateContactPhone("+963933177597", "default", DEFAULT), "+963933177597");
+eq("الصحيح بصيغة دولية يبقى", migrateContactPhone("+963986801032", "default", DEFAULT), "+963986801032");
 eq("مخصّص لا يُمسّ", migrateContactPhone("0955555555", "custom", DEFAULT), "0955555555");
 eq("مخصّص يشبه القديم لا يُمسّ", migrateContactPhone("0993177597", "custom", DEFAULT), "0993177597");
 eq("رقم ثانٍ مخصّص لا يُمسّ", migrateContactPhone("0999888777", "custom", DEFAULT), "0999888777");
@@ -52,7 +53,8 @@ eq("غير موجود → الافتراضي", migrateContactPhone(undefined, un
 
 /* تغيير الافتراضي مستقبلاً: القديم يُضاف للقائمة فينتقل الزوار، والمخصّص يبقى */
 eq("هل 0993177597 من القديمة؟", isSupersededPhone("0993177597"), true);
-eq("هل 0933177597 من القديمة؟", isSupersededPhone("0933177597"), false);
+eq("هل 0933177597 من القديمة؟", isSupersededPhone("0933177597"), true);
+eq("هل 0986801032 من القديمة؟", isSupersededPhone("0986801032"), false);
 
 console.log("\n── ③ الأرقام المعروضة (contactNumbers) ──");
 eq("أساسي فقط", contactNumbers({ contactPhone: DEFAULT }), [DEFAULT]);
@@ -64,7 +66,7 @@ eq("ثانٍ بصيغة دولية مختلفة → يظهر", contactNumbers({ 
   DEFAULT,
   "+963999887777",
 ]);
-eq("ثانٍ مكرر بكتابة أخرى → يُدمج", contactNumbers({ contactPhone: DEFAULT, contactPhone2: "+963933177597" }), [
+eq("ثانٍ مكرر بكتابة أخرى → يُدمج", contactNumbers({ contactPhone: DEFAULT, contactPhone2: "+963986801032" }), [
   DEFAULT,
 ]);
 eq("ثانٍ فارغ → لا يظهر", contactNumbers({ contactPhone: DEFAULT, contactPhone2: "   " }), [DEFAULT]);

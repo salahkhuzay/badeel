@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS: Settings = {
   usdToSyp: 13000,
   whatsappCountryCode: "963",
   siteSlogan: "بديل أونلاين — خيارك الأفضل للبيع والشراء في منبج",
-  contactPhone: "0933177597", // هاتف التواصل والدعم (اتصال + واتساب) — بلا كود: يُضبط أيضاً من اللوحة ← الإعدادات. عند تغييره هنا أضف القديم إلى SUPERSEDED_CONTACT_PHONES في lib/contact.ts
+  contactPhone: "0986801032", // هاتف التواصل والدعم المعتمد (اتصال + واتساب) — مضبوط في الموقع وKV
   contactPhone2: "", // رقم ثانٍ اختياري — اتركه فارغاً فيختفي، واملأه من اللوحة فيظهر في الموقع كله
   contactPhoneSource: "default", // يتغيّر إلى "custom" تلقائياً إن ضبط المسؤول رقماً بنفسه
   facebookUrl: "https://www.facebook.com/share/1cmT94zzJk/", // الصفحة الرسمية لبديل على فيسبوك — قابلة للتعديل من اللوحة

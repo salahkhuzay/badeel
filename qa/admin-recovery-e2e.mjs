@@ -108,7 +108,7 @@ ok("الدخول بالكلمة الافتراضية نجح بعد التصفي�
 /* ⑤ بقية الحالة لا تُمس: رقم التواصل ما زال الصحيح */
 const intact = await page.evaluate(() => {
   const st = JSON.parse(localStorage.getItem("badeel.state.v1") ?? "{}");
-  return st.settings?.contactPhone === "0933177597";
+  return st.settings?.contactPhone === "0986801032";
 });
 ok("الإعدادات الأخرى لم تُمس (رقم التواصل سليم)", intact);
 
