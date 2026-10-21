@@ -1,13 +1,13 @@
 "use client";
 
 /* ==========================================================================
-   AgentChat.tsx — ودجت «وكيل بديل» فائق السرعة لمحادثة الزوار
+   AgentChat.tsx — ودجت «وكيل بديل» التفاعلي فائق السرعة
    --------------------------------------------------------------------------
-   - إجابات فورية فائقة السرعة للأسئلة الشائعة (0ms - 120ms).
-   - باقة أسئلة متنوعة وإجابات دقيقة تغطي النشر، الصرف، الأقسام، والأمان.
-   - خيار الرجوع والاستعادة التامة بعد الضغط على ✕ (مسح/إغلاق) دون ضياع المحادثة.
-   - زر «رجوع لقائمة الأسئلة» تحت كل إجابة وفي الرأس للتنقل السلس.
-   - تدهور آمن كامل ودعم الاتصال المباشر بواتساب والإدارة 0986801032.
+   - أكورديون تفاعلي: جواب كل سؤال يظهر تحته مباشرة بسهم ينزلق للأسفل.
+   - عند الضغط مرة أخرى يعود السهم أفقياً ويخفي الجواب بسلاسة بين طيات الأسئلة.
+   - إجابات فورية دقيقة مع أزرار الإجراءات السريعة (واتساب، إضافة إعلان...).
+   - خيار الرجوع والاستعادة التامة بعد الضغط على ✕ (مسح المحادثة/إغلاق).
+   - خانة استفسارات حرة مع مطابقة ذكية وتدهور آمن كامل.
    ========================================================================== */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -15,9 +15,10 @@ import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { displayPhone, supportWhatsapp } from "@/lib/currency";
 import {
+  ArrowLeft,
   ArrowRight,
+  ChevronUp,
   ExternalLink,
-  HelpCircle,
   MessageCircle,
   Phone,
   RotateCcw,
@@ -25,8 +26,6 @@ import {
   Trash2,
   Undo2,
   X,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 
 interface Msg {
@@ -295,13 +294,13 @@ export default function AgentChat() {
   const { settings } = useStore();
   const [open, setOpen] = useState(false);
   const [selectedCat, setSelectedCat] = useState("all");
-  const [showQuestionsCatalog, setShowQuestionsCatalog] = useState(true);
+  const [expandedFaqId, setExpandedFaqId] = useState<string | null>(null);
   const [lastClearedMsgs, setLastClearedMsgs] = useState<Msg[] | null>(null);
 
   const [msgs, setMsgs] = useState<Msg[]>([
     {
       me: false,
-      text: "أهلاً بك! أنا «وكيل بديل» الذكي 🤖\nاسألني عن النشر، أسعار الصرف، الأقسام، أو التواصل مع الإدارة، وسأجيبك فوراً وبدقة.",
+      text: "أهلاً بك في وكيل بديل أونلاين 🤖\nاضغط على أي سؤال أدناه لينزلق جوابه تحته مباشرة، أو اكتب استفسارك الخاص في الخانة بالأسفل.",
     },
   ]);
   const [draft, setDraft] = useState("");
@@ -323,22 +322,9 @@ export default function AgentChat() {
     return FAQS.filter((f) => f.category === selectedCat);
   }, [selectedCat]);
 
-  /* النقر على سؤال سريع للإجابة الفورية */
-  function handleSelectQuestion(item: FaqItem) {
-    const q = item.q;
-    const res = item.reply({ phone, waUrl, fbUrl: fb, usdToSyp });
-    setLastClearedMsgs(null);
-    setMsgs((p) => [
-      ...p,
-      { me: true, text: q },
-      { me: false, text: res.text, actionUrl: res.actionUrl, actionText: res.actionText },
-    ]);
-  }
-
-  /* الرجوع إلى قائمة الأسئلة الرئيسية */
-  function handleBackToQuestions() {
-    setShowQuestionsCatalog(true);
-    listRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  /* التبديل بين فتح السؤال وإغلاقه (انزلاق للأسفل / عودة أفقية) */
+  function toggleFaq(id: string) {
+    setExpandedFaqId((curr) => (curr === id ? null : id));
   }
 
   /* مسح المحادثة بالضغط على ✕ مع حفظ نسخة للتراجع */
@@ -348,10 +334,9 @@ export default function AgentChat() {
     setMsgs([
       {
         me: false,
-        text: "أهلاً بك مجدداً! تم مسح المحادثة.\nيمكنك اختيار أي سؤال من القائمة أدناه أو الضغط على «تراجع / رجوع» لاستعادة ما سبق.",
+        text: "أهلاً بك مجدداً! تم مسح المحادثة السابقة.\nيمكنك فتح أي سؤال من القائمة أدناه أو الضغط على «تراجع / رجوع» لاستعادة المحادثة.",
       },
     ]);
-    setShowQuestionsCatalog(true);
   }
 
   /* استعادة المحادثة بعد الضغط على ✕ (تراجع / رجوع) */
@@ -361,7 +346,7 @@ export default function AgentChat() {
     setLastClearedMsgs(null);
   }
 
-  /* إرسال سؤال حر */
+  /* إرسال سؤال حر عبر الخانة السفلية */
   async function send(text: string) {
     const q = text.trim();
     if (!q || busy) return;
@@ -370,9 +355,10 @@ export default function AgentChat() {
     setMsgs((p) => [...p, { me: true, text: q }]);
     setBusy(true);
 
-    /* 1) مطابقة سريعة محلية (0-100ms) */
+    /* 1) إن طابق أحد الأسئلة الشائعة نفتح أيضاً الأكورديون الخاص به ونرد فورياً */
     const matchedFaq = findMatchingFaq(q);
     if (matchedFaq) {
+      setExpandedFaqId(matchedFaq.id);
       const res = matchedFaq.reply({ phone, waUrl, fbUrl: fb, usdToSyp });
       setTimeout(() => {
         setMsgs((p) => [
@@ -436,7 +422,7 @@ export default function AgentChat() {
 
       {open && (
         <div
-          className="fixed bottom-24 right-4 z-40 flex h-[min(540px,78vh)] w-[min(380px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-pop sm:bottom-16 dark:border-slate-800 dark:bg-navy-900 no-print"
+          className="fixed bottom-24 right-4 z-40 flex h-[min(570px,82vh)] w-[min(390px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:bottom-16 dark:border-slate-800 dark:bg-navy-900 no-print"
           data-qa="agent-chat-panel"
         >
           {/* الرأس */}
@@ -451,29 +437,18 @@ export default function AgentChat() {
               </div>
             </div>
 
-            {/* أدوات التحكم في الرأس: رجوع + مسح + إغلاق */}
+            {/* أدوات التحكم في الرأس: مسح + إغلاق */}
             <div className="flex items-center gap-1.5">
               {msgs.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleBackToQuestions}
-                    title="الرجوع لقائمة الأسئلة"
-                    className="inline-flex items-center gap-1 rounded-lg bg-white/15 px-2 py-1 text-[11px] font-bold text-white transition hover:bg-white/25"
-                  >
-                    <ArrowRight size={12} />
-                    <span>رجوع</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleClearChat}
-                    title="مسح المحادثة (مع خيار التراجع)"
-                    className="rounded-lg bg-white/15 p-1 text-white transition hover:bg-white/25"
-                    aria-label="مسح المحادثة"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={handleClearChat}
+                  title="مسح المحادثة المكتوبة (مع إمكانية التراجع)"
+                  className="rounded-lg bg-white/15 p-1 text-white transition hover:bg-white/25"
+                  aria-label="مسح المحادثة"
+                >
+                  <Trash2 size={15} />
+                </button>
               )}
               <button
                 onClick={() => setOpen(false)}
@@ -488,7 +463,7 @@ export default function AgentChat() {
           {/* شريط استعادة المحادثة بعد الضغط على ✕ (مسح) */}
           {lastClearedMsgs && (
             <div className="flex items-center justify-between border-b border-amberBrand-200 bg-amberBrand-50 px-3 py-2 text-xs text-amberBrand-900 dark:border-amberBrand-800/60 dark:bg-amberBrand-950/40 dark:text-amberBrand-200">
-              <span>تم مسح المحادثة.</span>
+              <span className="font-semibold">تم مسح المحادثة السابقة.</span>
               <button
                 type="button"
                 onClick={handleRestoreChat}
@@ -500,12 +475,13 @@ export default function AgentChat() {
             </div>
           )}
 
-          {/* الرسائل والأسئلة السريعة */}
+          {/* المحتوى الرئيسي القابل للتمرير */}
           <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto p-3.5">
+            {/* الرسائل المتبادلة */}
             {msgs.map((m, i) => (
               <div
                 key={i}
-                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed shadow-sm ${
+                className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed shadow-sm ${
                   m.me
                     ? "mr-auto bg-emerald-600 text-white rounded-br-sm"
                     : "ml-auto bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-bl-sm"
@@ -514,29 +490,18 @@ export default function AgentChat() {
               >
                 <p className="whitespace-pre-line">{m.text}</p>
 
-                {/* أزرار الإجراءات السريعة والرجوع تحت رد البوت */}
-                {!m.me && i > 0 && (
-                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-slate-200/70 pt-2 dark:border-slate-700/70">
-                    <button
-                      type="button"
-                      onClick={handleBackToQuestions}
-                      className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-50 dark:bg-navy-900 dark:text-emerald-400 dark:hover:bg-navy-950"
+                {/* أزرار الإجراءات السريعة إن وُجدت */}
+                {!m.me && m.actionUrl && (
+                  <div className="mt-2.5 pt-2 border-t border-slate-200/70 dark:border-slate-700/70">
+                    <a
+                      href={m.actionUrl}
+                      target={m.actionUrl.startsWith("http") ? "_blank" : undefined}
+                      rel={m.actionUrl.startsWith("http") ? "noopener noreferrer" : undefined}
+                      className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-500"
                     >
-                      <RotateCcw size={11} />
-                      <span>↩️ رجوع لقائمة الأسئلة</span>
-                    </button>
-
-                    {m.actionUrl && (
-                      <a
-                        href={m.actionUrl}
-                        target={m.actionUrl.startsWith("http") ? "_blank" : undefined}
-                        rel={m.actionUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-                        className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-500"
-                      >
-                        <span>{m.actionText || "زيارة الرابط"}</span>
-                        <ExternalLink size={10} />
-                      </a>
-                    )}
+                      <span>{m.actionText || "زيارة الرابط"}</span>
+                      <ExternalLink size={10} />
+                    </a>
                   </div>
                 )}
               </div>
@@ -549,77 +514,143 @@ export default function AgentChat() {
               </div>
             )}
 
-            {/* كتالوج الأسئلة السريعة المتنوعة */}
-            {showQuestionsCatalog && (
-              <div className="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-navy-800/50">
-                <div className="mb-2.5 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-navy-900 dark:text-white">
-                    <Sparkles size={13} className="text-amberBrand-500" />
-                    <span>أسئلة شائعة سريعة (اختر سؤالاً):</span>
-                  </span>
-                  {msgs.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowQuestionsCatalog(false)}
-                      className="text-[11px] font-bold text-slate-400 hover:text-slate-600 dark:text-slate-400"
-                    >
-                      إخفاء
-                    </button>
-                  )}
-                </div>
+            {/* ====================================================================
+                أكورديون الأسئلة الشائعة:
+                - جواب كل سؤال ينزلق تحته مباشرة بسهم يتجه للأسفل.
+                - عند الضغط عليه مرة أخرى يعود السهم أفقياً ويخفي الجواب بين طيات الأسئلة.
+               ==================================================================== */}
+            <div className="mt-4 rounded-2xl border border-slate-200/90 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-navy-800/40">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-navy-900 dark:text-white">
+                  <Sparkles size={13} className="text-amberBrand-500" />
+                  <span>الأسئلة الشائعة (اضغط على أي سؤال لعرض جوابه):</span>
+                </span>
+                {expandedFaqId && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedFaqId(null)}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline dark:text-emerald-400"
+                  >
+                    <span>طي الكل</span>
+                    <ChevronUp size={12} />
+                  </button>
+                )}
+              </div>
 
-                {/* ألسنة التصنيفات */}
-                <div className="mb-2.5 flex flex-wrap gap-1">
-                  {FAQ_CATEGORIES.map((cat) => (
-                    <button
-                      type="button"
-                      key={cat.id}
-                      onClick={() => setSelectedCat(cat.id)}
-                      className={`rounded-lg px-2 py-1 text-[11px] font-bold transition ${
-                        selectedCat === cat.id
-                          ? "bg-emerald-600 text-white shadow-sm"
-                          : "bg-white text-slate-600 hover:bg-slate-200 dark:bg-navy-900 dark:text-slate-300 dark:hover:bg-navy-700"
+              {/* ألسنة التصنيفات */}
+              <div className="mb-2.5 flex flex-wrap gap-1">
+                {FAQ_CATEGORIES.map((cat) => (
+                  <button
+                    type="button"
+                    key={cat.id}
+                    onClick={() => setSelectedCat(cat.id)}
+                    className={`rounded-lg px-2 py-1 text-[11px] font-bold transition ${
+                      selectedCat === cat.id
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "bg-white text-slate-600 hover:bg-slate-200 dark:bg-navy-900 dark:text-slate-300 dark:hover:bg-navy-700"
+                    }`}
+                  >
+                    <span>{cat.icon}</span> <span>{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* قائمة الأكورديون التفاعلية */}
+              <div className="grid gap-2">
+                {filteredFaqs.map((faq) => {
+                  const isExpanded = expandedFaqId === faq.id;
+                  const replyData = faq.reply({ phone, waUrl, fbUrl: fb, usdToSyp });
+
+                  return (
+                    <div
+                      key={faq.id}
+                      className={`overflow-hidden rounded-xl border transition-all duration-200 ${
+                        isExpanded
+                          ? "border-emerald-500 bg-white shadow-md dark:border-emerald-500/80 dark:bg-navy-900"
+                          : "border-slate-200/90 bg-white hover:border-emerald-300 dark:border-slate-700/80 dark:bg-navy-900/90 dark:hover:border-slate-600"
                       }`}
                     >
-                      <span>{cat.icon}</span> <span>{cat.label}</span>
-                    </button>
-                  ))}
-                </div>
+                      {/* رأس السؤال — الضغط عليه يفتح أو يطوي الإجابة */}
+                      <button
+                        type="button"
+                        onClick={() => toggleFaq(faq.id)}
+                        className="flex w-full items-center justify-between gap-2.5 p-3 text-right transition hover:bg-slate-50/70 dark:hover:bg-navy-800/50"
+                        aria-expanded={isExpanded}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <span className="text-base shrink-0">{faq.icon}</span>
+                          <span
+                            className={`text-[12.5px] font-bold leading-snug transition-colors ${
+                              isExpanded
+                                ? "text-emerald-800 dark:text-emerald-300"
+                                : "text-navy-900 dark:text-slate-100"
+                            }`}
+                          >
+                            {faq.q}
+                          </span>
+                        </div>
 
-                {/* شبكة الأسئلة */}
-                <div className="grid gap-1.5">
-                  {filteredFaqs.map((faq) => (
-                    <button
-                      type="button"
-                      key={faq.id}
-                      onClick={() => handleSelectQuestion(faq)}
-                      className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white p-2 text-right text-[12px] font-semibold text-slate-800 shadow-sm transition hover:border-emerald-500 hover:bg-emerald-50/70 hover:text-emerald-900 dark:border-slate-700 dark:bg-navy-900 dark:text-slate-100 dark:hover:border-emerald-500 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
-                    >
-                      <span className="text-sm shrink-0">{faq.icon}</span>
-                      <span className="flex-1 leading-snug">{faq.q}</span>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500">←</span>
-                    </button>
-                  ))}
-                </div>
+                        {/* السهم:
+                            - عند الإغلاق: يعود أفقياً (rotate-0) باتجاه اليسار ←.
+                            - عند الفتح: ينزلق للأسفل (-rotate-90) باتجاه الأسفل ↓. */}
+                        <span
+                          className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all duration-300 ${
+                            isExpanded
+                              ? "-rotate-90 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400"
+                              : "rotate-0 bg-slate-100 text-slate-500 dark:bg-navy-800 dark:text-slate-400"
+                          }`}
+                          title={isExpanded ? "طي الإجابة (عودة أفقياً)" : "فتح الإجابة (انزلاق للأسفل)"}
+                        >
+                          <ArrowLeft size={13} />
+                        </span>
+                      </button>
+
+                      {/* لوحة الإجابة: تنزلق للأسفل بسلاسة وتختفي بين طيات الأسئلة عند الإغلاق */}
+                      <div
+                        className={`grid transition-all duration-300 ease-in-out ${
+                          isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                        }`}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="border-t border-slate-100 bg-slate-50/90 p-3.5 text-[12.5px] leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-navy-950/60 dark:text-slate-200">
+                            <p className="whitespace-pre-line">{replyData.text}</p>
+
+                            {/* أزرار الإجراءات السريعة داخل الجواب المنزلق */}
+                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/70 pt-2.5 dark:border-slate-800/80">
+                              {replyData.actionUrl && (
+                                <a
+                                  href={replyData.actionUrl}
+                                  target={replyData.actionUrl.startsWith("http") ? "_blank" : undefined}
+                                  rel={replyData.actionUrl.startsWith("http") ? "noopener noreferrer" : undefined}
+                                  className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-500"
+                                >
+                                  <span>{replyData.actionText || "زيارة الرابط"}</span>
+                                  <ExternalLink size={10} />
+                                </a>
+                              )}
+
+                              {/* زر طي الإجابة بالأسفل لإخفائها فوراً */}
+                              <button
+                                type="button"
+                                onClick={() => toggleFaq(faq.id)}
+                                className="mr-auto inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-300 dark:bg-navy-800 dark:text-slate-300 dark:hover:bg-navy-700"
+                              >
+                                <span>طي الإجابة</span>
+                                <ChevronUp size={11} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
           </div>
 
-          {/* شريط الإدخال والتبديل السريع */}
+          {/* شريط الإدخال للأسئلة المخصصة */}
           <div className="border-t border-slate-200 bg-slate-50/50 p-2 dark:border-slate-800 dark:bg-navy-950/60">
-            {!showQuestionsCatalog && (
-              <div className="mb-1.5 flex items-center justify-between px-1">
-                <button
-                  type="button"
-                  onClick={() => setShowQuestionsCatalog(true)}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline dark:text-emerald-400"
-                >
-                  <Sparkles size={12} />
-                  <span>💡 إظهار قائمة الأسئلة السريعة ({FAQS.length})</span>
-                </button>
-              </div>
-            )}
-
             <form
               onSubmit={(e) => {
                 e.preventDefault();
