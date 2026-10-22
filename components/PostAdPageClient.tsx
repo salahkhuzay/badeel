@@ -14,6 +14,7 @@ import {
   Bus,
   BusFront,
   CarFront,
+  ChevronDown,
   Construction,
   CheckCircle2,
   CircleDollarSign,
@@ -29,6 +30,7 @@ import {
   MapPin,
   MessageCircle,
   Package,
+  Palette,
   Palmtree,
   Phone,
   Plug,
@@ -263,6 +265,7 @@ export default function PostAdPage() {
   const [vehicleTypeCollapsed, setVehicleTypeCollapsed] = useState(false);
   const [propertyTypeCollapsed, setPropertyTypeCollapsed] = useState(false);
   const [subtypeCollapsed, setSubtypeCollapsed] = useState(false);
+  const [openArt, setOpenArt] = useState(false);
   /* رفع الصور من الجوال — حقل واحد بلا capture:
      نية الكاميرا الخارجية المباشرة كانت تجعل زر «رجوع» في أندرويد يُنهي
      المتصفح أو يعيد تحميله فيخرج المستخدم من الموقع؛ منتقي النظام (الذي يضم
@@ -1872,43 +1875,85 @@ export default function PostAdPage() {
               </div>
             )}
 
-            {/* ④ مكتبة رسوم بديل — تبقى متاحة كخيار إضافي */}
-            <div className="mt-4 border-t border-navy-100 pt-3 dark:border-navy-800">
-              <p className="mb-2 text-[12px] font-bold text-navy-500 dark:text-navy-300">
-                أو اختر من رسوم بديل الجاهزة (لِمن لا يملك صورة):
-              </p>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {SAMPLE_ART.map(({ key, label }) => {
-                  const src = `art:${key}`;
-                  const selected = artPicks.includes(src);
-                  return (
-                    <button
-                      type="button"
-                      key={key}
-                      onClick={() => toggleArt(src)}
-                      className={cn(
-                        "relative aspect-[4/3] overflow-hidden rounded-xl border-2 transition",
-                        selected
-                          ? "border-amberBrand-500"
-                          : "border-transparent opacity-80 hover:opacity-100"
-                      )}
-                    >
-                      <AdArtwork
-                        ad={{ ...previewData, images: [src] }}
-                        className="h-full w-full"
-                      />
-                      <span className="absolute bottom-1 right-1 rounded bg-white/85 px-1.5 text-[10px] font-bold text-navy-700 dark:bg-navy-900/85 dark:text-navy-100">
-                        {label}
-                      </span>
-                      {selected && (
-                        <span className="absolute inset-0 flex items-center justify-center bg-navy-950/40">
-                          <CheckCircle2 size={22} className="text-white" />
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* ④ مكتبة رسوم بديل — مطوية مع سهم ينزلق عند الضغط فتظهر الرسوم البديلة */}
+            <div className="mt-4 overflow-hidden rounded-2xl border border-navy-100 bg-navy-50/40 dark:border-navy-800 dark:bg-navy-900/40">
+              <button
+                type="button"
+                onClick={() => setOpenArt((v) => !v)}
+                className="flex w-full items-center justify-between p-3.5 text-right transition hover:bg-navy-100/50 dark:hover:bg-navy-800/60"
+                aria-expanded={openArt}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amberBrand-500/15 text-amberBrand-600 dark:bg-amberBrand-500/20 dark:text-amberBrand-400">
+                    <Palette size={16} />
+                  </span>
+                  <div>
+                    <p className="text-[12.5px] font-extrabold text-navy-800 dark:text-navy-100">
+                      رسوم بديل الجاهزة (لِمن لا يملك صورة)
+                    </p>
+                    <p className="text-[11px] text-navy-500 dark:text-navy-400">
+                      {artPicks.length > 0
+                        ? `تم اختيار ${artPicks.length} من الرسوم البديلة`
+                        : "اضغط لاختيار رسم توضيحي مناسب لإعلانك"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {artPicks.length > 0 && (
+                    <span className="badge bg-amberBrand-100 text-amberBrand-800 dark:bg-amberBrand-900/40 dark:text-amberBrand-300">
+                      {artPicks.length} مختار
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-full bg-white text-navy-600 shadow-sm transition-transform duration-300 dark:bg-navy-800 dark:text-navy-200",
+                      openArt && "rotate-180"
+                    )}
+                  >
+                    <ChevronDown size={16} />
+                  </span>
+                </div>
+              </button>
+
+              {openArt && (
+                <div className="border-t border-navy-100 p-3.5 pt-3 animate-fade-in dark:border-navy-800">
+                  <p className="mb-2.5 text-[11.5px] text-navy-500 dark:text-navy-400">
+                    اختر رسماً مناسباً لسلعتك أو عقارك أو سيارتك، وسيظهر كغلاف بديل عن الصورة الحقيقية:
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {SAMPLE_ART.map(({ key, label }) => {
+                      const src = `art:${key}`;
+                      const selected = artPicks.includes(src);
+                      return (
+                        <button
+                          type="button"
+                          key={key}
+                          onClick={() => toggleArt(src)}
+                          className={cn(
+                            "relative aspect-[4/3] overflow-hidden rounded-xl border-2 transition hover:scale-[1.02]",
+                            selected
+                              ? "border-amberBrand-500 shadow-sm"
+                              : "border-transparent opacity-80 hover:opacity-100"
+                          )}
+                        >
+                          <AdArtwork
+                            ad={{ ...previewData, images: [src] }}
+                            className="h-full w-full"
+                          />
+                          <span className="absolute bottom-1 right-1 rounded bg-white/85 px-1.5 text-[10px] font-bold text-navy-700 dark:bg-navy-900/85 dark:text-navy-100">
+                            {label}
+                          </span>
+                          {selected && (
+                            <span className="absolute inset-0 flex items-center justify-center bg-navy-950/40">
+                              <CheckCircle2 size={22} className="text-white" />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-3 flex items-center justify-between">
