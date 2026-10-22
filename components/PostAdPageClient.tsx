@@ -257,6 +257,9 @@ export default function PostAdPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewRef, setPreviewRef] = useState("BD-###");
   const [categoryCollapsed, setCategoryCollapsed] = useState(false);
+  const [vehicleTypeCollapsed, setVehicleTypeCollapsed] = useState(false);
+  const [propertyTypeCollapsed, setPropertyTypeCollapsed] = useState(false);
+  const [subtypeCollapsed, setSubtypeCollapsed] = useState(false);
   /* رفع الصور من الجوال — حقل واحد بلا capture:
      نية الكاميرا الخارجية المباشرة كانت تجعل زر «رجوع» في أندرويد يُنهي
      المتصفح أو يعيد تحميله فيخرج المستخدم من الموقع؛ منتقي النظام (الذي يضم
@@ -349,6 +352,10 @@ export default function PostAdPage() {
     const d = loadDraft<Partial<FormState>>();
     if (d && typeof d === "object") {
       setForm((f) => ({ ...f, ...d }));
+      if (d.category) setCategoryCollapsed(true);
+      if (d.vehicleType) setVehicleTypeCollapsed(true);
+      if (d.propertyType) setPropertyTypeCollapsed(true);
+      if (d.subtypeId) setSubtypeCollapsed(true);
       toast({
         type: "info",
         title: "استعدنا مسودتك",
@@ -954,28 +961,54 @@ export default function PostAdPage() {
             <Section id="step-2" step="2" title="تفاصيل العقار" desc="نوع العقار، نوع التعامل (بيع أو إيجار)، المساحة والأوراق">
               <div data-error={Boolean(errors.propertyType)}>
                 <label className="label">نوع العقار *</label>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {PROPERTY_TYPES.map((p) => (
+                {propertyTypeCollapsed && form.propertyType ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-emeraldBrand-500/30 bg-emeraldBrand-50/50 p-3.5 dark:border-emeraldBrand-500/20 dark:bg-emeraldBrand-950/20">
+                    <div className="flex items-center gap-3">
+                      <span className="text-navy-600 dark:text-navy-200">
+                        {PROPERTY_ICONS[form.propertyType as PropertyType]}
+                      </span>
+                      <div>
+                        <span className="text-[11px] font-bold text-emeraldBrand-700 dark:text-emeraldBrand-400">
+                          ✓ نوع العقار المختار
+                        </span>
+                        <h4 className="text-[13.5px] font-extrabold text-navy-900 dark:text-white">
+                          {PROPERTY_TYPES.find((p) => p.id === form.propertyType)?.name || form.propertyType}
+                        </h4>
+                      </div>
+                    </div>
                     <button
                       type="button"
-                      key={p.id}
-                      onClick={() => {
-                        set("propertyType", p.id);
-                        if (DONUM_TYPES.includes(p.id)) set("areaUnit", "donum");
-                        else set("areaUnit", "m2");
-                      }}
-                      className={cn(
-                        "option-card flex-col items-center gap-2 py-3 text-center",
-                        form.propertyType === p.id && "option-card-active"
-                      )}
+                      onClick={() => setPropertyTypeCollapsed(false)}
+                      className="btn-ghost btn-sm text-navy-700 hover:bg-white dark:text-navy-200 dark:hover:bg-navy-800"
                     >
-                      <span className="text-navy-500 dark:text-navy-200">{PROPERTY_ICONS[p.id]}</span>
-                      <span className="text-[12.5px] font-bold text-navy-800 dark:text-navy-100">
-                        {p.name}
-                      </span>
+                      تغيير نوع العقار ↻
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {PROPERTY_TYPES.map((p) => (
+                      <button
+                        type="button"
+                        key={p.id}
+                        onClick={() => {
+                          set("propertyType", p.id);
+                          if (DONUM_TYPES.includes(p.id)) set("areaUnit", "donum");
+                          else set("areaUnit", "m2");
+                          setPropertyTypeCollapsed(true);
+                        }}
+                        className={cn(
+                          "option-card flex-col items-center gap-2 py-3 text-center transition",
+                          form.propertyType === p.id && "option-card-active"
+                        )}
+                      >
+                        <span className="text-navy-500 dark:text-navy-200">{PROPERTY_ICONS[p.id]}</span>
+                        <span className="text-[12.5px] font-bold text-navy-800 dark:text-navy-100">
+                          {p.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {errors.propertyType && <p className="error-text">{errors.propertyType}</p>}
               </div>
 
@@ -1074,32 +1107,9 @@ export default function PostAdPage() {
           )}
 
           {cat === "vehicles" && (
-            <Section id="step-2" step="2" title="تفاصيل المركبة" desc="النوع، الماركة والموديل، سنة الصنع، الحالة والنمرة">
-              <div data-error={Boolean(errors.vehicleType)}>
-                <label className="label">نوع المركبة *</label>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {VEHICLE_TYPES.map((v) => (
-                    <button
-                      type="button"
-                      key={v.id}
-                      onClick={() => set("vehicleType", v.id)}
-                      className={cn(
-                        "option-card flex-col items-center gap-2 py-3 text-center",
-                        form.vehicleType === v.id && "option-card-active"
-                      )}
-                    >
-                      <span className="text-navy-500 dark:text-navy-200">{VEHICLE_ICONS[v.id]}</span>
-                      <span className="text-[12px] font-bold leading-tight text-navy-800 dark:text-navy-100">
-                        {v.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                {errors.vehicleType && <p className="error-text">{errors.vehicleType}</p>}
-              </div>
-
-              {/* الماركة والموديل بالأيقونات */}
-              <div className="mt-5">
+            <Section id="step-2" step="2" title="تفاصيل المركبة" desc="الماركة والموديل أولاً، ثم نوع المركبة وسنة الصنع والحالة">
+              {/* 1) ماركة السيارة والموديل تظهر قبل تفاصيل المركبة بنظام طي بقية الاختيارات */}
+              <div>
                 <BrandSelector
                   brandId={form.brandId}
                   modelId={form.modelId}
@@ -1108,7 +1118,13 @@ export default function PostAdPage() {
                   bodyFilter={form.bodyType || "all"}
                   error={errors.brandId || errors.modelId}
                   onChange={(patch) => {
-                    if (patch.brandId !== undefined) set("brandId", patch.brandId);
+                    if (patch.brandId !== undefined) {
+                      set("brandId", patch.brandId);
+                      if (!form.vehicleType) {
+                        set("vehicleType", "passenger");
+                        setVehicleTypeCollapsed(true);
+                      }
+                    }
                     if (patch.modelId !== undefined) set("modelId", patch.modelId);
                     if (patch.customMake !== undefined) set("customMake", patch.customMake);
                     if (patch.customModel !== undefined) set("customModel", patch.customModel);
@@ -1116,6 +1132,59 @@ export default function PostAdPage() {
                 />
               </div>
 
+              {/* 2) نوع المركبة بنظام طي بقية الاختيارات */}
+              <div className="mt-5" data-error={Boolean(errors.vehicleType)}>
+                <label className="label">نوع المركبة *</label>
+                {vehicleTypeCollapsed && form.vehicleType ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-amberBrand-500/30 bg-amberBrand-50/50 p-3.5 dark:border-amberBrand-500/20 dark:bg-amberBrand-950/20">
+                    <div className="flex items-center gap-3">
+                      <span className="text-navy-600 dark:text-navy-200">
+                        {VEHICLE_ICONS[form.vehicleType as VehicleType]}
+                      </span>
+                      <div>
+                        <span className="text-[11px] font-bold text-amberBrand-700 dark:text-amberBrand-400">
+                          ✓ نوع المركبة المختار
+                        </span>
+                        <h4 className="text-[13.5px] font-extrabold text-navy-900 dark:text-white">
+                          {VEHICLE_TYPES.find((v) => v.id === form.vehicleType)?.name || form.vehicleType}
+                        </h4>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setVehicleTypeCollapsed(false)}
+                      className="btn-ghost btn-sm text-navy-700 hover:bg-white dark:text-navy-200 dark:hover:bg-navy-800"
+                    >
+                      تغيير نوع المركبة ↻
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {VEHICLE_TYPES.map((v) => (
+                      <button
+                        type="button"
+                        key={v.id}
+                        onClick={() => {
+                          set("vehicleType", v.id);
+                          setVehicleTypeCollapsed(true);
+                        }}
+                        className={cn(
+                          "option-card flex-col items-center gap-2 py-3 text-center transition",
+                          form.vehicleType === v.id && "option-card-active"
+                        )}
+                      >
+                        <span className="text-navy-500 dark:text-navy-200">{VEHICLE_ICONS[v.id]}</span>
+                        <span className="text-[12px] font-bold leading-tight text-navy-800 dark:text-navy-100">
+                          {v.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {errors.vehicleType && <p className="error-text">{errors.vehicleType}</p>}
+              </div>
+
+              {/* 3) سنة الصنع، حالة الجسم، نوع الوقود */}
               <div className="mt-5 grid gap-4 sm:grid-cols-3">
                 <div data-error={Boolean(errors.year)}>
                   <label className="label">سنة الصنع {yearRequired ? "*" : "(اختياري)"}</label>
@@ -1231,23 +1300,46 @@ export default function PostAdPage() {
                 <label className="label">
                   {cat === "furniture" ? "نوع الأثاث *" : cat === "appliances" ? "نوع الجهاز *" : "نوع الملابس *"}
                 </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {subtypeList.map((s) => (
+                {subtypeCollapsed && form.subtypeId ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-amberBrand-500/30 bg-amberBrand-50/50 p-3.5 dark:border-amberBrand-500/20 dark:bg-amberBrand-950/20">
+                    <div>
+                      <span className="text-[11px] font-bold text-amberBrand-700 dark:text-amberBrand-400">
+                        ✓ النوع المختار
+                      </span>
+                      <h4 className="text-[13.5px] font-extrabold text-navy-900 dark:text-white">
+                        {subtypeList.find((s) => s.id === form.subtypeId)?.name || form.subtypeId}
+                      </h4>
+                    </div>
                     <button
                       type="button"
-                      key={s.id}
-                      onClick={() => set("subtypeId", s.id)}
-                      className={cn(
-                        "rounded-xl border-2 px-3 py-2 text-[12.5px] font-bold transition",
-                        form.subtypeId === s.id
-                          ? "border-amberBrand-500 bg-amberBrand-50 text-amberBrand-700 dark:border-amberBrand-500 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
-                          : "border-navy-100 text-navy-600 hover:border-amberBrand-300 dark:border-navy-800 dark:text-navy-200"
-                      )}
+                      onClick={() => setSubtypeCollapsed(false)}
+                      className="btn-ghost btn-sm text-navy-700 hover:bg-white dark:text-navy-200 dark:hover:bg-navy-800"
                     >
-                      {s.name}
+                      تغيير النوع ↻
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {subtypeList.map((s) => (
+                      <button
+                        type="button"
+                        key={s.id}
+                        onClick={() => {
+                          set("subtypeId", s.id);
+                          setSubtypeCollapsed(true);
+                        }}
+                        className={cn(
+                          "rounded-xl border-2 px-3 py-2 text-[12.5px] font-bold transition",
+                          form.subtypeId === s.id
+                            ? "border-amberBrand-500 bg-amberBrand-50 text-amberBrand-700 dark:border-amberBrand-500 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+                            : "border-navy-100 text-navy-600 hover:border-amberBrand-300 dark:border-navy-800 dark:text-navy-200"
+                        )}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {errors.subtypeId && <p className="error-text">{errors.subtypeId}</p>}
               </div>
 
@@ -1399,23 +1491,46 @@ export default function PostAdPage() {
 
               <div className="mt-5" data-error={Boolean(errors.subtypeId)}>
                 <label className="label">مجال العمل *</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {subtypeList.map((s) => (
+                {subtypeCollapsed && form.subtypeId ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-amberBrand-500/30 bg-amberBrand-50/50 p-3.5 dark:border-amberBrand-500/20 dark:bg-amberBrand-950/20">
+                    <div>
+                      <span className="text-[11px] font-bold text-amberBrand-700 dark:text-amberBrand-400">
+                        ✓ مجال العمل المختار
+                      </span>
+                      <h4 className="text-[13.5px] font-extrabold text-navy-900 dark:text-white">
+                        {subtypeList.find((s) => s.id === form.subtypeId)?.name || form.subtypeId}
+                      </h4>
+                    </div>
                     <button
                       type="button"
-                      key={s.id}
-                      onClick={() => set("subtypeId", s.id)}
-                      className={cn(
-                        "rounded-xl border-2 px-3 py-2 text-[12.5px] font-bold transition",
-                        form.subtypeId === s.id
-                          ? "border-amberBrand-500 bg-amberBrand-50 text-amberBrand-700 dark:border-amberBrand-500 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
-                          : "border-navy-100 text-navy-600 hover:border-amberBrand-300 dark:border-navy-800 dark:text-navy-200"
-                      )}
+                      onClick={() => setSubtypeCollapsed(false)}
+                      className="btn-ghost btn-sm text-navy-700 hover:bg-white dark:text-navy-200 dark:hover:bg-navy-800"
                     >
-                      {s.name}
+                      تغيير المجال ↻
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {subtypeList.map((s) => (
+                      <button
+                        type="button"
+                        key={s.id}
+                        onClick={() => {
+                          set("subtypeId", s.id);
+                          setSubtypeCollapsed(true);
+                        }}
+                        className={cn(
+                          "rounded-xl border-2 px-3 py-2 text-[12.5px] font-bold transition",
+                          form.subtypeId === s.id
+                            ? "border-amberBrand-500 bg-amberBrand-50 text-amberBrand-700 dark:border-amberBrand-500 dark:bg-amberBrand-500/10 dark:text-amberBrand-400"
+                            : "border-navy-100 text-navy-600 hover:border-amberBrand-300 dark:border-navy-800 dark:text-navy-200"
+                        )}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {errors.subtypeId && <p className="error-text">{errors.subtypeId}</p>}
               </div>
 
