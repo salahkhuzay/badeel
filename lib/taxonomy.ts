@@ -94,6 +94,8 @@ export const RENTABLE: MainCategory[] = ["real-estate", "vehicles"];
 export const PROPERTY_TYPES: { id: PropertyType; name: string; icon: string }[] = [
   { id: "apartment", name: "شقة سكنية", icon: "Building" },
   { id: "house", name: "منزل عربي", icon: "Home" },
+  { id: "farm", name: "مزرعة", icon: "Palmtree" },
+  { id: "building", name: "بناية", icon: "Building2" },
   { id: "land-building", name: "أرض بناء", icon: "LandPlot" },
   { id: "land-agricultural", name: "أرض زراعية", icon: "Trees" },
   { id: "shop", name: "محل تجاري", icon: "Store" },
@@ -373,7 +375,7 @@ export const areaUnitName = (id?: "m2" | "donum") =>
   AREA_UNITS.find((t) => t.id === id)?.name ?? "م²";
 
 /** أنواع العقارات التي تقبل وحدة "دونم" */
-export const DONUM_TYPES: PropertyType[] = ["land-agricultural", "land-building"];
+export const DONUM_TYPES: PropertyType[] = ["land-agricultural", "land-building", "farm"];
 
 /** أنواع المركبات التي تحتاج سنة صنع إلزامية */
 export const YEAR_REQUIRED: VehicleType[] = ["passenger", "truck", "machinery"];

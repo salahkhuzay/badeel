@@ -29,6 +29,7 @@ import {
   MapPin,
   MessageCircle,
   Package,
+  Palmtree,
   Phone,
   Plug,
   Ruler,
@@ -126,6 +127,8 @@ const CATEGORY_TONE: Record<MainCategory, string> = {
 const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
   apartment: <Building size={20} />,
   house: <Home size={20} />,
+  farm: <Palmtree size={20} />,
+  building: <Building2 size={20} />,
   "land-building": <LandPlot size={20} />,
   "land-agricultural": <Trees size={20} />,
   shop: <Store size={20} />,
@@ -985,7 +988,7 @@ export default function PostAdPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {PROPERTY_TYPES.map((p) => (
                       <button
                         type="button"

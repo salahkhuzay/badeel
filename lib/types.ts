@@ -26,6 +26,8 @@ export type MainCategory =
 export type PropertyType =
   | "apartment" // شقة سكنية
   | "house" // منزل عربي
+  | "farm" // مزرعة
+  | "building" // بناية
   | "land-building" // أرض بناء
   | "land-agricultural" // أرض زراعية
   | "shop" // محل تجاري
