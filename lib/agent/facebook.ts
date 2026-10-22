@@ -66,11 +66,16 @@ export async function fbPublishAd(ad: Ad, cityName?: string): Promise<FbResult> 
   const token = cfg.token;
   const caption = fbCaption(ad, cityName);
   const image = (ad.images ?? [])[0];
+  const imageUrl = image
+    ? image.startsWith("data:")
+      ? `${SITE_URL}/api/ad-image/${ad.ref}`
+      : image
+    : "";
   try {
     const params = new URLSearchParams({ access_token: token });
     let endpoint = `${GRAPH}/${pageId}/photos`;
-    if (image) {
-      params.set("url", image);
+    if (imageUrl) {
+      params.set("url", imageUrl);
       params.set("caption", caption);
     } else {
       endpoint = `${GRAPH}/${pageId}/feed`;

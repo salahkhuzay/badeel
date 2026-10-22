@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { CheckCircle2, Search } from "lucide-react";
-import { BRANDS, brandMatches, brandModels } from "@/lib/brands";
+import { BRANDS, PHONE_BRANDS, brandMatches, brandModels } from "@/lib/brands";
 import { bodyTypeOfModel, type BodyTypeId } from "@/lib/vehicleBodies";
 import { cn } from "@/lib/currency";
 import { normalizeArabic } from "@/lib/filters";
@@ -165,53 +165,40 @@ export default function BrandSelector({
 
       {error && <p className="error-text">{error}</p>}
 
-      {/* ------------------------------ الموديلات ------------------------------ */}
+      {/* ------------------------------ كتابة الموديل يدوياً ------------------------------ */}
       {brandId && !isOther && (
-        <div className="mt-4 rounded-2xl border border-navy-100 p-3 dark:border-navy-800">
-          <div className="flex items-center gap-2">
+        <div className="mt-4 rounded-2xl border border-navy-100 bg-navy-50/40 p-3.5 dark:border-navy-800 dark:bg-navy-900/50">
+          <div className="mb-2 flex items-center gap-2">
             <BrandIcon brandId={brandId} size={26} />
             <p className="text-[12.5px] font-extrabold text-navy-800 dark:text-navy-50">
-              موديلات {filtered.find((b) => b.id === brandId)?.name}
+              موديل {filtered.find((b) => b.id === brandId)?.name}
             </p>
-            {modelId && (
+            {(customModel || modelId) && (
               <span className="badge ms-auto bg-emeraldBrand-50 text-emeraldBrand-700 dark:bg-emeraldBrand-500/10 dark:text-emeraldBrand-400">
-                <CheckCircle2 size={11} /> تم اختيار الموديل
+                <CheckCircle2 size={11} /> تم إدخال الموديل
               </span>
             )}
           </div>
 
-          <div className="mt-3">
-            <label className="label">الموديل *</label>
-            <select
-              value={modelId}
-              onChange={(e) => onChange({ modelId: e.target.value })}
-              className="select"
-            >
-              <option value="">— اختر الموديل —</option>
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} {m.en ? `(${m.en})` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {models.map((m) => (
-              <button
-                type="button"
-                key={m.id}
-                onClick={() => onChange({ modelId: m.id })}
-                className={cn(
-                  "rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold transition",
-                  modelId === m.id
-                    ? "bg-navy-900 text-white dark:bg-white dark:text-navy-900"
-                    : "border border-navy-200 text-navy-600 hover:border-amberBrand-400 dark:border-navy-700 dark:text-navy-200"
-                )}
-              >
-                {m.name}
-              </button>
-            ))}
+          <div>
+            <label className="label">اكتب اسم الموديل يدوياً *</label>
+            <input
+              type="text"
+              value={customModel || modelId || ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                onChange({ customModel: val, modelId: val });
+              }}
+              placeholder={
+                brands === PHONE_BRANDS
+                  ? "مثال: 15 برو ماكس، S24 ألترا، نوت 13 برو، رينو 11..."
+                  : "مثال: أفانتي، توسان، سنتافي، كورولا، كيا سيراتو، لانسر..."
+              }
+              className="input bg-white dark:bg-navy-900"
+            />
+            <p className="mt-1 text-[11px] text-navy-400">
+              أدخل الموديل كتابةً بحرية كما هو متعارف عليه في السوق المحلي.
+            </p>
           </div>
         </div>
       )}

@@ -2,10 +2,13 @@ import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Car } from "lucide-react";
 import ListingsBrowser from "@/components/ListingsBrowser";
 import CategoryHeader from "@/components/CategoryHeader";
 import BrandIcon from "@/components/BrandIcon";
+import VehicleBodyIcon from "@/components/VehicleBodyIcon";
 import { BRANDS, PHONE_BRANDS } from "@/lib/brands";
+import { BODY_TYPES } from "@/lib/vehicleBodies";
 import { MAIN_CATEGORIES } from "@/lib/taxonomy";
 import type { MainCategory } from "@/lib/types";
 
@@ -122,6 +125,39 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
                   ماركة أخرى
                 </span>
               </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* أنواع السيارات بالأيقونات — مدمجة رسمياً داخل تصنيف سيارات ومركبات في منبج */}
+      {slug === "vehicles" && (
+        <div className="border-b border-navy-100 bg-white py-4 dark:border-navy-800 dark:bg-navy-950">
+          <div className="container-page">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 text-[13.5px] font-extrabold text-navy-900 dark:text-white">
+                <Car size={16} className="text-amberBrand-500" /> أنواع السيارات بالأيقونات
+                <span className="ms-2 text-[11.5px] font-semibold text-navy-400">
+                  اختر النوع للتصفح السريع
+                </span>
+              </h2>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+              {BODY_TYPES.filter((t) => t.id !== "other").map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/category/vehicles?body=${t.id}`}
+                  title={t.hint}
+                  className="card group flex flex-col items-center gap-1.5 p-2.5 text-center transition hover:border-amberBrand-400"
+                >
+                  <span className="text-navy-700 transition group-hover:text-amberBrand-600 dark:text-navy-100">
+                    <VehicleBodyIcon type={t.id} size={42} />
+                  </span>
+                  <span className="text-[11.5px] font-extrabold text-navy-900 dark:text-white">
+                    {t.name}
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
         </div>

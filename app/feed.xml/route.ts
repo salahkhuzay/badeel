@@ -43,17 +43,20 @@ export async function GET() {
       const desc = [priceLine(a), cityOf(a.cityId), (a.description ?? "").trim().slice(0, 140)]
         .filter(Boolean)
         .join(" — ");
-      const img = (a.images ?? [])[0] ?? "";
+      const hasImg = Boolean(a.images && a.images.length > 0);
+      const img = hasImg ? `${SITE_URL}/api/ad-image/${a.ref}` : `${SITE_URL}/og-cover.png`;
       const when = new Date(a.publishedAt || a.createdAt || Date.now()).toUTCString();
+      const htmlDesc = `<p><img src="${img}" alt="${esc(a.title)}" style="max-width:100%;height:auto;" /></p><p>${esc(desc)}</p>`;
       return `    <item>
       <title>${esc(a.title)}</title>
       <link>${SITE_URL}/ad/${esc(a.ref)}</link>
       <guid isPermaLink="false">${esc(a.id)}</guid>
       <pubDate>${when}</pubDate>
-      <description>${esc(desc)}</description>
-${img ? `      <enclosure url="${esc(img)}" type="image/jpeg" length="0" />
-      <media:content url="${esc(img)}" medium="image" />
-` : ""}    </item>`;
+      <description>${esc(htmlDesc)}</description>
+      <enclosure url="${esc(img)}" type="image/jpeg" length="120000" />
+      <media:content url="${esc(img)}" medium="image" type="image/jpeg" />
+      <media:thumbnail url="${esc(img)}" />
+    </item>`;
     })
     .join("\n");
 

@@ -256,6 +256,7 @@ export default function PostAdPage() {
   const [done, setDone] = useState<Ad | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewRef, setPreviewRef] = useState("BD-###");
+  const [categoryCollapsed, setCategoryCollapsed] = useState(false);
   /* رفع الصور من الجوال — حقل واحد بلا capture:
      نية الكاميرا الخارجية المباشرة كانت تجعل زر «رجوع» في أندرويد يُنهي
      المتصفح أو يعيد تحميله فيخرج المستخدم من الموقع؛ منتقي النظام (الذي يضم
@@ -446,8 +447,8 @@ export default function PostAdPage() {
       if (!form.brandId) e.brandId = "اختر الماركة من الأيقونات.";
       if (form.brandId === "other") {
         if (!form.customMake.trim()) e.brandId = "اكتب اسم الماركة.";
-        if (!form.customModel.trim()) e.modelId = "اكتب الموديل.";
-      } else if (!form.modelId) e.modelId = "اختر الموديل.";
+        if (!form.customModel.trim() && !form.modelId.trim()) e.modelId = "اكتب الموديل يدوياً.";
+      } else if (!form.modelId.trim() && !form.customModel.trim()) e.modelId = "اكتب الموديل يدوياً.";
       if (yearRequired && (!form.year || Number(form.year) < 1950 || Number(form.year) > 2026))
         e.year = "أدخل سنة صنع صحيحة (1950 - 2026).";
       if (!form.bodyCondition) e.bodyCondition = "حدّد حالة الجسم.";
@@ -460,8 +461,8 @@ export default function PostAdPage() {
       if (!form.brandId) e.brandId = "اختر ماركة الهاتف.";
       if (form.brandId === "other-phone") {
         if (!form.customMake.trim()) e.brandId = "اكتب اسم الماركة.";
-        if (!form.customModel.trim()) e.modelId = "اكتب الموديل.";
-      } else if (!form.modelId) e.modelId = "اختر الموديل.";
+        if (!form.customModel.trim() && !form.modelId.trim()) e.modelId = "اكتب الموديل يدوياً.";
+      } else if (!form.modelId.trim() && !form.customModel.trim()) e.modelId = "اكتب الموديل يدوياً.";
       if (!form.condition) e.condition = "حدّد حالة الجهاز (جديد أم مستعمل).";
     } else if (cat === "jobs") {
       if (!form.subtypeId) e.subtypeId = "اختر مجال العمل.";
@@ -542,7 +543,7 @@ export default function PostAdPage() {
     const subtypeLabel = subtypeList.find((s) => s.id === form.subtypeId)?.name;
     const isOtherBrand = form.brandId === "other" || form.brandId === "other-phone";
     const make = isOtherBrand ? form.customMake.trim() : brandName(form.brandId);
-    const model = isOtherBrand ? form.customModel.trim() : modelName(form.brandId, form.modelId);
+    const model = form.customModel.trim() || modelName(form.brandId, form.modelId) || form.modelId.trim();
 
     return {
       id: uid("ad"),
@@ -842,67 +843,110 @@ export default function PostAdPage() {
       >
         <div className="space-y-5">
           {/* ============================ 1) التصنيف ============================ */}
-          <Section id="step-1" step="1" title="نوع الإعلان" desc="اختر القسم الذي يناسب ما تريد عرضه">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {(
-                [
-                  "real-estate",
-                  "vehicles",
-                  "furniture",
-                  "appliances",
-                  "clothing",
-                  "phones",
-                  "jobs",
-                  "other",
-                ] as MainCategory[]
-              ).map((c) => {
-                const meta = { name: categoryName(c) };
-                return (
-                  <button
-                    type="button"
-                    key={c}
-                    onClick={() => {
-                      set("category", c);
-                      set("propertyType", "");
-                      set("vehicleType", "");
-                      set("subtypeId", "");
-                      set("dealType", c === "vehicles" ? "sale" : "sale");
-                      if (c === "jobs") set("negotiable", true);
-                    }}
+          <Section
+            id="step-1"
+            step="1"
+            title="نوع الإعلان"
+            desc={
+              categoryCollapsed && cat
+                ? "تم اختيار القسم وانطوت باقي الأقسام — يمكنك الضغط على «تغيير القسم» لإظهارها مجدداً"
+                : "اختر القسم الذي يناسب ما تريد عرضه"
+            }
+          >
+            {categoryCollapsed && cat ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-emeraldBrand-500/30 bg-emeraldBrand-50/50 p-3.5 dark:border-emeraldBrand-500/20 dark:bg-emeraldBrand-950/20">
+                <div className="flex items-center gap-3">
+                  <span
                     className={cn(
-                      "option-card items-center gap-3 p-3.5",
-                      cat === c && "option-card-active"
+                      "flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm",
+                      CATEGORY_TONE[cat]
                     )}
                   >
-                    <span
+                    {CATEGORY_ICON[cat]}
+                  </span>
+                  <div>
+                    <span className="text-[11px] font-bold text-emeraldBrand-700 dark:text-emeraldBrand-400">
+                      ✓ القسم المختار
+                    </span>
+                    <h3 className="text-base font-extrabold text-navy-900 dark:text-white">
+                      {categoryName(cat)}
+                    </h3>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCategoryCollapsed(false)}
+                  className="btn-ghost btn-sm text-navy-700 hover:bg-white dark:text-navy-200 dark:hover:bg-navy-800"
+                >
+                  تغيير القسم ↻
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {(
+                  [
+                    "real-estate",
+                    "vehicles",
+                    "furniture",
+                    "appliances",
+                    "clothing",
+                    "phones",
+                    "jobs",
+                    "other",
+                  ] as MainCategory[]
+                ).map((c) => {
+                  const meta = { name: categoryName(c) };
+                  return (
+                    <button
+                      type="button"
+                      key={c}
+                      onClick={() => {
+                        set("category", c);
+                        set("propertyType", "");
+                        set("vehicleType", "");
+                        set("subtypeId", "");
+                        set("dealType", "sale");
+                        if (c === "jobs") set("negotiable", true);
+                        setCategoryCollapsed(true);
+                      }}
                       className={cn(
-                        "flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white",
-                        CATEGORY_TONE[c]
+                        "option-card items-center gap-3 p-3.5 transition",
+                        cat === c && "option-card-active"
                       )}
                     >
-                      {CATEGORY_ICON[c]}
-                    </span>
-                    <span className="text-right">
-                      <span className="block text-[13.5px] font-extrabold text-navy-900 dark:text-white">
-                        {meta.name}
+                      <span
+                        className={cn(
+                          "flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white",
+                          CATEGORY_TONE[c]
+                        )}
+                      >
+                        {CATEGORY_ICON[c]}
                       </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-4 flex justify-end border-t border-navy-100 pt-3 dark:border-navy-800">
-              <button
-                type="button"
-                onClick={() => {
-                  document.getElementById("step-2")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="btn-navy btn-sm inline-flex items-center gap-1.5"
-              >
-                <span>الانتقال لكتابة التفاصيل</span>
-                <span dir="ltr">↓</span>
-              </button>
-            </div>
+                      <span className="text-right">
+                        <span className="block text-[13.5px] font-extrabold text-navy-900 dark:text-white">
+                          {meta.name}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {!categoryCollapsed && (
+              <div className="mt-4 flex justify-end border-t border-navy-100 pt-3 dark:border-navy-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryCollapsed(true);
+                    document.getElementById("step-2")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  className="btn-navy btn-sm inline-flex items-center gap-1.5"
+                >
+                  <span>الانتقال لكتابة التفاصيل</span>
+                  <span dir="ltr">↓</span>
+                </button>
+              </div>
+            )}
           </Section>
 
           {/* ====================== 2) التفاصيل حسب التصنيف ====================== */}

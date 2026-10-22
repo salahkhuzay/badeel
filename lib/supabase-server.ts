@@ -116,6 +116,24 @@ export async function sbGetAd(id: string): Promise<Ad | null> {
   }
 }
 
+export async function sbGetAdByRef(ref: string): Promise<Ad | null> {
+  if (!supabaseConfigured()) return null;
+  try {
+    const r = await fetch(`${base()}/rest/v1/ads?ref=eq.${encodeURIComponent(ref)}&select=data`, {
+      headers: headers(),
+      cache: "no-store",
+    });
+    if (r.ok) {
+      const rows = (await r.json().catch(() => null)) as { data?: Ad }[] | null;
+      if (rows?.[0]?.data) return rows[0].data;
+    }
+    const list = await sbListAds(false);
+    return list?.find((a) => a.ref === ref) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function sbDeleteAd(id: string): Promise<boolean> {
   if (!supabaseConfigured()) return false;
   try {

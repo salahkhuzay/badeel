@@ -44,7 +44,6 @@ const NAV = [
 /* قائمة الجوال تضم «كيف يعمل بديل؟» إضافةً إلى التصنيفات */
 const MOBILE_NAV = [
   ...NAV,
-  { href: "/car-types", label: "أنواع السيارات", icon: Car },
   { href: "/how-it-works", label: "كيف يعمل بديل؟", icon: ShieldCheck },
 ];
 
