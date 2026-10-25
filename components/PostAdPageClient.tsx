@@ -85,7 +85,14 @@ import {
   categoryName,
   dealTypesFor,
 } from "@/lib/taxonomy";
-import { PHONE_BRANDS, PHONE_STORAGE, VEHICLE_YEARS, brandName, modelName } from "@/lib/brands";
+import {
+  PHONE_BRANDS,
+  PHONE_STORAGE,
+  VEHICLE_YEARS,
+  brandName,
+  modelName,
+  brandsForVehicleType,
+} from "@/lib/brands";
 import type {
   Ad,
   BodyCondition,
@@ -140,13 +147,17 @@ const PROPERTY_ICONS: Record<PropertyType, React.ReactNode> = {
 const VEHICLE_ICONS: Record<VehicleType, React.ReactNode> = {
   passenger: <CarFront size={20} />,
   pickup: <VehicleBodyIcon type="pickup" size={22} />,
-  truck: <Truck size={20} />,
   van: <VehicleBodyIcon type="van" size={22} />,
+  "medium-truck": <Truck size={20} />,
+  tractor: <Tractor size={20} />,
+  motorcycle: <Bike size={20} />,
   microbus: <BusFront size={20} />,
   bus: <Bus size={20} />,
-  motorcycle: <Bike size={20} />,
-  tractor: <Tractor size={20} />,
   machinery: <Construction size={20} />,
+  "heavy-truck": <Truck size={20} />,
+  "mini-truck": <VehicleBodyIcon type="pickup" size={22} />,
+  other: <Car size={20} />,
+  truck: <Truck size={20} />,
 };
 
 /* مكتبة رسوم مدمجة (SVG مرسوم داخل الصفحة — بلا ملفات ولا طلبات شبكة) */
@@ -437,6 +448,38 @@ export default function PostAdPage() {
   const isJob = cat === "jobs";
   const isRentable = RENTABLE.includes(cat);
   const subtypeList = SUBTYPES[cat];
+
+  const scopedVehicleBrands = useMemo(() => {
+    return brandsForVehicleType(form.vehicleType as VehicleType);
+  }, [form.vehicleType]);
+
+  const vehicleModelPlaceholder = useMemo(() => {
+    switch (form.vehicleType) {
+      case "tractor":
+        return "مثال: 240، 285، 399، TD90، لوفول 504، TAFE 45...";
+      case "heavy-truck":
+      case "medium-truck":
+      case "truck":
+        return "مثال: أكتروس 1840، FH12، F3000، هوهو HOWO، مان TGX، يوروكارجو...";
+      case "machinery":
+        return "مثال: بوكلين 320، تركس 950، بوبكات S130، جك JCB 3CX...";
+      case "motorcycle":
+        return "مثال: بارت رابتر، 150cc، 200cc، دايون 4، CG125، سكوتر...";
+      case "mini-truck":
+        return "مثال: سوزوكي كاري، شانجان ستار، دفسك ميني، لابو...";
+      case "pickup":
+        return "مثال: هاي لوكس، L200، نافارا، D-Max، سييرا، سيلفرادو...";
+      case "van":
+        return "مثال: H1، ستاريا، فيتو، كادي، هايس، ترانزيت، كانجو...";
+      case "microbus":
+        return "مثال: كوستر، كاونتي، روزا، سيفيليان، كينغ لونغ...";
+      case "bus":
+        return "مثال: ترافيكو، سيتارو، ليونز كوتش، يوتونغ 6122...";
+      case "passenger":
+      default:
+        return "مثال: أفانتي، توسان، سنتافي، كيا سيراتو، كورولا، لانسر، كامري...";
+    }
+  }, [form.vehicleType]);
 
   /* ------------------------------- التحقق ------------------------------- */
   function validate(): boolean {
@@ -917,6 +960,11 @@ export default function PostAdPage() {
                         set("category", c);
                         set("propertyType", "");
                         set("vehicleType", "");
+                        setVehicleTypeCollapsed(false);
+                        set("brandId", "");
+                        set("modelId", "");
+                        set("customMake", "");
+                        set("customModel", "");
                         set("subtypeId", "");
                         set("dealType", "sale");
                         if (c === "jobs") set("negotiable", true);
@@ -1113,33 +1161,14 @@ export default function PostAdPage() {
           )}
 
           {cat === "vehicles" && (
-            <Section id="step-2" step="2" title="تفاصيل المركبة" desc="الماركة والموديل أولاً، ثم نوع المركبة وسنة الصنع والحالة">
-              {/* 1) ماركة السيارة والموديل تظهر قبل تفاصيل المركبة بنظام طي بقية الاختيارات */}
-              <div>
-                <BrandSelector
-                  brandId={form.brandId}
-                  modelId={form.modelId}
-                  customMake={form.customMake}
-                  customModel={form.customModel}
-                  bodyFilter={form.bodyType || "all"}
-                  error={errors.brandId || errors.modelId}
-                  onChange={(patch) => {
-                    if (patch.brandId !== undefined) {
-                      set("brandId", patch.brandId);
-                      if (!form.vehicleType) {
-                        set("vehicleType", "passenger");
-                        setVehicleTypeCollapsed(true);
-                      }
-                    }
-                    if (patch.modelId !== undefined) set("modelId", patch.modelId);
-                    if (patch.customMake !== undefined) set("customMake", patch.customMake);
-                    if (patch.customModel !== undefined) set("customModel", patch.customModel);
-                  }}
-                />
-              </div>
-
-              {/* 2) نوع المركبة بنظام طي بقية الاختيارات */}
-              <div className="mt-5" data-error={Boolean(errors.vehicleType)}>
+            <Section
+              id="step-2"
+              step="2"
+              title="تفاصيل المركبة"
+              desc="نوع المركبة أولاً، ثم الماركة والموديل وسنة الصنع والمواصفات"
+            >
+              {/* 1) أول قسم ينبثق: نوع المركبة ويضم الأنواع الـ 12 المحددة */}
+              <div data-error={Boolean(errors.vehicleType)}>
                 <label className="label">نوع المركبة *</label>
                 {vehicleTypeCollapsed && form.vehicleType ? (
                   <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-amberBrand-500/30 bg-amberBrand-50/50 p-3.5 dark:border-amberBrand-500/20 dark:bg-amberBrand-950/20">
@@ -1165,14 +1194,25 @@ export default function PostAdPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
                     {VEHICLE_TYPES.map((v) => (
                       <button
                         type="button"
                         key={v.id}
                         onClick={() => {
+                          const isDifferent = form.vehicleType !== v.id;
                           set("vehicleType", v.id);
                           setVehicleTypeCollapsed(true);
+                          if (isDifferent) {
+                            const newBrands = brandsForVehicleType(v.id);
+                            const keepBrand = newBrands.some((b) => b.id === form.brandId);
+                            if (!keepBrand) {
+                              set("brandId", "");
+                              set("modelId", "");
+                              set("customMake", "");
+                              set("customModel", "");
+                            }
+                          }
                         }}
                         className={cn(
                           "option-card flex-col items-center gap-2 py-3 text-center transition",
@@ -1189,6 +1229,33 @@ export default function PostAdPage() {
                 )}
                 {errors.vehicleType && <p className="error-text">{errors.vehicleType}</p>}
               </div>
+
+              {/* 2) الماركات المخصصة للنوع المختار مع طي الاختيارات فور التحديد وكتابة الموديل يدوياً */}
+              {form.vehicleType ? (
+                <div className="mt-5">
+                  <BrandSelector
+                    brands={scopedVehicleBrands}
+                    brandId={form.brandId}
+                    modelId={form.modelId}
+                    customMake={form.customMake}
+                    customModel={form.customModel}
+                    modelPlaceholder={vehicleModelPlaceholder}
+                    placeholder={`ابحث في ماركات ${VEHICLE_TYPES.find((v) => v.id === form.vehicleType)?.name || "المركبة"}...`}
+                    bodyFilter={form.bodyType || "all"}
+                    error={errors.brandId || errors.modelId}
+                    onChange={(patch) => {
+                      if (patch.brandId !== undefined) set("brandId", patch.brandId);
+                      if (patch.modelId !== undefined) set("modelId", patch.modelId);
+                      if (patch.customMake !== undefined) set("customMake", patch.customMake);
+                      if (patch.customModel !== undefined) set("customModel", patch.customModel);
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="mt-4 rounded-xl border border-dashed border-navy-200 bg-navy-50/50 p-3.5 text-center text-[12px] font-semibold text-navy-500 dark:border-navy-800 dark:bg-navy-900/30 dark:text-navy-400">
+                  اختر نوع المركبة أعلاه لعرض الماركات المخصصة له
+                </div>
+              )}
 
               {/* 3) سنة الصنع، حالة الجسم، نوع الوقود */}
               <div className="mt-5 grid gap-4 sm:grid-cols-3">

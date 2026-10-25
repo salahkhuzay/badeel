@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Search } from "lucide-react";
 import { BRANDS, PHONE_BRANDS, brandMatches } from "@/lib/brands";
 import { bodyTypeOfModel, type BodyTypeId } from "@/lib/vehicleBodies";
@@ -25,6 +25,7 @@ export default function BrandSelector({
   onChange,
   error,
   placeholder = "ابحث عن الماركة: هيونداي، كيا، تويوتا...",
+  modelPlaceholder,
   label = "الماركة *",
   showAllBrands = false,
   bodyFilter = "all",
@@ -32,6 +33,7 @@ export default function BrandSelector({
   /** قائمة الماركات (سيارات افتراضياً، أو ماركات الهواتف) */
   brands?: typeof BRANDS;
   placeholder?: string;
+  modelPlaceholder?: string;
   label?: string;
   brandId: string;
   modelId: string;
@@ -47,6 +49,12 @@ export default function BrandSelector({
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(showAllBrands);
   const [collapsed, setCollapsed] = useState(Boolean(brandId));
+
+  useEffect(() => {
+    if (!brandId) {
+      setCollapsed(false);
+    }
+  }, [brandId]);
 
   /* الماركات التي لها طرازات في نوع الهيكل المختار */
   const scoped = useMemo(() => {
@@ -94,11 +102,12 @@ export default function BrandSelector({
       .filter((b): b is NonNullable<typeof b> => Boolean(b));
   }, [brands, scoped]);
 
-  const visibleBrands = expanded || query.trim() ? filtered : filtered.slice(0, 12);
+  const visibleBrands =
+    expanded || query.trim() || brands.length <= 24 ? filtered : filtered.slice(0, 12);
 
   const selectedBrandObj = brands.find((b) => b.id === brandId);
   const selectedBrandName = isOther
-    ? customMake || (brands === PHONE_BRANDS ? "ماركة هاتف أخرى" : "ماركة سيارة أخرى")
+    ? customMake || (brands === PHONE_BRANDS ? "ماركة هاتف أخرى" : "ماركة أخرى")
     : selectedBrandObj?.name || brandId;
 
   return (
@@ -200,7 +209,7 @@ export default function BrandSelector({
             })}
           </div>
 
-          {!expanded && !query && filtered.length > 12 && (
+          {!expanded && !query && filtered.length > 24 && (
             <button
               type="button"
               onClick={() => setExpanded(true)}
@@ -239,9 +248,10 @@ export default function BrandSelector({
                 onChange({ customModel: val, modelId: val });
               }}
               placeholder={
-                brands === PHONE_BRANDS
+                modelPlaceholder ||
+                (brands === PHONE_BRANDS
                   ? "مثال: 15 برو ماكس، S24 ألترا، نوت 13 برو، رينو 11..."
-                  : "مثال: أفانتي، توسان، سنتافي، كورولا، كيا سيراتو، لانسر..."
+                  : "مثال: أفانتي، توسان، سنتافي، كورولا، كيا سيراتو، لانسر...")
               }
               className="input bg-white dark:bg-navy-900"
             />
@@ -260,7 +270,11 @@ export default function BrandSelector({
             <input
               value={customMake ?? ""}
               onChange={(e) => onChange({ customMake: e.target.value })}
-              placeholder={brands === PHONE_BRANDS ? "مثال: تكنو، ون بلس، جوجل بكسل..." : "مثال: سوزوكي، شيري، فيات..."}
+              placeholder={
+                brands === PHONE_BRANDS
+                  ? "مثال: تكنو، ون بلس، جوجل بكسل..."
+                  : "اكتب اسم الماركة (مثال: شيري، فوتون، جيتور...)"
+              }
               className="input"
             />
           </div>
@@ -272,7 +286,10 @@ export default function BrandSelector({
                 const val = e.target.value;
                 onChange({ customModel: val, modelId: val });
               }}
-              placeholder={brands === PHONE_BRANDS ? "مثال: سبارك 20، بكسل 8..." : "مثال: سويفت، تيجو، 132..."}
+              placeholder={
+                modelPlaceholder ||
+                (brands === PHONE_BRANDS ? "مثال: سبارك 20، بكسل 8..." : "اكتب الموديل...")
+              }
               className="input"
             />
           </div>

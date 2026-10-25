@@ -103,18 +103,32 @@ export const PROPERTY_TYPES: { id: PropertyType; name: string; icon: string }[] 
 ];
 
 /* ------------------------------ المركبات ------------------------------ */
-/* موجة 17 (بلاغ 2026-10-13): أنواع السوق كما ينطقها — سياحية/جيب، فصل البيك أب
-   عن الشاحنات، فصل الجرار عن الآليات الثقيلة، وإضافة فان وميكروباص وباص. */
+/* أنواع المركبات الـ 12 المحددة في السوق بالترتيب المطلوب:
+   1. سيارة سياحية أو جيب
+   2. بيك أب
+   3. فان
+   4. شاحنة متوسطة
+   5. جرار زراعي
+   6. دراجة نارية
+   7. ميكرو باص
+   8. باص
+   9. آليات ثقيلة
+   10. شاحنة كبيرة
+   11. شاحنة صغيرة ( سوزوكي )
+   12. أخرى */
 export const VEHICLE_TYPES: { id: VehicleType; name: string; icon: string }[] = [
-  { id: "passenger", name: "سيارة سياحية / جيب", icon: "CarFront" },
+  { id: "passenger", name: "سيارة سياحية أو جيب", icon: "CarFront" },
   { id: "pickup", name: "بيك أب", icon: "TruckPickup" },
-  { id: "truck", name: "شاحنة", icon: "Truck" },
   { id: "van", name: "فان", icon: "Van" },
-  { id: "microbus", name: "ميكروباص", icon: "BusFront" },
-  { id: "bus", name: "باص", icon: "Bus" },
-  { id: "motorcycle", name: "دراجة نارية", icon: "Bike" },
+  { id: "medium-truck", name: "شاحنة متوسطة", icon: "Truck" },
   { id: "tractor", name: "جرار زراعي", icon: "Tractor" },
+  { id: "motorcycle", name: "دراجة نارية", icon: "Bike" },
+  { id: "microbus", name: "ميكرو باص", icon: "BusFront" },
+  { id: "bus", name: "باص", icon: "Bus" },
   { id: "machinery", name: "آليات ثقيلة", icon: "Construction" },
+  { id: "heavy-truck", name: "شاحنة كبيرة", icon: "Truck" },
+  { id: "mini-truck", name: "شاحنة صغيرة ( سوزوكي )", icon: "TruckPickup" },
+  { id: "other", name: "أخرى", icon: "Car" },
 ];
 
 export const BODY_CONDITIONS: { id: BodyCondition; name: string }[] = [
@@ -357,8 +371,8 @@ export const CURRENCY_LABEL: Record<Currency, { short: string; long: string }> =
 export const propertyTypeName = (id?: PropertyType) =>
   PROPERTY_TYPES.find((t) => t.id === id)?.name ?? "عقار";
 
-export const vehicleTypeName = (id?: VehicleType) =>
-  VEHICLE_TYPES.find((t) => t.id === id)?.name ?? "مركبة";
+export const vehicleTypeName = (id?: VehicleType | string) =>
+  VEHICLE_TYPES.find((t) => t.id === id)?.name ?? (id === "truck" ? "شاحنة" : "مركبة");
 
 export const ownershipName = (id?: OwnershipType) =>
   OWNERSHIP_TYPES.find((t) => t.id === id)?.name ?? "—";
@@ -378,7 +392,19 @@ export const areaUnitName = (id?: "m2" | "donum") =>
 export const DONUM_TYPES: PropertyType[] = ["land-agricultural", "land-building", "farm"];
 
 /** أنواع المركبات التي تحتاج سنة صنع إلزامية */
-export const YEAR_REQUIRED: VehicleType[] = ["passenger", "truck", "machinery"];
+export const YEAR_REQUIRED: VehicleType[] = [
+  "passenger",
+  "pickup",
+  "van",
+  "medium-truck",
+  "heavy-truck",
+  "mini-truck",
+  "truck",
+  "machinery",
+  "bus",
+  "microbus",
+  "tractor",
+];
 
 /** التصنيفات التي تُستخدم فيها الحالة */
 export const CONDITION_CATEGORIES: MainCategory[] = [

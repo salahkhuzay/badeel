@@ -8,6 +8,8 @@ import { LOGOS } from "./logos";
 import { CAR_EXTRA, MOTO_BRANDS, EQUIP_BRANDS } from "./brands-more";
 import { CN_BRANDS } from "./brands-cn";
 import { INTL_CAR_BRANDS } from "./brands-intl";
+import { SCOPED_SPECIAL_BRANDS, getScopedVehicleBrands } from "./vehicle-scoped-brands";
+import type { VehicleType } from "./types";
 
 export { MOTO_BRANDS, EQUIP_BRANDS, CN_BRANDS };
 
@@ -1216,11 +1218,21 @@ export const PHONE_BRANDS: Brand[] = [
 
 /* ============================== أدوات مساعدة ============================== */
 
-/** ماركات السيارات + الدراجات النارية + الآليات + الهواتف */
-const ALL = [...BRANDS, ...MOTO_BRANDS, ...EQUIP_BRANDS, ...PHONE_BRANDS];
+/** ماركات السيارات + الدراجات النارية + الآليات + الهواتف + الماركات المخصصة بالأنواع */
+const ALL = [
+  ...BRANDS,
+  ...MOTO_BRANDS,
+  ...EQUIP_BRANDS,
+  ...PHONE_BRANDS,
+  ...SCOPED_SPECIAL_BRANDS,
+];
 
 /** كل الماركات (سيارات + دراجات + آليات + هواتف) */
 export const ALL_BRANDS = ALL;
+
+/** الماركات المخصصة لنوع المركبة المختار (جرار، شاحنة، دراجة، بيك أب، فان، إلخ) */
+export const brandsForVehicleType = (type?: VehicleType | "") =>
+  getScopedVehicleBrands(type, BRANDS);
 
 export const brandById = (id?: string) => ALL.find((b) => b.id === id);
 

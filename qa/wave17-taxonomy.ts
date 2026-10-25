@@ -14,12 +14,12 @@ const ok = (label: string, cond: boolean, extra = "") => {
 };
 
 const ids = VEHICLE_TYPES.map((t) => t.id);
-ok("تسعة أنواع مركبات", VEHICLE_TYPES.length === 9, ids.join(","));
-for (const id of ["pickup", "tractor", "van", "microbus", "bus"]) {
-  ok(`النوع الجديد موجود: ${id}`, ids.includes(id as (typeof ids)[number]));
+ok("12 نوع مركبة محددة", VEHICLE_TYPES.length === 12, ids.join(","));
+for (const id of ["pickup", "tractor", "van", "microbus", "bus", "medium-truck", "heavy-truck", "mini-truck", "other"]) {
+  ok(`النوع موجود: ${id}`, ids.includes(id as (typeof ids)[number]));
 }
-ok("السياحية صارت «سيارة سياحية / جيب»", VEHICLE_TYPES.find((t) => t.id === "passenger")?.name === "سيارة سياحية / جيب");
-ok("البيك أب منفصل عن الشاحنة", ids.includes("pickup") && VEHICLE_TYPES.find((t) => t.id === "truck")?.name === "شاحنة");
+ok("السياحية صارت «سيارة سياحية أو جيب»", VEHICLE_TYPES.find((t) => t.id === "passenger")?.name === "سيارة سياحية أو جيب");
+ok("البيك أب والشاحنات مفصولة", ids.includes("pickup") && ids.includes("heavy-truck") && ids.includes("medium-truck"));
 ok("الجرار منفصل عن الآليات", VEHICLE_TYPES.find((t) => t.id === "tractor")?.name === "جرار زراعي" && VEHICLE_TYPES.find((t) => t.id === "machinery")?.name === "آليات ثقيلة");
 
 const hyundai = BRANDS.find((b) => b.id === "hyundai")!;
