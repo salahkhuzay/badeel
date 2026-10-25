@@ -5,8 +5,10 @@
    - جرار زراعي: ماسي، نيوهولاند، فوتون لوفول، فرات، سوميكا، زيتور، زووم لايون،
      فيات، ماهيندرا، توموسان، هتات، بارس، كوبوتا، جون دير، يونيفرسال، دونغ فينغ،
      سوليس، تافي، أخرى.
-   - شاحنات (كبيرة ومتوسطة): مرسيدس، فولفو، ايفيكو، مان، سكانيا، شاكمان، سينوتراك،
+   - شاحنة كبيرة: مرسيدس، فولفو، ايفيكو، مان، سكانيا، شاكمان، سينوتراك،
      فوتون، داف، رينو، فاو، دونغ فينغ، جاك، كاماز، ماز، أخرى.
+   - شاحنة متوسطة: بورتر، H100، انتر، ايسوزو، جاك، فوتون، كيا 4000، كيا 2700،
+     هيونداي، كيا، ميتسوبيشي كانتر، دونغ فينغ، فاو، نيسان، تاتا، دايو، أخرى.
    - آليات ثقيلة: كاتربيلر، كوماتسو، هيونداي، ساني، ليوغونغ، شانتوي، بوم، بوماج،
      أمان، بوبكات، JCB، أخرى.
    - دراجات نارية: بارت، عيتاني، عقاد، دلتا، جيلينغ، لونسن، هوندا، ياماها، سوزوكي،
@@ -16,7 +18,7 @@
      شانجان، جريت وول، جاك، مازدا، أخرى.
    - فان: هيونداي، كيا، تويوتا، مرسيدس، فولكس فاجن، فورد، رينو، بيجو، سيتروين، فيات،
      شانجان، دفسك، أخرى.
-   - ميكرو باص: تويوتا، هيونداي، ميتسوبيشي، نيسان، كينغ لونغ، جولدن دراجون، فوتون،
+   - ميكرو باص: آسيا، تويوتا، هيونداي، ميتسوبيشي، نيسان، كينغ لونغ، جولدن دراجون، فوتون،
      جاك، أخرى.
    - باص: مرسيدس، مان، فولفو، سكانيا، يوتونغ، كينغ لونغ، هيجر، أنكاي، دونغ فينغ، أخرى.
    - في كل نوع خيار «أخرى» متاح دائماً.
@@ -58,8 +60,8 @@ export const TRACTOR_BRANDS: Brand[] = [
   OTHER_VEHICLE_BRAND,
 ];
 
-/* ---------------- 2) شاحنات الشحن (كبيرة ومتوسطة) ---------------- */
-export const TRUCK_BRANDS: Brand[] = [
+/* ---------------- 2) شاحنة كبيرة ---------------- */
+export const HEAVY_TRUCK_BRANDS: Brand[] = [
   { id: "mercedes", name: "مرسيدس", en: "Mercedes-Benz", monogram: "M", color: "#000000", logo: "mercedes", origin: "ألمانيا", models: [] },
   { id: "volvo", name: "فولفو", en: "Volvo", monogram: "VOLVO", color: "#003057", logo: "volvo", origin: "السويد", models: [] },
   { id: "iveco", name: "ايفيكو", en: "Iveco", monogram: "IV", color: "#003399", origin: "إيطاليا", models: [] },
@@ -78,7 +80,31 @@ export const TRUCK_BRANDS: Brand[] = [
   OTHER_VEHICLE_BRAND,
 ];
 
-/* ---------------- 3) الآليات الثقيلة ---------------- */
+/* ---------------- 3) شاحنة متوسطة ---------------- */
+export const MEDIUM_TRUCK_BRANDS: Brand[] = [
+  { id: "truck-porter", name: "بورتر", en: "Hyundai Porter", monogram: "P", color: "#002C5F", logo: "hyundai", origin: "كوريا الجنوبية", alt: ["بورتر", "بورترو", "Porter"], models: [] },
+  { id: "truck-h100", name: "H100", en: "Hyundai H100", monogram: "H", color: "#002C5F", logo: "hyundai", origin: "كوريا الجنوبية", alt: ["اتش 100", "H-100", "H100"], models: [] },
+  { id: "truck-inter", name: "انتر", en: "Hyundai Inter / Mighty", monogram: "IN", color: "#002C5F", logo: "hyundai", origin: "كوريا الجنوبية", alt: ["انتر", "إنتر", "مايتي", "Mighty"], models: [] },
+  { id: "isuzu", name: "ايسوزو", en: "Isuzu", monogram: "ISUZU", color: "#CC0000", origin: "اليابان", alt: ["إيسوزو", "ايسوزو شاحنة", "NPR", "NQR"], models: [] },
+  { id: "jac", name: "جاك", en: "JAC", monogram: "JAC", color: "#E53935", origin: "الصين", models: [] },
+  { id: "foton", name: "فوتون", en: "Foton", monogram: "FT", color: "#005BAA", origin: "الصين", alt: ["فوتون شاحنة", "فورلاند"], models: [] },
+  { id: "truck-k4000", name: "كيا 4000", en: "Kia K4000", monogram: "K4", color: "#05141F", logo: "kia", origin: "كوريا الجنوبية", alt: ["كيا 4000", "K4000"], models: [] },
+  { id: "truck-k2700", name: "كيا 2700", en: "Kia K2700", monogram: "K2", color: "#05141F", logo: "kia", origin: "كوريا الجنوبية", alt: ["كيا 2700", "K2700", "بونغو", "Bongo"], models: [] },
+  { id: "hyundai", name: "هيونداي", en: "Hyundai", monogram: "H", color: "#002C5F", logo: "hyundai", origin: "كوريا الجنوبية", models: [] },
+  { id: "kia", name: "كيا", en: "Kia", monogram: "KIA", color: "#05141F", logo: "kia", origin: "كوريا الجنوبية", models: [] },
+  { id: "mitsubishi-canter", name: "ميتسوبيشي كانتر", en: "Mitsubishi Canter", monogram: "MC", color: "#D12640", logo: "mitsubishi", origin: "اليابان", alt: ["كانتر", "Canter"], models: [] },
+  { id: "dongfeng", name: "دونغ فينغ", en: "Dongfeng", monogram: "DF", color: "#C62828", origin: "الصين", models: [] },
+  { id: "faw", name: "فاو", en: "FAW", monogram: "FAW", color: "#003399", origin: "الصين", models: [] },
+  { id: "nissan", name: "نيسان", en: "Nissan Cabstar", monogram: "N", color: "#C3002F", logo: "nissan", origin: "اليابان", alt: ["كابستار", "اتلس", "Cabstar"], models: [] },
+  { id: "tata", name: "تاتا", en: "Tata", monogram: "TATA", color: "#005B94", origin: "الهند", models: [] },
+  { id: "daewoo", name: "دايو", en: "Daewoo", monogram: "D", color: "#0B4EA2", logo: "daewoo", origin: "كوريا الجنوبية", models: [] },
+  OTHER_VEHICLE_BRAND,
+];
+
+/* للتوافق العام مع أي استدعاء سابق */
+export const TRUCK_BRANDS = HEAVY_TRUCK_BRANDS;
+
+/* ---------------- 4) الآليات الثقيلة ---------------- */
 export const MACHINERY_BRANDS: Brand[] = [
   { id: "cat", name: "كاتربيلر", en: "Caterpillar", monogram: "CAT", color: "#FFC72C", text: "#1E293B", logo: "caterpillar", origin: "أمريكا", models: [] },
   { id: "komatsu", name: "كوماتسو", en: "Komatsu", monogram: "KO", color: "#F6A800", text: "#1E293B", logo: "komatsu", origin: "اليابان", models: [] },
@@ -94,7 +120,7 @@ export const MACHINERY_BRANDS: Brand[] = [
   OTHER_VEHICLE_BRAND,
 ];
 
-/* ---------------- 4) الدراجات النارية ---------------- */
+/* ---------------- 5) الدراجات النارية ---------------- */
 export const MOTORCYCLE_BRANDS: Brand[] = [
   { id: "moto-bart", name: "بارت", en: "Bart", monogram: "B", color: "#7C3AED", origin: "سوريا (تجميع)", models: [] },
   { id: "moto-aitani", name: "عيتاني", en: "Aitani", monogram: "ع", color: "#0F766E", origin: "سوريا (تجميع)", models: [] },
@@ -114,7 +140,7 @@ export const MOTORCYCLE_BRANDS: Brand[] = [
   OTHER_VEHICLE_BRAND,
 ];
 
-/* ---------------- 5) شاحنة صغيرة ( سوزوكي ) ---------------- */
+/* ---------------- 6) شاحنة صغيرة ( سوزوكي ) ---------------- */
 export const MINI_TRUCK_BRANDS: Brand[] = [
   { id: "suzuki", name: "سوزوكي", en: "Suzuki Carry", monogram: "S", color: "#E30613", logo: "suzuki", origin: "اليابان", models: [] },
   { id: "changan", name: "شانجان", en: "Changan", monogram: "CA", color: "#003A70", logo: "changan", origin: "الصين", models: [] },
@@ -126,7 +152,7 @@ export const MINI_TRUCK_BRANDS: Brand[] = [
   OTHER_VEHICLE_BRAND,
 ];
 
-/* ---------------- 6) بيك أب ---------------- */
+/* ---------------- 7) بيك أب ---------------- */
 export const PICKUP_BRANDS: Brand[] = [
   { id: "toyota", name: "تويوتا (هاي لوكس / شاص)", en: "Toyota Hilux", monogram: "T", color: "#EB0A1E", logo: "toyota", origin: "اليابان", models: [] },
   { id: "mitsubishi", name: "ميتسوبيشي (L200)", en: "Mitsubishi L200", monogram: "M", color: "#D12640", logo: "mitsubishi", origin: "اليابان", models: [] },
@@ -143,7 +169,7 @@ export const PICKUP_BRANDS: Brand[] = [
   OTHER_VEHICLE_BRAND,
 ];
 
-/* ---------------- 7) فان ---------------- */
+/* ---------------- 8) فان ---------------- */
 export const VAN_BRANDS: Brand[] = [
   { id: "hyundai", name: "هيونداي (H1 / ستاريا)", en: "Hyundai", monogram: "H", color: "#002C5F", logo: "hyundai", origin: "كوريا الجنوبية", models: [] },
   { id: "kia", name: "كيا (بريستيج / كارنيفال)", en: "Kia", monogram: "KIA", color: "#05141F", logo: "kia", origin: "كوريا الجنوبية", models: [] },
@@ -160,10 +186,11 @@ export const VAN_BRANDS: Brand[] = [
   OTHER_VEHICLE_BRAND,
 ];
 
-/* ---------------- 8) ميكرو باص ---------------- */
+/* ---------------- 9) ميكرو باص ---------------- */
 export const MICROBUS_BRANDS: Brand[] = [
+  { id: "micro-asia", name: "آسيا", en: "Asia Motors", monogram: "AS", color: "#0B4EA2", origin: "كوريا الجنوبية", alt: ["اسيا", "Asia", "كومبي", "توبيك"], models: [] },
   { id: "toyota", name: "تويوتا (كوستر)", en: "Toyota Coaster", monogram: "T", color: "#EB0A1E", logo: "toyota", origin: "اليابان", models: [] },
-  { id: "hyundai", name: "هيونداي (كاونتي)", en: "Hyundai County", monogram: "H", color: "#002C5F", logo: "hyundai", origin: "كوريا الجنوبية", models: [] },
+  { id: "hyundai", name: "هيونداي (كاونتي / كورس)", en: "Hyundai County", monogram: "H", color: "#002C5F", logo: "hyundai", origin: "كوريا الجنوبية", models: [] },
   { id: "mitsubishi", name: "ميتسوبيشي (روزا)", en: "Mitsubishi Rosa", monogram: "M", color: "#D12640", logo: "mitsubishi", origin: "اليابان", models: [] },
   { id: "nissan", name: "نيسان (سيفيليان)", en: "Nissan Civilian", monogram: "N", color: "#C3002F", logo: "nissan", origin: "اليابان", models: [] },
   { id: "king-long", name: "كينغ لونغ", en: "King Long", monogram: "KL", color: "#C8102E", origin: "الصين", models: [] },
@@ -173,7 +200,7 @@ export const MICROBUS_BRANDS: Brand[] = [
   OTHER_VEHICLE_BRAND,
 ];
 
-/* ---------------- 9) باص ---------------- */
+/* ---------------- 10) باص ---------------- */
 export const BUS_BRANDS: Brand[] = [
   { id: "mercedes", name: "مرسيدس (باصات)", en: "Mercedes-Benz", monogram: "M", color: "#000000", logo: "mercedes", origin: "ألمانيا", models: [] },
   { id: "man", name: "مان (ليونز كوتش)", en: "MAN Lions Coach", monogram: "MAN", color: "#002B49", origin: "ألمانيا", models: [] },
@@ -190,7 +217,8 @@ export const BUS_BRANDS: Brand[] = [
 /** كل الماركات المخصصة غير السياحية لفهرستها في محرك البحث والعرض العام */
 export const SCOPED_SPECIAL_BRANDS: Brand[] = [
   ...TRACTOR_BRANDS,
-  ...TRUCK_BRANDS,
+  ...HEAVY_TRUCK_BRANDS,
+  ...MEDIUM_TRUCK_BRANDS,
   ...MACHINERY_BRANDS,
   ...MOTORCYCLE_BRANDS,
   ...MINI_TRUCK_BRANDS,
@@ -209,9 +237,10 @@ export function getScopedVehicleBrands(
     case "tractor":
       return TRACTOR_BRANDS;
     case "heavy-truck":
-    case "medium-truck":
     case "truck":
-      return TRUCK_BRANDS;
+      return HEAVY_TRUCK_BRANDS;
+    case "medium-truck":
+      return MEDIUM_TRUCK_BRANDS;
     case "machinery":
       return MACHINERY_BRANDS;
     case "motorcycle":
