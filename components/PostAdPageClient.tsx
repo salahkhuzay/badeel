@@ -277,6 +277,15 @@ export default function PostAdPage() {
   const [propertyTypeCollapsed, setPropertyTypeCollapsed] = useState(false);
   const [subtypeCollapsed, setSubtypeCollapsed] = useState(false);
   const [openArt, setOpenArt] = useState(false);
+  const [dismissWaTip, setDismissWaTip] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("badeel.hide_post_ad_wa_tip") === "true") {
+        setDismissWaTip(true);
+      }
+    } catch {}
+  }, []);
   /* رفع الصور من الجوال — حقل واحد بلا capture:
      نية الكاميرا الخارجية المباشرة كانت تجعل زر «رجوع» في أندرويد يُنهي
      المتصفح أو يعيد تحميله فيخرج المستخدم من الموقع؛ منتقي النظام (الذي يضم
@@ -806,33 +815,51 @@ export default function PostAdPage() {
       </div>
 
       {/* مساعدة سريعة عبر واتساب */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emeraldBrand-200 bg-emeraldBrand-50/80 p-4 text-xs leading-5 text-emeraldBrand-900 dark:border-emeraldBrand-900/40 dark:bg-emeraldBrand-950/30 dark:text-emeraldBrand-200">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emeraldBrand-600 text-white shadow-sm">
-            <MessageCircle size={20} />
-          </span>
-          <div>
-            <p className="text-[13.5px] font-extrabold text-emeraldBrand-950 dark:text-emeraldBrand-100">
-              صعب عليك ملء النموذج؟ أرسله لنا عبر واتساب وننشره لك مجاناً!
-            </p>
-            <p className="text-[11.5px] text-emeraldBrand-800 dark:text-emeraldBrand-300">
-              أرسل صورك وتفاصيل ما تريد بيعه مباشرة وسيقوم فريق بديل أونلاين بصياغته ونشره لك فوراً.
-            </p>
+      {!dismissWaTip && (
+        <div className="relative mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emeraldBrand-200/80 bg-emeraldBrand-50/70 p-4 text-xs leading-5 text-emeraldBrand-900 shadow-sm transition-all dark:border-navy-800 dark:bg-navy-900/90 dark:text-navy-200 dark:shadow-none">
+          <div className="flex items-center gap-3 pr-0.5">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emeraldBrand-600 text-white shadow-sm dark:bg-emerald-500/15 dark:text-emerald-400 dark:shadow-none dark:ring-1 dark:ring-emerald-500/25">
+              <MessageCircle size={20} />
+            </span>
+            <div>
+              <p className="text-[13.5px] font-extrabold text-emeraldBrand-950 dark:text-slate-100">
+                صعب عليك ملء النموذج؟ أرسله لنا عبر واتساب وننشره لك مجاناً!
+              </p>
+              <p className="mt-0.5 text-[11.5px] text-emeraldBrand-800 dark:text-slate-400">
+                أرسل صورك وتفاصيل ما تريد بيعه مباشرة وسيقوم فريق بديل أونلاين بصياغته ونشره لك فوراً.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={supportWhatsapp(
+                settings.contactPhone,
+                settings.whatsappCountryCode,
+                "مرحباً إدارة بديل أونلاين، أرغب بنشر إعلان وهذه تفاصيله وصوره:"
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-emerald btn-sm inline-flex items-center gap-1.5 font-bold shadow-sm dark:border dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300 dark:hover:bg-emerald-500/25 dark:shadow-none"
+            >
+              <MessageCircle size={14} /> إرسال عبر واتساب 0986801032
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                setDismissWaTip(true);
+                try {
+                  localStorage.setItem("badeel.hide_post_ad_wa_tip", "true");
+                } catch {}
+              }}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-emeraldBrand-700/60 transition hover:bg-emeraldBrand-100/70 hover:text-emeraldBrand-900 dark:text-slate-400 dark:hover:bg-navy-800 dark:hover:text-slate-200"
+              title="إخفاء هذه الرسالة"
+              aria-label="إخفاء هذه الرسالة"
+            >
+              <X size={15} />
+            </button>
           </div>
         </div>
-        <a
-          href={supportWhatsapp(
-            settings.contactPhone,
-            settings.whatsappCountryCode,
-            "مرحباً إدارة بديل أونلاين، أرغب بنشر إعلان وهذه تفاصيله وصوره:"
-          )}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-emerald btn-sm inline-flex items-center gap-1.5 font-bold shadow-sm"
-        >
-          <MessageCircle size={14} /> إرسال عبر واتساب 0986801032
-        </a>
-      </div>
+      )}
 
       {/* شريط خطوات ذكي ومؤشر إنجاز */}
       <div className="mb-6 rounded-2xl border border-navy-100 bg-white p-4 shadow-sm dark:border-navy-800 dark:bg-navy-900">
