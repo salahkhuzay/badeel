@@ -711,6 +711,57 @@ export const BRANDS: Brand[] = [
     ],
   },
   {
+    id: "chery",
+    name: "شيري",
+    en: "Chery",
+    monogram: "CH",
+    color: "#E4032E",
+    origin: "الصين",
+    logo: "chery",
+    tags: ["chinese"],
+    alt: ["شيري", "تشيري", "Chery"],
+    models: [
+      { id: "chery-pickup", name: "شيري بيك أب", en: "Chery Pick-up", body: "pickup", hot: true },
+      { id: "tiggo-2", name: "تيجو 2", en: "Tiggo 2", body: "suv", hot: true },
+      { id: "tiggo-2-pro", name: "تيجو 2 برو", en: "Tiggo 2 Pro", body: "suv", hot: true },
+      { id: "tiggo-3", name: "تيجو 3", en: "Tiggo 3", body: "suv" },
+      { id: "tiggo-4", name: "تيجو 4", en: "Tiggo 4", body: "suv", hot: true },
+      { id: "tiggo-7", name: "تيجو 7", en: "Tiggo 7", body: "suv" },
+      { id: "tiggo-7-pro", name: "تيجو 7 برو", en: "Tiggo 7 Pro", body: "suv", hot: true },
+      { id: "tiggo-8", name: "تيجو 8", en: "Tiggo 8", body: "suv", hot: true },
+      { id: "tiggo-8-pro", name: "تيجو 8 برو", en: "Tiggo 8 Pro", body: "suv" },
+      { id: "arrizo-5", name: "أريزو 5", en: "Arrizo 5", body: "sedan", hot: true },
+      { id: "arrizo-6", name: "أريزو 6", en: "Arrizo 6", body: "sedan" },
+      { id: "arrizo-8", name: "أريزو 8", en: "Arrizo 8", body: "sedan" },
+      { id: "chery-qq", name: "كيو كيو", en: "QQ", body: "hatchback", hot: true },
+      { id: "chery-a11", name: "A11", en: "A11", body: "sedan" },
+      { id: "chery-a13", name: "A13 (فولفين)", en: "Fulwin", body: "sedan" },
+      { id: "chery-a15", name: "A15 (كاوين)", en: "Cowin", body: "sedan" },
+      { id: "chery-e5", name: "E5", en: "E5", body: "sedan" },
+    ],
+  },
+  {
+    id: "zaz",
+    name: "زاز دايو",
+    en: "ZAZ Daewoo",
+    monogram: "ZAZ",
+    color: "#0B4EA2",
+    origin: "أوكرانيا / كوريا الجنوبية",
+    logo: "daewoo",
+    alt: ["زاز", "زاز دايو", "دايو زاز", "ZAZ", "ZAZ-Daewoo", "ZAZ Daewoo", "AvtoZAZ"],
+    models: [
+      { id: "zaz-pickup", name: "زاز بيك أب", en: "ZAZ Pick-up", body: "pickup", hot: true },
+      { id: "zaz-sens", name: "سينس", en: "Sens", body: "sedan", hot: true },
+      { id: "zaz-lanos", name: "لانوس", en: "Lanos", body: "sedan", hot: true },
+      { id: "zaz-tavria", name: "تافريا", en: "Tavria", body: "hatchback" },
+      { id: "zaz-tavria-pickup", name: "تافريا بيك أب", en: "Tavria Pick-up", body: "pickup" },
+      { id: "zaz-slavuta", name: "سلافوتا", en: "Slavuta", body: "sedan" },
+      { id: "zaz-dana", name: "دانا", en: "Dana", body: "wagon" },
+      { id: "zaz-vida", name: "فيدا", en: "Vida", body: "sedan" },
+      { id: "zaz-forza", name: "فورزا", en: "Forza", body: "hatchback" },
+    ],
+  },
+  {
     id: "other",
     name: "ماركة أخرى",
     en: "Other",
@@ -722,11 +773,17 @@ export const BRANDS: Brand[] = [
 ];
 
 /* ماركات إضافية شائعة في السوق السوري (فورد، شيفروليه، هوندا، سوزوكي، دايو) */
-for (const b of CAR_EXTRA) BRANDS.push(b);
-for (const b of INTL_CAR_BRANDS) BRANDS.push(b);
+for (const b of CAR_EXTRA) {
+  if (!BRANDS.some((x) => x.id === b.id)) BRANDS.push(b);
+}
+for (const b of INTL_CAR_BRANDS) {
+  if (!BRANDS.some((x) => x.id === b.id)) BRANDS.push(b);
+}
 
 /* الماركات الصينية (شانجان، بي واي دي، جيلي، شيري، إم جي، هافال، جيتور… */
-for (const b of CN_BRANDS) BRANDS.push(b);
+for (const b of CN_BRANDS) {
+  if (!BRANDS.some((x) => x.id === b.id)) BRANDS.push(b);
+}
 
 /* ============================ ماركات الهواتف ============================ */
 

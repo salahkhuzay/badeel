@@ -89,15 +89,15 @@ ok("الشاحنات الكبيرة لا تحوي بارت ولا سكودا", !
 const mediumTruckBrands = brandsForVehicleType("medium-truck");
 const medIds = mediumTruckBrands.map((b) => b.id);
 ok("الشاحنات المتوسطة تحوي بورتر", medIds.includes("truck-porter"));
-ok("الشاحنات المتوسطة تحوي H100", medIds.includes("truck-h100"));
 ok("الشاحنات المتوسطة تحوي انتر", medIds.includes("truck-inter"));
 ok("الشاحنات المتوسطة تحوي ايسوزو", medIds.includes("isuzu"));
 ok("الشاحنات المتوسطة تحوي جاك", medIds.includes("jac"));
 ok("الشاحنات المتوسطة تحوي فوتون", medIds.includes("foton"));
-ok("الشاحنات المتوسطة تحوي كيا 4000", medIds.includes("truck-k4000"));
-ok("الشاحنات المتوسطة تحوي كيا 2700", medIds.includes("truck-k2700"));
-ok("الشاحنات المتوسطة تحوي ميتسوبيشي كانتر", medIds.includes("mitsubishi-canter"));
+ok("الشاحنات المتوسطة تحوي هيونداي", medIds.includes("hyundai"));
+ok("الشاحنات المتوسطة تحوي كيا", medIds.includes("kia"));
+ok("الشاحنات المتوسطة تحوي ميتسوبيشي", medIds.includes("mitsubishi"));
 ok("الشاحنات المتوسطة تحوي خيار أخرى", medIds.includes("other"));
+ok("ماركات الشاحنات المتوسطة لا تحوي أرقاماً في أسمائها", mediumTruckBrands.every((b) => !/\d/.test(b.name)));
 
 console.log("\n=== 4) التحقق من ماركات الآليات الثقيلة ===");
 const machineryBrands = brandsForVehicleType("machinery");
@@ -155,15 +155,40 @@ ok("الميكروباص يحوي تويوتا كوستر", microIds.includes("t
 ok("الميكروباص يحوي هيونداي كاونتي", microIds.includes("hyundai"));
 ok("الميكروباص يحوي ميتسوبيشي روزا", microIds.includes("mitsubishi"));
 ok("الميكروباص يحوي خيار أخرى", microIds.includes("other"));
+ok("ماركات الميكروباص لا تحوي أرقاماً في أسمائها", microBrands.every((b) => !/\d/.test(b.name)));
 
-console.log("\n=== 7) التحقق من البحث عن الماركات عبر brandById ===");
+console.log("\n=== 8) التحقق من ماركات البيك أب والماركات الرئيسية ===");
+const pickupBrands = brandsForVehicleType("pickup");
+const pickupIds = pickupBrands.map((b) => b.id);
+ok("البيك أب يحوي سكودا", pickupIds.includes("skoda"));
+ok("البيك أب يحوي فولكس فاغن", pickupIds.includes("volkswagen"));
+ok("البيك أب يحوي شيري", pickupIds.includes("chery"));
+ok("البيك أب يحوي زاز دايو", pickupIds.includes("zaz"));
+ok("البيك أب يحوي تويوتا", pickupIds.includes("toyota"));
+ok("البيك أب يحوي ميتسوبيشي", pickupIds.includes("mitsubishi"));
+ok("البيك أب يحوي نيسان", pickupIds.includes("nissan"));
+ok("البيك أب يحوي ايسوزو", pickupIds.includes("isuzu"));
+ok("البيك أب يحوي خيار أخرى", pickupIds.includes("other"));
+ok("ماركات البيك أب لا تحوي أرقاماً في أسمائها", pickupBrands.every((b) => !/\d/.test(b.name)));
+ok("ماركات البيك أب لا تحوي أقواساً", pickupBrands.every((b) => !b.name.includes("(")));
+
+import { BRANDS } from "../lib/brands";
+const mainIds = BRANDS.map((b) => b.id);
+ok("الماركات الرئيسية تحوي شيري", mainIds.includes("chery"));
+ok("الماركات الرئيسية تحوي زاز دايو", mainIds.includes("zaz"));
+ok("الماركات الرئيسية تحوي سكودا", mainIds.includes("skoda"));
+ok("الماركات الرئيسية تحوي فولكس فاغن", mainIds.includes("volkswagen"));
+
+console.log("\n=== 9) التحقق من البحث عن الماركات عبر brandById ===");
 ok("العثور على ماسي عبر brandById", Boolean(brandById("massey")?.name.includes("ماسي")));
 ok("العثور على فرات عبر brandById", brandById("furat")?.name === "فرات");
 ok("العثور على بارت عبر brandById", brandById("moto-bart")?.name === "بارت");
 ok("العثور على كاتربيلر عبر brandById", brandById("cat")?.name === "كاتربيلر");
 ok("العثور على مان عبر brandById", brandById("man")?.name === "مان");
+ok("العثور على زاز دايو عبر brandById", brandById("zaz")?.name === "زاز دايو");
+ok("العثور على شيري عبر brandById", brandById("chery")?.name === "شيري");
 
-console.log("\n=== 8) التحقق من استنتاج نوع الهيكل bodyTypeOfAd ===");
+console.log("\n=== 10) التحقق من استنتاج نوع الهيكل bodyTypeOfAd ===");
 import { bodyTypeOfAd } from "../lib/vehicleBodies";
 ok("ماسي ← جرار زراعي", bodyTypeOfAd({ brandId: "massey" }) === "tractor");
 ok("فرات ← جرار زراعي", bodyTypeOfAd({ brandId: "furat" }) === "tractor");

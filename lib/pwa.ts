@@ -5,7 +5,7 @@
    - purgeAndReload: حذف كل الكاشات وإلغاء تسجيل العاملين ثم إعادة تحميل بلا كاش وسيط.
    ========================================================================== */
 
-export const APP_VERSION = "3.11.1";
+export const APP_VERSION = "3.11.2";
 export const APP_BUILD = "2026-10-25";
 export const APP_RELEASE = `${APP_VERSION} · ${APP_BUILD}`;
 

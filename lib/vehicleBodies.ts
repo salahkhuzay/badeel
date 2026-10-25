@@ -150,7 +150,7 @@ const BRAND_DEFAULT: Record<string, BodyTypeId> = {
   fiat: "sedan", ferrari: "coupe", porsche: "suv", "rolls-royce": "sedan", volvo: "sedan",
   lexus: "sedan", infiniti: "sedan", isuzu: "pickup", subaru: "sedan",
   "samsung-motors": "sedan", ssangyong: "suv", saipa: "sedan", proton: "sedan",
-  tesla: "sedan", iveco: "truck", man: "truck", scania: "truck",
+  tesla: "sedan", chery: "sedan", zaz: "sedan", iveco: "truck", man: "truck", scania: "truck",
   "moto-honda": "motorcycle", "moto-yamaha": "motorcycle", "moto-suzuki": "motorcycle",
   "moto-kawasaki": "motorcycle", "moto-dayang": "motorcycle", "moto-haojue": "motorcycle",
   "moto-rks": "motorcycle",
