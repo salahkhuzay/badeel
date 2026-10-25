@@ -1241,7 +1241,6 @@ export default function PostAdPage() {
                     customModel={form.customModel}
                     modelPlaceholder={vehicleModelPlaceholder}
                     placeholder={`ابحث في ماركات ${VEHICLE_TYPES.find((v) => v.id === form.vehicleType)?.name || "المركبة"}...`}
-                    bodyFilter={form.bodyType || "all"}
                     error={errors.brandId || errors.modelId}
                     onChange={(patch) => {
                       if (patch.brandId !== undefined) set("brandId", patch.brandId);

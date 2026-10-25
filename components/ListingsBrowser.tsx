@@ -48,6 +48,7 @@ import {
   dealTypesFor,
 } from "@/lib/taxonomy";
 import {
+  ALL_BRANDS,
   BRANDS,
   PHONE_BRANDS,
   YEAR_RANGES,
@@ -175,7 +176,7 @@ export default function ListingsBrowser({
 
   const brandList = useMemo(() => {
     const q = brandQuery.trim();
-    const list = BRANDS.filter((b) => (brandCounts.get(b.id) ?? 0) > 0);
+    const list = ALL_BRANDS.filter((b) => (brandCounts.get(b.id) ?? 0) > 0);
     if (!q) return list;
     return list.filter((b) => brandMatches(b, q));
   }, [brandQuery, brandCounts]);

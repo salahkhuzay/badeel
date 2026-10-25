@@ -141,5 +141,15 @@ ok("العثور على بارت عبر brandById", brandById("moto-bart")?.name
 ok("العثور على كاتربيلر عبر brandById", brandById("cat")?.name === "كاتربيلر");
 ok("العثور على مان عبر brandById", brandById("man")?.name === "مان");
 
+console.log("\n=== 8) التحقق من استنتاج نوع الهيكل bodyTypeOfAd ===");
+import { bodyTypeOfAd } from "../lib/vehicleBodies";
+ok("ماسي ← جرار زراعي", bodyTypeOfAd({ brandId: "massey" }) === "tractor");
+ok("فرات ← جرار زراعي", bodyTypeOfAd({ brandId: "furat" }) === "tractor");
+ok("مان ← شاحنة", bodyTypeOfAd({ brandId: "man" }) === "truck");
+ok("بارت ← دراجة نارية", bodyTypeOfAd({ brandId: "moto-bart" }) === "motorcycle");
+ok("كاتربيلر ← آليات ثقيلة", bodyTypeOfAd({ brandId: "cat" }) === "machinery");
+ok("هاوفي ← نقل خفيف", bodyTypeOfAd({ brandId: "hafei" }) === "lighttruck");
+ok("يوتونغ ← باص", bodyTypeOfAd({ brandId: "yutong" }) === "bus");
+
 console.log(`\n══ النتيجة الإجمالية: ${pass} نجاح · ${fail} فشل ══`);
 if (fail > 0) process.exit(1);

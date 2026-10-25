@@ -1,4 +1,5 @@
 import { BRANDS, MOTO_BRANDS, EQUIP_BRANDS, type Brand, type BrandModel } from "./brands";
+import { SCOPED_SPECIAL_BRANDS } from "./vehicle-scoped-brands";
 
 /* ==========================================================================
    أنواع السيارات (هيكل المركبة) — بديل | Badeel
@@ -154,7 +155,15 @@ const BRAND_DEFAULT: Record<string, BodyTypeId> = {
   "moto-kawasaki": "motorcycle", "moto-dayang": "motorcycle", "moto-haojue": "motorcycle",
   "moto-rks": "motorcycle",
   cat: "machinery", komatsu: "machinery", jcb: "machinery", bobcat: "machinery",
-  massey: "tractor", newholland: "tractor", johndeere: "tractor",
+  sany: "machinery", liugong: "machinery", shantui: "machinery", boom: "machinery",
+  bomag: "machinery", ammann: "machinery",
+  massey: "tractor", newholland: "tractor", "new-holland": "tractor", johndeere: "tractor",
+  "john-deere": "tractor", lovol: "tractor", someca: "tractor", zoomlion: "tractor",
+  tumosan: "tractor", hattat: "tractor", pars: "tractor", kubota: "tractor",
+  universal: "tractor", solis: "tractor", tafe: "tractor",
+  shacman: "truck", sinotruk: "truck", daf: "truck", "renault-trucks": "truck",
+  faw: "truck", kamaz: "truck", maz: "truck", hafei: "lighttruck",
+  "king-long": "bus", "golden-dragon": "bus", yutong: "bus", higer: "bus", ankai: "bus",
   "moto-jialing": "motorcycle", "moto-loncin": "motorcycle", "moto-bart": "motorcycle",
   "moto-aitani": "motorcycle", "moto-aqqad": "motorcycle", "moto-delta": "motorcycle",
   "moto-yadea": "ebike", "moto-tailg": "ebike",
@@ -169,7 +178,10 @@ const FAMILY: Record<string, "moto" | "equip"> = {
   "moto-jialing": "moto", "moto-loncin": "moto", "moto-bart": "moto", "moto-aitani": "moto",
   "moto-aqqad": "moto", "moto-delta": "moto", "moto-yadea": "moto", "moto-tailg": "moto",
   cat: "equip", komatsu: "equip", jcb: "equip", bobcat: "equip",
-  massey: "equip", newholland: "equip", johndeere: "equip", "other-equip": "equip",
+  sany: "equip", liugong: "equip", shantui: "equip", boom: "equip", bomag: "equip", ammann: "equip",
+  massey: "equip", newholland: "equip", "new-holland": "equip", johndeere: "equip", "john-deere": "equip",
+  lovol: "equip", someca: "equip", zoomlion: "equip", tumosan: "equip", hattat: "equip", pars: "equip",
+  kubota: "equip", universal: "equip", solis: "equip", tafe: "equip", "other-equip": "equip",
   "hp-hyundai": "equip", "hp-lovol": "equip", zetor: "equip", miger: "equip",
   furat: "equip", "hp-fiat": "equip", mahindra: "equip",
 };
@@ -199,8 +211,13 @@ export function bodyTypeOfModel(brandId: string | undefined, model: BrandModel):
   return allowed.includes(fallback) ? fallback : family === "moto" ? "motorcycle" : family === "equip" ? "machinery" : "other";
 }
 
-/** كل ماركات المركبات (سيارات + دراجات + آليات) بلا «أخرى» */
-export const ALL_VEHICLE_BRANDS: Brand[] = [...BRANDS, ...MOTO_BRANDS, ...EQUIP_BRANDS];
+/** كل ماركات المركبات (سيارات + دراجات + آليات + الماركات المخصصة) بلا «أخرى» */
+export const ALL_VEHICLE_BRANDS: Brand[] = [
+  ...BRANDS,
+  ...MOTO_BRANDS,
+  ...EQUIP_BRANDS,
+  ...SCOPED_SPECIAL_BRANDS,
+];
 
 export interface BodyTypeBrand {
   brand: Brand;
